@@ -7,7 +7,8 @@ import CSDC.Config (Config (..), readConfig, showConfig)
 import CSDC.Network.Mock (Store, makeEmptyStore, runMock)
 
 import Control.Concurrent.MVar (MVar)
-import Network.Wai.Handler.Warp (run)
+import Network.Wai.Handler.Warp (runSettings, setPort, setLogger, defaultSettings)
+import Network.Wai.Logger (withStdoutLogger)
 import Network.Wai.Middleware.Cors as Cors
 import Servant (Application, Proxy (..), serve, hoistServer)
 import System.Environment (getArgs)
@@ -25,9 +26,16 @@ main =
           putStrLn "Running the server with the following configuration:\n"
           showConfig config
           putStrLn ""
-          store <- makeEmptyStore
-          run (config_port config) (application (config_path config) store)
+          mainWith config
 
+mainWith :: Config -> IO ()
+mainWith config = do
+  store <- makeEmptyStore
+  withStdoutLogger $ \logger -> do
+    let port = config_port config
+        path = config_path config
+        settings = setPort port $ setLogger logger defaultSettings
+    runSettings settings $ application path store
 
 proxy :: Proxy API
 proxy = Proxy @API

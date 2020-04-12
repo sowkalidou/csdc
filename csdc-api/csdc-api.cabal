@@ -64,6 +64,7 @@ executable csdc-server
   build-depends:
     csdc-api,
     wai-cors,
+    wai-logger,
     warp
   hs-source-dirs:
     app
