@@ -1,4 +1,4 @@
-module CSDC.Error 
+module CSDC.Error
   ( Error (..)
   , IsError (..)
   , HasError

@@ -28,7 +28,7 @@ let
             # Haskell
             localHaskellPackages.ghcid
             # Elm
-            elmPackages.elm
+            #elmPackages.elm
             elm2nix
           ];
       };

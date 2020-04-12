@@ -20,29 +20,43 @@ common dependencies
   build-depends:
     csdc-base,
     aeson,
+    aeson-pretty,
     base,
+    bytestring,
     ghc-prim,
     servant,
     servant-server,
     text
 
+common extensions
+  default-extensions:
+    DataKinds
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveTraversable
+    DerivingStrategies
+    DerivingVia
+    GeneralizedNewtypeDeriving
+    KindSignatures
+    LambdaCase
+    TypeOperators
+
 library
-  import: dependencies
+  import: dependencies, extensions
   exposed-modules:
+    CSDC.Config
+    CSDC.API
     CSDC.API.Network
   hs-source-dirs:
     src
-  default-extensions:
-    DataKinds
-    KindSignatures
-    TypeOperators
   ghc-options:
     -Wall
   default-language:
     Haskell2010
 
 executable csdc-server
-  import: dependencies
+  import: dependencies, extensions
   main-is:
     Main.hs
   build-depends:

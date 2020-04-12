@@ -19,6 +19,7 @@ cabal-version:
 
 library
   exposed-modules:
+    CSDC.Aeson
     CSDC.Data.Id
     CSDC.Data.IdMap
     CSDC.Data.RIO
@@ -26,6 +27,7 @@ library
     CSDC.Network.Class
     CSDC.Network.Mock
     CSDC.Network.Types
+    CSDC.Prelude
   build-depends:
     aeson,
     base,
@@ -40,6 +42,7 @@ library
     ConstraintKinds
     DeriveFoldable
     DeriveFunctor
+    DeriveGeneric
     DeriveTraversable
     DerivingStrategies
     DerivingVia

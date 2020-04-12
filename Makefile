@@ -1,25 +1,47 @@
 .DEFAULT_GOAL := help
 
 ################################################################################
+# Server
+
+serve: ## Launch the server.
+	cabal v2-run -- csdc-server config.json
+
+.PHONY: serve
+
+################################################################################
+# GUI
+
+gui-build: ## Build the GUI into www/index.html
+	mkdir -p www
+	cd csdc-gui && elm make src/Main.elm --output ../www/index.html
+
+.PHONY: gui-build
+
+################################################################################
 # Haskell development
 
 ghcid-api: ## Launch ghcid for csdc-api.
-	ghcid --command "cabal new-repl csdc-api"
+	ghcid --command "cabal v2-repl csdc-api"
 
 .PHONY: ghcid-api
 
 ghcid-base: ## Launch ghcid for csdc-base.
-	ghcid --command "cabal new-repl csdc-base"
+	ghcid --command "cabal v2-repl csdc-base"
 
 .PHONY: ghcid-base
+
+ghcid-server: ## Launch ghcid for the server executable.
+	ghcid --command "cabal v2-repl csdc-api:csdc-server"
+
+.PHONY: ghcid-server
 
 ################################################################################
 # Elm development
 
-elm-reload: ## Update Nix files for Elm.
-  cd csdc-gui && elm2nix convert > elm-srcs.nix
+elm-nix-update: ## Update Nix files for Elm.
+	cd csdc-gui && elm2nix convert > elm-srcs.nix
 
-.PHONY: elm-reload
+.PHONY: elm-nix-update
 
 ################################################################################
 # Help
