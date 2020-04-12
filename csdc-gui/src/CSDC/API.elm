@@ -8,7 +8,7 @@ import Json.Decode as D
 -- Helpers
 
 baseUrl : String
-baseUrl = "http://localhost:8080/"
+baseUrl = "http://localhost:8080/api/"
 
 decodeNull : D.Decoder ()
 decodeNull =

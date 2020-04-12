@@ -26,7 +26,8 @@ common dependencies
     ghc-prim,
     servant,
     servant-server,
-    text
+    text,
+    wai-app-static
 
 common extensions
   default-extensions:
@@ -40,6 +41,7 @@ common extensions
     GeneralizedNewtypeDeriving
     KindSignatures
     LambdaCase
+    OverloadedStrings
     TypeOperators
 
 library

@@ -28,6 +28,7 @@ main =
           store <- makeEmptyStore
           run (config_port config) (application (config_path config) store)
 
+
 proxy :: Proxy API
 proxy = Proxy @API
 
