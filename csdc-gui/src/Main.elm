@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import CSDC.API as API
+import CSDC.Component.Explorer as Explorer
 import CSDC.Component.Menu as Menu
 import CSDC.Component.NewPerson as NewPerson
 import CSDC.Component.NewUnit as NewUnit
@@ -13,6 +14,7 @@ import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Input as Input
 import Html exposing (Html)
+import List
 import Maybe
 import Maybe exposing (withDefault)
 import String
@@ -33,20 +35,18 @@ main =
 -- Model
 
 type alias Model =
-  { inputId : Maybe (Id Person)
-  , outputPerson : Maybe Person
+  { menu: Menu.Model
   , newPerson : NewPerson.Model
   , newUnit : NewUnit.Model
-  , menu: Menu.Model
+  , explorer : Explorer.Model
   }
 
 initial : Model
 initial =
-  { inputId = Nothing
-  , outputPerson = Nothing
+  { menu = Menu.initial
+  , explorer = Explorer.initial
   , newPerson = NewPerson.initial
   , newUnit = NewUnit.initial
-  , menu = Menu.initial
   }
 
 init : () -> (Model, Cmd Msg)
@@ -59,6 +59,7 @@ type Msg
   = NewPersonMsg NewPerson.Msg
   | NewUnitMsg NewUnit.Msg
   | MenuMsg Menu.Msg
+  | ExplorerMsg Explorer.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -87,6 +88,14 @@ update msg model =
         , Cmd.none
         )
 
+    ExplorerMsg m ->
+      let
+        (explorer, cmd) = Explorer.update m model.explorer
+      in
+        ( { model | explorer = explorer }
+        , Cmd.map ExplorerMsg cmd
+        )
+
 --------------------------------------------------------------------------------
 -- Subscriptions
 
@@ -111,7 +120,11 @@ menuPanel model =
 mainPanel : Model -> Element Msg
 mainPanel model =
   column
-    [ height fill, width <| fillPortion 5, spacing 10 ] <|
+    [ height fill
+    , width <| fillPortion 5
+    , spacing 10
+    , padding 10
+    ] <|
     case model.menu of
       Menu.NewPerson ->
         [ Element.map NewPersonMsg <| NewPerson.view model.newPerson
@@ -122,7 +135,8 @@ mainPanel model =
         ]
 
       Menu.Explorer ->
-        []
+        List.map (Element.map ExplorerMsg) <|
+        Explorer.view model.explorer
 
       Menu.Studio ->
         []
