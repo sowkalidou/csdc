@@ -1,11 +1,10 @@
 module Main exposing (..)
 
 import CSDC.API as API
+import CSDC.Component.Menu as Menu
+import CSDC.Component.NewPerson as NewPerson
+import CSDC.Component.NewUnit as NewUnit
 import CSDC.Types exposing (..)
-import CSDC.View.Menu as Menu
-import CSDC.View.Input as CSDCInput
-import CSDC.View.NewPerson as NewPerson
-import CSDC.View.NewUnit as NewUnit
 
 import Browser
 import Element exposing (..)

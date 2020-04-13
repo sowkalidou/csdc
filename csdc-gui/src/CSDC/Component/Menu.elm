@@ -1,4 +1,4 @@
-module CSDC.View.Menu exposing
+module CSDC.Component.Menu exposing
   ( Model (..)
   , initial
   , Msg (..)

@@ -1,4 +1,4 @@
-module CSDC.View.Notification exposing
+module CSDC.Notification exposing
   ( Notification (..)
   , view
   , reset

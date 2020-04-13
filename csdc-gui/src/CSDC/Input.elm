@@ -1,4 +1,4 @@
-module CSDC.View.Input exposing
+module CSDC.Input exposing
   ( button
   )
 

@@ -1,4 +1,4 @@
-module CSDC.View.NewPerson exposing
+module CSDC.Component.NewUnit exposing
   ( Model
   , initial
   , Msg
@@ -7,9 +7,9 @@ module CSDC.View.NewPerson exposing
   )
 
 import CSDC.API as API
-import CSDC.View.Input as CSDCInput
-import CSDC.View.Notification exposing (Notification)
-import CSDC.View.Notification as Notification
+import CSDC.Input
+import CSDC.Notification as Notification
+import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
 
 import Element exposing (..)
@@ -62,12 +62,12 @@ update msg model =
           )
         Just name ->
           ( { model | notification = Notification.Processing }
-          , Cmd.map APIMsg <| API.insertPerson (Person name)
+          , Cmd.map APIMsg <| API.insertUnit (Unit name)
           )
 
     APIMsg apimsg ->
       case apimsg of
-        API.InsertPerson result ->
+        API.InsertUnit result ->
           case result of
             Err err ->
               ( { model | notification = Notification.HttpError err }
@@ -93,7 +93,7 @@ view model =
   column [ width <| fillPortion 2, padding 10, spacing 10 ] <|
     [ row
         [ Font.bold, Font.size 30 ]
-        [ text "New Person" ]
+        [ text "New Unit" ]
     , Input.text
         []
         { onChange = InputName
@@ -101,5 +101,5 @@ view model =
         , label = Input.labelAbove [] (text "Name")
         , text = Maybe.withDefault "" model.name
         }
-    , CSDCInput.button Submit "Submit"
+    , CSDC.Input.button Submit "Submit"
     ] ++ Notification.view model.notification
