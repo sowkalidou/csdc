@@ -1,4 +1,10 @@
-module CSDC.View.Menu exposing (..)
+module CSDC.View.Menu exposing
+  ( Model (..)
+  , initial
+  , Msg (..)
+  , update
+  , view
+  )
 
 import CSDC.Types exposing (..)
 import CSDC.API as API
@@ -15,30 +21,42 @@ import Maybe
 import Maybe exposing (withDefault)
 import String
 
-type View
+--------------------------------------------------------------------------------
+-- Model
+
+type Model
   = NewPerson
   | NewUnit
   | Explorer
+  | Studio
 
-type alias Model =
-  { view : View
-  }
+initial : Model
+initial = NewPerson
 
-type Msg = SetView View
+--------------------------------------------------------------------------------
+-- Update
 
-item : Model -> String -> View -> Element Msg
+type Msg = SetModel Model
+
+update : Msg -> Model -> Model
+update (SetModel model) _ = model
+
+--------------------------------------------------------------------------------
+-- View
+
+item : Model -> String -> Model -> Element Msg
 item model name this =
   row
-    [ if model.view == this then
+    [ if model == this then
         Background.color <| rgb255 142 151 164
       else
         Background.color <| rgb255 92 99 118
-    , if model.view == this then
+    , if model == this then
         Font.bold
       else
         Font.regular
     , width fill
-    , onClick <| SetView this
+    , onClick <| SetModel this
     , padding 10
     ]
     [ el [ centerX ] (text name)
@@ -69,5 +87,6 @@ view model =
     , item model "New Person" NewPerson
     , item model "New Unit" NewUnit
     , item model "Explorer" Explorer
+    , item model "Studio" Studio
     ]
 
