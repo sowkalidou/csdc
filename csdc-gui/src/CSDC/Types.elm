@@ -41,6 +41,9 @@ decodeIdMap decode =
   in
     Decoder.map (IdMap << Dict.fromList) (Decoder.list decodePair)
 
+dictIdMap : IdMap a -> Dict Int a
+dictIdMap (IdMap a) = a
+
 --------------------------------------------------------------------------------
 -- Person
 

@@ -7,6 +7,7 @@ module CSDC.Network.Mock
   , makeEmptyStore
   ) where
 
+import CSDC.Data.Id (Id (..))
 import CSDC.Data.IdMap (IdMap)
 import CSDC.Data.RIO (RIO, runRIO)
 import CSDC.Network.Types (Person (..), Unit (..), Member (..), Subpart (..))
@@ -27,6 +28,7 @@ data Store = Store
   , _store_unit :: IdMap Unit
   , _store_member :: IdMap Member
   , _store_subpart :: IdMap Subpart
+  , _store_root :: Id Unit
   } deriving (Show, Eq)
 
 makeLenses ''Store
@@ -35,10 +37,14 @@ makeEmptyStore :: MonadIO m => m (MVar Store)
 makeEmptyStore = liftIO $ newMVar
   Store
     { _store_person = IdMap.empty
-    , _store_unit = IdMap.empty
+    , _store_unit = IdMap.insert uid unit IdMap.empty
     , _store_member = IdMap.empty
     , _store_subpart = IdMap.empty
+    , _store_root = uid
     }
+  where
+    uid = Id 0
+    unit = Unit "CS-DC"
 
 --------------------------------------------------------------------------------
 -- Mock implementation
@@ -66,6 +72,8 @@ instance MonadIO m => MonadNetwork (Mock m) where
     modifying store_person (IdMap.delete uid)
 
   -- Unit manipulation
+  rootUnit =
+    use store_root
 
   selectUnit uid =
     IdMap.lookup uid <$> use store_unit

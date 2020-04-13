@@ -29,11 +29,14 @@ servePersonAPI =
   :<|> updatePerson
   :<|> deletePerson
 
-type UnitAPI = CRUD "unit" Unit
+type UnitAPI =
+       "unit" :> "root" :> Get '[JSON] (Id Unit)
+  :<|> CRUD "unit" Unit
 
 serveUnitAPI :: MonadNetwork m => ServerT UnitAPI m
 serveUnitAPI =
-       selectUnit
+       rootUnit
+  :<|> selectUnit
   :<|> insertUnit
   :<|> updateUnit
   :<|> deleteUnit

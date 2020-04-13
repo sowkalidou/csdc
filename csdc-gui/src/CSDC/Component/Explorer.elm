@@ -6,7 +6,9 @@ module CSDC.Component.Explorer exposing
   , view
   )
 
+import CSDC.API as API
 import CSDC.Component.Panel as Panel
+import CSDC.Types exposing (..)
 
 import Dict
 import Element exposing (..)
@@ -20,34 +22,33 @@ type alias Model =
   , right : Panel.Model
   }
 
-initial : Model
-initial =
-  { left = Panel.initial "Parents"
-  , center = Panel.initial "Units"
-  , right = Panel.initial "Children"
-  }
+initial : () -> (Model, Cmd Msg)
+initial _ =
+  ( { left = Panel.initial "Parents"
+    , center = Panel.initial "Units"
+    , right = Panel.initial "Children"
+    }
+  , Cmd.map (APIMsg Root) <| API.rootUnit
+  )
 
 --------------------------------------------------------------------------------
 -- Update
 
+type Component
+  = Left
+  | Center
+  | Right
+  | Root
+
 type Msg
-  = InitRequest
-  | InitResponse
-  | LeftMsg Panel.Msg
+  = LeftMsg Panel.Msg
   | CenterMsg Panel.Msg
   | RightMsg Panel.Msg
+  | APIMsg Component API.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    InitRequest ->
-      ( model
-      , Cmd.none
-      )
-    InitResponse ->
-      ( model
-      , Cmd.none
-      )
     LeftMsg m ->
       ( { model | left = Panel.update m model.left }
       , Cmd.none
@@ -60,6 +61,50 @@ update msg model =
       ( { model | right = Panel.update m model.right }
       , Cmd.none
       )
+    -- XXX: use component
+    APIMsg component m ->
+      case m of
+        API.RootUnit res ->
+          case res of
+            -- XXX: report error
+            Err err ->
+               ( model
+               , Cmd.none
+               )
+
+            Ok id ->
+               ( model
+               , Cmd.map (APIMsg Root) <| API.selectUnit id
+               )
+
+        -- XXX: Show unit in placeholder
+        API.SelectUnit (Id id) res ->
+          case res of
+            -- XXX: report error
+            Err err ->
+               ( model
+               , Cmd.none
+               )
+
+            Ok unit ->
+              case component of
+                Root ->
+                  let
+                    dict = Dict.singleton id unit.name
+                    center = Panel.update (Panel.SetItems dict) model.center
+                  in
+                    ( { model | center = center }
+                    , Cmd.none
+                    )
+                -- XXX: manage other components
+                _ ->
+                  ( model
+                  , Cmd.none
+                  )
+        _ ->
+          ( model
+          , Cmd.none
+          )
 
 --------------------------------------------------------------------------------
 -- View

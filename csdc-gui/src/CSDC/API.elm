@@ -22,7 +22,8 @@ type Msg
   | InsertPerson (Result Http.Error (Id Person))
   | UpdatePerson (Result Http.Error ())
   | DeletePerson (Result Http.Error ())
-  | SelectUnit (Result Http.Error Unit)
+  | RootUnit (Result Http.Error (Id Unit))
+  | SelectUnit (Id Unit) (Result Http.Error Unit)
   | InsertUnit (Result Http.Error (Id Unit))
   | UpdateUnit (Result Http.Error ())
   | DeleteUnit (Result Http.Error ())
@@ -67,11 +68,18 @@ deletePerson = delete "person" DeletePerson
 --------------------------------------------------------------------------------
 -- Unit
 
+rootUnit : Cmd Msg
+rootUnit =
+  Http.get
+    { url = baseUrl ++ "unit/root"
+    , expect = Http.expectJson RootUnit decodeId
+    }
+
 selectUnit : Id Unit -> Cmd Msg
 selectUnit id =
   Http.get
     { url = baseUrl ++ "unit/" ++ idToString id
-    , expect = Http.expectJson SelectUnit decodeUnit
+    , expect = Http.expectJson (SelectUnit id) decodeUnit
     }
 
 insertUnit : Unit -> Cmd Msg

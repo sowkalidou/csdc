@@ -19,6 +19,7 @@ class Monad m => MonadNetwork m where
   deletePerson :: Id Person -> m ()
 
   -- Unit manipulation
+  rootUnit :: m (Id Unit)
 
   selectUnit :: Id Unit -> m (Maybe Unit)
 

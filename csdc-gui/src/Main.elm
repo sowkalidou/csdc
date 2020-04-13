@@ -41,16 +41,18 @@ type alias Model =
   , explorer : Explorer.Model
   }
 
-initial : Model
-initial =
-  { menu = Menu.initial
-  , explorer = Explorer.initial
-  , newPerson = NewPerson.initial
-  , newUnit = NewUnit.initial
-  }
-
 init : () -> (Model, Cmd Msg)
-init _ = (initial, Cmd.none)
+init _ =
+  let
+    (explorer, cmd) = Explorer.initial ()
+  in
+    ( { menu = Menu.initial
+      , explorer = explorer
+      , newPerson = NewPerson.initial
+      , newUnit = NewUnit.initial
+      }
+    , Cmd.map ExplorerMsg cmd
+    )
 
 --------------------------------------------------------------------------------
 -- Update
