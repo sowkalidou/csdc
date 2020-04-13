@@ -4,6 +4,7 @@ import CSDC.API as API
 import CSDC.Types exposing (..)
 import CSDC.View.Menu as Menu
 import CSDC.View.Input as CSDCInput
+import CSDC.View.NewPerson as NewPerson
 
 import Browser
 import Element exposing (..)
@@ -38,8 +39,7 @@ noCmd model = (model, Cmd.none)
 type alias Model =
   { inputId : Maybe (Id Person)
   , outputPerson : Maybe Person
-  , inputPerson : Maybe Person
-  , outputId : Maybe (Id Person)
+  , newPerson : NewPerson.Model
   , view: Menu.View
   }
 
@@ -47,8 +47,7 @@ initial : Model
 initial =
   { inputId = Nothing
   , outputPerson = Nothing
-  , inputPerson = Nothing
-  , outputId = Nothing
+  , newPerson = NewPerson.initial
   , view = Menu.NewPerson
   }
 
@@ -60,9 +59,8 @@ init _ = noCmd initial
 
 type Msg
   = InputId String
-  | InputPerson String
   | Get
-  | Post
+  | NewPersonMsg NewPerson.Msg
   | APIMsg API.Msg
   | MenuMsg Menu.Msg
 
@@ -72,24 +70,18 @@ update msg model =
     InputId s ->
       noCmd { model | inputId = idFromString s }
 
-    InputPerson s ->
+    NewPersonMsg m ->
       let
-        ms =
-         if String.isEmpty s
-         then Nothing
-         else Just (Person s)
+        (newPerson, cmd) = NewPerson.update m model.newPerson
       in
-        noCmd { model | inputPerson = ms }
+        ( { model | newPerson = newPerson }
+        , Cmd.map NewPersonMsg cmd
+        )
 
     Get ->
       case model.inputId of
         Nothing -> noCmd model
         Just id -> (model, Cmd.map APIMsg (API.selectPerson id))
-
-    Post ->
-      case model.inputPerson of
-        Nothing -> noCmd model
-        Just person -> (model, Cmd.map APIMsg (API.insertPerson person))
 
     MenuMsg menumsg ->
       case menumsg of
@@ -104,13 +96,6 @@ update msg model =
               noCmd model
             Ok person ->
               noCmd { model | outputPerson = Just person }
-
-        API.InsertPerson result ->
-          case result of
-            Err e ->
-              noCmd model
-            Ok id ->
-              noCmd { model | outputId = Just id }
 
         _ ->
           noCmd model
@@ -141,7 +126,7 @@ mainPanel model =
   column
     [ height fill, width <| fillPortion 5, spacing 10 ] <|
     case model.view of
-      Menu.NewPerson ->
+      Menu.NewUnit ->
         [ column [ width <| fillPortion 2, padding 10, spacing 10 ]
           [ Input.text
               []
@@ -154,18 +139,8 @@ mainPanel model =
           , text <| (withDefault (Person "Nothing") model.outputPerson).name
           ]
         ]
-      Menu.NewUnit ->
-        [ column [ width <| fillPortion 2, padding 10, spacing 10 ]
-          [ Input.text
-              []
-              { onChange = InputPerson
-              , placeholder = Nothing
-              , label = Input.labelAbove [] (text "Person")
-              , text = (withDefault (Person "") model.inputPerson).name
-              }
-          , CSDCInput.button Post "Post"
-          , text <| withDefault "" <| Maybe.map idToString model.outputId
-          ]
+      Menu.NewPerson ->
+        [ Element.map NewPersonMsg <| NewPerson.view model.newPerson
         ]
       Menu.Explorer ->
         []

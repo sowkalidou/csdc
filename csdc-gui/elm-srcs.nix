@@ -1,5 +1,10 @@
 {
 
+      "andrewMacmurray/elm-delay" = {
+        sha256 = "0cizz1l370aambnygvycn7fv0zbgdjrf1fzvnzimswbwd8n38i1j";
+        version = "3.0.0";
+      };
+
       "mdgriffith/elm-ui" = {
         sha256 = "17iayf13r5fy38xlliaizi6af12jp1yw2vjxyhi6qf16xy579vn8";
         version = "1.1.5";

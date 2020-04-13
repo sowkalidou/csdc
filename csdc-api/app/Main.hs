@@ -37,9 +37,6 @@ mainWith config = do
         settings = setPort port $ setLogger logger defaultSettings
     runSettings settings $ application path store
 
-proxy :: Proxy API
-proxy = Proxy @API
-
 application :: FilePath -> MVar Store -> Application
 application path store =
     Cors.cors (\_ -> Just options) $
@@ -47,4 +44,6 @@ application path store =
   where
     options = Cors.simpleCorsResourcePolicy
       { corsRequestHeaders = Cors.simpleHeaders }
+    proxy = Proxy @API
+
 
