@@ -16,7 +16,7 @@ main =
     Just config -> do
       let
         application request respond = do
-          token <- getToken request
+          let token = getToken request
           record <- getUserRecord Production (token_access token) (token_orcid token)
           let
             response = case record of

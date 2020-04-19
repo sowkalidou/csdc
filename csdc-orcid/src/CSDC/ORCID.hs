@@ -29,7 +29,17 @@ module CSDC.ORCID
 
 import CSDC.ORCID.OAuth2 (OAuth2 (..), getAccessToken)
 
-import Data.Aeson (FromJSON (..), Value, withObject, withText, (.:), (.:?))
+import Data.Aeson
+  ( FromJSON (..)
+  , ToJSON (..)
+  , Value (..)
+  , withObject
+  , withText
+  , object
+  , (.:)
+  , (.:?)
+  , (.=)
+  )
 import Data.ByteString.Lazy (ByteString)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
@@ -60,7 +70,7 @@ data Config = Config
   { config_id :: Text
   , config_secret :: Text
   , config_endpoint :: Endpoint
-  } deriving Show
+  } deriving (Show, Eq)
 
 instance FromJSON Config where
   parseJSON = withObject "Config" $ \o ->
@@ -69,14 +79,25 @@ instance FromJSON Config where
       (o .: "secret") <*>
       (o .: "endpoint")
 
+instance ToJSON Config where
+  toJSON (Config uid secret endpoint) = object
+    [ "id" .= uid
+    , "secret" .= secret
+    , "endpoint" .= endpoint
+    ]
+
 data Endpoint = Production | Sandbox
-  deriving Show
+  deriving (Show, Eq)
 
 instance FromJSON Endpoint where
   parseJSON = withText "Endpoint" $ \case
     "production" -> pure Production
     "sandbox"-> pure Sandbox
     _ -> fail "Endpoint must be 'production' or 'sandbox'."
+
+instance ToJSON Endpoint where
+  toJSON Production = String "production"
+  toJSON Sandbox = String "sandbox"
 
 makeHost :: Endpoint -> Text
 makeHost Production = "https://orcid.org"
@@ -160,13 +181,13 @@ instance FromJSON Token where
       (o .: "orcid") <*>
       (o .: "name")
 
-getToken :: HasCallStack => Request -> IO Token
+getToken :: HasCallStack => Request -> Token
 getToken request =
   case getAccessToken request of
     Nothing ->
       error "No user identity after authorization middleware."
     Just token ->
-      pure token
+      token
 
 --------------------------------------------------------------------------------
 -- Get Record

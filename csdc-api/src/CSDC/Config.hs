@@ -8,6 +8,8 @@ module CSDC.Config
 
 import CSDC.Prelude
 
+import qualified CSDC.ORCID as ORCID
+
 import Data.Aeson (decodeFileStrict)
 import Data.Aeson.Encode.Pretty (encodePretty)
 
@@ -16,6 +18,7 @@ import qualified Data.ByteString.Lazy.Char8 as ByteString
 data Config = Config
   { config_port :: Int
   , config_path :: FilePath
+  , config_orcid :: ORCID.Config
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Config
 

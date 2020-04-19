@@ -4,7 +4,7 @@ module Main where
 
 import CSDC.API (API, serveAPI)
 import CSDC.Config (Config (..), readConfig, showConfig)
-import CSDC.ORCID (getUserIdentity)
+import CSDC.ORCID (getToken, authenticationMiddleware)
 import CSDC.Network.Mock (Store, makeEmptyStore, runMock)
 
 import Control.Concurrent.MVar (MVar)
@@ -32,11 +32,12 @@ main =
 mainWith :: Config -> IO ()
 mainWith config = do
   store <- makeEmptyStore
+  orcidMiddleware <- authenticationMiddleware (config_orcid config)
   withStdoutLogger $ \logger -> do
     let port = config_port config
         path = config_path config
         settings = setPort port $ setLogger logger defaultSettings
-    runSettings settings $ application path store
+    runSettings settings $ orcidMiddleware $ application path store
 
 application :: FilePath -> MVar Store -> Application
 application path store =
@@ -45,7 +46,7 @@ application path store =
     serve proxy (hoistServer proxy (runMock store) (serveAPI path))
   where
     printIdentity app req res = do
-      print $ getUserIdentity req
+      print $ getToken req
       app req res
 
     options = Cors.simpleCorsResourcePolicy
