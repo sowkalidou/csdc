@@ -1,3 +1,4 @@
 packages:
-  csdc-base
   csdc-api
+  csdc-base
+  csdc-orcid

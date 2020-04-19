@@ -4,6 +4,7 @@ module Main where
 
 import CSDC.API (API, serveAPI)
 import CSDC.Config (Config (..), readConfig, showConfig)
+import CSDC.ORCID (getUserIdentity)
 import CSDC.Network.Mock (Store, makeEmptyStore, runMock)
 
 import Control.Concurrent.MVar (MVar)
@@ -39,9 +40,14 @@ mainWith config = do
 
 application :: FilePath -> MVar Store -> Application
 application path store =
+    printIdentity $
     Cors.cors (\_ -> Just options) $
     serve proxy (hoistServer proxy (runMock store) (serveAPI path))
   where
+    printIdentity app req res = do
+      print $ getUserIdentity req
+      app req res
+
     options = Cors.simpleCorsResourcePolicy
       { corsRequestHeaders = Cors.simpleHeaders }
     proxy = Proxy @API

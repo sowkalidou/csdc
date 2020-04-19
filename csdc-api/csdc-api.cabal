@@ -19,6 +19,7 @@ build-type:
 common dependencies
   build-depends:
     csdc-base,
+    csdc-orcid,
     aeson,
     aeson-pretty,
     base,

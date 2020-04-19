@@ -1,0 +1,61 @@
+name:
+  csdc-orcid
+version:
+  0.1.0.0
+synopsis:
+  Library for talking with the ORCID API.
+description:
+  Library for talking with the ORCID API.
+license:
+  BSD3
+author:
+  Juan Raphael Diaz Simoes
+maintainer:
+  mail@guaraqe.gq
+build-type:
+  Simple
+cabal-version:
+  >=1.10
+
+executable orcid-test-server
+  main-is:
+    Main.hs
+  build-depends:
+    csdc-orcid,
+    aeson,
+    base,
+    http-types,
+    wai,
+    warp
+  hs-source-dirs:
+    app
+  ghc-options:
+    -Wall
+  default-language:
+    Haskell2010
+
+library
+  exposed-modules:
+    CSDC.ORCID
+    CSDC.ORCID.OAuth2
+  build-depends:
+    aeson,
+    base,
+    bytestring,
+    exceptions,
+    hoauth2,
+    http-client,
+    http-client-tls,
+    http-types,
+    network-uri,
+    text,
+    unordered-containers,
+    uri-bytestring,
+    wai,
+    wai-middleware-auth
+  hs-source-dirs:
+    src
+  ghc-options:
+    -Wall
+  default-language:
+    Haskell2010

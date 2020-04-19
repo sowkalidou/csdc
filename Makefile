@@ -30,6 +30,11 @@ ghcid-base: ## Launch ghcid for csdc-base.
 
 .PHONY: ghcid-base
 
+ghcid-orcid: ## Launch ghcid for csdc-orcid.
+	ghcid --command "cabal v2-repl csdc-orcid"
+
+.PHONY: ghcid-orcid
+
 ghcid-server: ## Launch ghcid for the server executable.
 	ghcid --command "cabal v2-repl csdc-api:csdc-server"
 
