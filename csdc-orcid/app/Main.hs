@@ -12,7 +12,7 @@ import qualified Network.Wai.Handler.Warp as Warp
 main :: IO ()
 main =
   decodeFileStrict "orcid-config.json" >>= \case
-    Nothing -> error "Could not decode configuration file."
+    Nothing -> error "Could not decode orcid-config.json file."
     Just config -> do
       let
         application request respond = do
