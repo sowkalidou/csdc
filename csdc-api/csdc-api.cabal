@@ -64,6 +64,7 @@ executable csdc-server
     Main.hs
   build-depends:
     csdc-api,
+    wai,
     wai-cors,
     wai-logger,
     warp

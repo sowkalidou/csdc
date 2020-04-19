@@ -8,11 +8,13 @@ import CSDC.ORCID (getToken, authenticationMiddleware)
 import CSDC.Network.Mock (Store, makeEmptyStore, runMock)
 
 import Control.Concurrent.MVar (MVar)
+import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (runSettings, setPort, setLogger, defaultSettings)
 import Network.Wai.Logger (withStdoutLogger)
-import Network.Wai.Middleware.Cors as Cors
 import Servant (Application, Proxy (..), serve, hoistServer)
 import System.Environment (getArgs)
+
+import qualified Network.Wai.Middleware.Cors as Cors
 
 main :: IO ()
 main =
@@ -32,25 +34,26 @@ main =
 mainWith :: Config -> IO ()
 mainWith config = do
   store <- makeEmptyStore
-  orcidMiddleware <- authenticationMiddleware (config_orcid config)
+  middleware <- makeMiddleware config
   withStdoutLogger $ \logger -> do
     let port = config_port config
         path = config_path config
         settings = setPort port $ setLogger logger defaultSettings
-    runSettings settings $ orcidMiddleware $ application path store
+    runSettings settings $ middleware $ application path store
+
+makeMiddleware :: Config -> IO Middleware
+makeMiddleware config = do
+  authentication <- authenticationMiddleware (config_orcid config)
+  let corsOptions = Cors.simpleCorsResourcePolicy
+       { Cors.corsRequestHeaders = Cors.simpleHeaders }
+      cors = Cors.cors (\_ -> Just corsOptions)
+  pure $ authentication . cors
 
 application :: FilePath -> MVar Store -> Application
-application path store =
-    printIdentity $
-    Cors.cors (\_ -> Just options) $
-    serve proxy (hoistServer proxy (runMock store) (serveAPI path))
-  where
-    printIdentity app req res = do
-      print $ getToken req
-      app req res
-
-    options = Cors.simpleCorsResourcePolicy
-      { corsRequestHeaders = Cors.simpleHeaders }
+application path store = \request response ->
+  let
     proxy = Proxy @API
-
-
+    token = getToken request
+    server = hoistServer proxy (runMock store) (serveAPI path)
+  in
+    serve proxy server request response
