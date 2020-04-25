@@ -22,6 +22,8 @@ module CSDC.ORCID
   , authenticationMiddleware
     -- * User Identity
   , Token (..)
+  , Id (..)
+  , Scope (..)
   , getToken
     -- * User Record
   , getUserRecord
@@ -165,10 +167,10 @@ data Token = Token
   } deriving Show
 
 newtype Scope = Scope Text
-  deriving newtype (Show, FromJSON)
+  deriving newtype (Show, Eq, FromJSON, ToJSON)
 
 newtype Id = Id Text
-  deriving newtype (Show, FromJSON)
+  deriving newtype (Show, Eq, FromJSON, ToJSON)
 
 instance FromJSON Token where
   parseJSON = withObject "Token" $ \o ->

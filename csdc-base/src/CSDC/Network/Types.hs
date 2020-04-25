@@ -10,19 +10,23 @@ module CSDC.Network.Types
 import CSDC.Aeson (JSON (..))
 import CSDC.Data.Id (Id)
 
+import qualified CSDC.ORCID as ORCID
+
 import Data.Aeson (ToJSON, FromJSON)
+import Data.Text (Text)
 import GHC.Generics (Generic)
 
 --------------------------------------------------------------------------------
 -- Fundamental types
 
 data Person = Person
-  { person_name :: String
+  { person_name :: Text
+  , person_orcid :: ORCID.Id
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Person
 
 data Unit = Unit
-  { unit_name :: String
+  { unit_name :: Text
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Unit
 

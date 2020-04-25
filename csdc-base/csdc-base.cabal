@@ -29,6 +29,7 @@ library
     CSDC.Network.Types
     CSDC.Prelude
   build-depends:
+    csdc-orcid,
     aeson,
     base,
     containers,

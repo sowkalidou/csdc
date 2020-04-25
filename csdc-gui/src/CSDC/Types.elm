@@ -49,19 +49,22 @@ dictIdMap (IdMap a) = a
 
 type alias Person =
   { name : String
+  , orcid: String
   }
 
 encodePerson : Person -> Value
 encodePerson person =
   Encoder.object
     [ ("name", Encoder.string person.name)
+    , ("orcid", Encoder.string person.orcid)
     ]
 
 
 decodePerson : Decoder Person
 decodePerson =
-  Decoder.map Person
+  Decoder.map2 Person
     (Decoder.field "name" Decoder.string)
+    (Decoder.field "orcid" Decoder.string)
 
 --------------------------------------------------------------------------------
 -- Unit
