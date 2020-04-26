@@ -17,7 +17,7 @@ build-type:
 cabal-version:
   >=1.10
 
-executable orcid-test-server
+executable auth-test-server
   main-is:
     Main.hs
   build-depends:
@@ -36,8 +36,11 @@ executable orcid-test-server
 
 library
   exposed-modules:
+    CSDC.Auth
+    CSDC.Auth.Admin
+    CSDC.Auth.OAuth2
     CSDC.Auth.ORCID
-    CSDC.Auth.ORCID.OAuth2
+    CSDC.Auth.User
   build-depends:
     aeson,
     base,

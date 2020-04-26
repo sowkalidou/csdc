@@ -7,7 +7,7 @@ import CSDC.Network.Class as Export
 import CSDC.Network.Types as Export
 import CSDC.Data.Id as Export (Id (..))
 import CSDC.Data.IdMap as Export (IdMap (..))
-import CSDC.User as Export
+import CSDC.Auth.User as Export
 
 import Control.Monad.IO.Class as Export (MonadIO (..))
 import Data.Aeson as Export (FromJSON, ToJSON)

@@ -8,6 +8,7 @@ module CSDC.Network.Class
 import CSDC.Data.Id (Id)
 import CSDC.Data.IdMap (IdMap)
 import CSDC.Network.Types (Person (..), Unit, Member, Subpart)
+import CSDC.Auth.User (User (..))
 
 import qualified CSDC.Auth.ORCID as ORCID
 
@@ -61,8 +62,9 @@ class Monad m => MonadNetwork m where
 
   deleteSubpart :: Id Subpart -> m ()
 
-checkPerson :: MonadNetwork m => ORCID.Token -> m ()
-checkPerson token =
+checkPerson :: MonadNetwork m => User ORCID.Token -> m ()
+checkPerson Admin = pure ()
+checkPerson (User token) =
   selectPersonORCID (ORCID.token_orcid token) >>= \case
     Nothing ->
       let
