@@ -3,50 +3,44 @@
 
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TupleSections     #-}
-module CSDC.ORCID.OAuth2
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
+module CSDC.Auth.OAuth2
   ( OAuth2(..)
-  , oAuth2Parser
   , URIParseException(..)
-  , parseAbsoluteURI
-  , getAccessToken
   ) where
 
-import           Control.Monad.Catch
-import           Data.Aeson                           (FromJSON (..), eitherDecode)
-import           Data.Aeson.TH                        (defaultOptions,
-                                                       deriveJSON,
-                                                       fieldLabelModifier)
-import qualified Data.ByteString                      as S
-import qualified Data.ByteString.Char8                as S8 (pack)
-import qualified Data.ByteString.Lazy                 as L
-import           Data.Monoid                          ((<>))
-import           Data.Proxy                           (Proxy (..))
-import qualified Data.Text                            as T
-import           Data.Text.Encoding                   (encodeUtf8,
-                                                       decodeUtf8With)
-import           Data.Text.Encoding.Error             (lenientDecode)
-import           Network.HTTP.Client.TLS              (getGlobalManager)
-import           Network.HTTP.Types                   (status303, status403,
-                                                       status404, status501)
-import qualified Network.OAuth.OAuth2                 as OA2
-import           Network.Wai                          (Request, queryString,
-                                                       responseLBS)
-import qualified Network.Wai.Middleware.Auth          as MA
-import           Network.Wai.Middleware.Auth.Provider
-import qualified URI.ByteString                       as U
-import           URI.ByteString                       (URI)
+import CSDC.Auth.User (User (..))
+
+import Control.Monad.Catch
+import Data.Aeson (FromJSON (..), ToJSON (..), eitherDecode, encode)
+import Data.Aeson.TH (defaultOptions, deriveJSON, fieldLabelModifier)
+import Data.Text.Encoding (encodeUtf8, decodeUtf8With)
+import Data.Text.Encoding.Error (lenientDecode)
+import Network.HTTP.Client.TLS (getGlobalManager)
+import Network.HTTP.Types (status303, status403, status404, status501)
+import Network.Wai (queryString, responseLBS)
+import Network.Wai.Middleware.Auth.Provider
+import URI.ByteString (URI)
+
+import qualified Data.ByteString as S
+import qualified Data.ByteString.Char8 as S8 (pack)
+import qualified Data.ByteString.Lazy as L
+import qualified Data.Text as T
+import qualified Network.OAuth.OAuth2 as OA2
+import qualified URI.ByteString as U
 
 -- | General OAuth2 authentication `Provider`.
-data OAuth2 = OAuth2
-  { oa2ClientId            :: T.Text
-  , oa2ClientSecret        :: T.Text
-  , oa2AuthorizeEndpoint   :: T.Text
+data OAuth2 user = OAuth2
+  { oa2ClientId :: T.Text
+  , oa2ClientSecret :: T.Text
+  , oa2AuthorizeEndpoint :: T.Text
   , oa2AccessTokenEndpoint :: T.Text
-  , oa2Scope               :: Maybe [T.Text]
-  , oa2ProviderInfo        :: ProviderInfo
+  , oa2Scope :: Maybe [T.Text]
+  , oa2ProviderInfo :: ProviderInfo
   }
 
 -- | Used for validating proper url structure. Can be thrown by
@@ -86,14 +80,8 @@ getClientSecret = id
 getRedirectURI :: U.URIRef a -> S.ByteString
 getRedirectURI = U.serializeURIRef'
 
--- | Aeson parser for `OAuth2` provider.
---
--- @since 0.1.0
-oAuth2Parser :: ProviderParser
-oAuth2Parser = mkProviderParser (Proxy :: Proxy OAuth2)
-
-instance AuthProvider OAuth2 where
-  getProviderName _ = "oauth2_alternative"
+instance (FromJSON user, ToJSON user) => AuthProvider (OAuth2 user) where
+  getProviderName _ = "orcid"
   getProviderInfo = oa2ProviderInfo
   handleLogin oa2@OAuth2 {..} req suffix renderUrl onSuccess onFailure = do
     authEndpointURI <- parseAbsoluteURI' oa2AuthorizeEndpoint
@@ -128,7 +116,14 @@ instance AuthProvider OAuth2 where
                eRes <- OA2.fetchAccessTokenBSL man oauth2 $ getExchangeToken code
                case eRes of
                  Left err    -> onFailure status501 $ S8.pack $ show err
-                 Right token -> onSuccess $ L.toStrict token
+                 Right token ->
+                   case eitherDecode token of
+                     Left _ ->
+                       onFailure
+                         status501
+                        "Could not decode token."
+                     Right (user :: user) ->
+                       onSuccess $ L.toStrict $ encode $ User user
              _ ->
                case lookup "error" params of
                  (Just (Just "access_denied")) ->
@@ -148,14 +143,3 @@ instance AuthProvider OAuth2 where
       _ -> onFailure status404 "Page not found. Please continue with login."
 
 $(deriveJSON defaultOptions { fieldLabelModifier = drop 3} ''OAuth2)
-
--- | Get the @AccessToken@ for the current user.
---
--- If called on a @Request@ behind the middleware, should always return a
--- @Just@ value.
---
--- @since 0.2.0.0
-getAccessToken :: FromJSON a => Request -> Maybe a
-getAccessToken req = do
-  user <- MA.getAuthUser req
-  either (const Nothing) Just $ eitherDecode $ L.fromStrict $ authLoginState user

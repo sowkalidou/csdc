@@ -2,6 +2,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 
 --------------------------------------------------------------------------------
@@ -14,22 +15,21 @@
 --
 --------------------------------------------------------------------------------
 
-module CSDC.ORCID
+module CSDC.Auth.ORCID
   ( -- * Configuration
     Config (..)
   , Endpoint (..)
-    -- * Authentication Middleware
-  , authenticationMiddleware
+    -- * OAuth2
+  , oauth2
     -- * User Identity
   , Token (..)
   , Id (..)
   , Scope (..)
-  , getToken
     -- * User Record
   , getUserRecord
   ) where
 
-import CSDC.ORCID.OAuth2 (OAuth2 (..), getAccessToken)
+import CSDC.Auth.OAuth2 (OAuth2 (..))
 
 import Data.Aeson
   ( FromJSON (..)
@@ -45,25 +45,15 @@ import Data.Aeson
 import Data.ByteString.Lazy (ByteString)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
-import GHC.Stack (HasCallStack)
 import Network.OAuth.OAuth2
   ( AccessToken
   , RefreshToken
   , authGetJSON
   )
-import Network.Wai (Middleware, Request)
-import Network.Wai.Middleware.Auth
-  ( AuthSettings
-  , defaultAuthSettings
-  , mkAuthMiddleware
-  , setAuthProviders
-  , setAuthSessionAge
-  )
-import Network.Wai.Middleware.Auth.Provider (Provider (..), ProviderInfo (..))
+import Network.Wai.Middleware.Auth.Provider (ProviderInfo (..))
 import URI.ByteString (parseURI, strictURIParserOptions)
 
 import qualified Network.HTTP.Client.TLS as HTTP.TLS
-import qualified Data.HashMap.Strict as HashMap
 
 --------------------------------------------------------------------------------
 -- Configuration
@@ -112,7 +102,7 @@ makeAPIHost Sandbox = "https://pub.sandbox.orcid.org"
 --------------------------------------------------------------------------------
 -- OAuth
 
-oauth2 :: Config -> OAuth2
+oauth2 :: Config -> OAuth2 Token
 oauth2 config = OAuth2
   { oa2ClientId =
       config_id config
@@ -139,19 +129,6 @@ oauth2 config = OAuth2
            "Login using your ORCID account."
         }
   }
-
-authSettings :: Config -> AuthSettings
-authSettings config =
-  let
-    provider = Provider (oauth2 config)
-    providers = HashMap.singleton "oauth2_alternative" provider
-  in
-    setAuthProviders providers $
-    setAuthSessionAge 360000 $
-    defaultAuthSettings
-
-authenticationMiddleware :: Config -> IO Middleware
-authenticationMiddleware = mkAuthMiddleware . authSettings
 
 --------------------------------------------------------------------------------
 -- User Identity
@@ -183,13 +160,16 @@ instance FromJSON Token where
       (o .: "orcid") <*>
       (o .: "name")
 
-getToken :: HasCallStack => Request -> Token
-getToken request =
-  case getAccessToken request of
-    Nothing ->
-      error "No user identity after authorization middleware."
-    Just token ->
-      token
+instance ToJSON Token where
+  toJSON token = object
+    [ "access_token" .= token_access token
+    , "token_type" .= token_type token
+    , "refresh_token" .= token_refresh token
+    , "expires_in" .= token_expires token
+    , "scope" .= token_scope token
+    , "orcid" .= token_orcid token
+    , "name" .= token_name token
+    ]
 
 --------------------------------------------------------------------------------
 -- Get Record

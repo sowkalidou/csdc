@@ -4,9 +4,10 @@ module Main where
 
 import CSDC.API (API, serveAPI)
 import CSDC.Config (Config (..), readConfig, showConfig)
-import CSDC.ORCID (getToken, authenticationMiddleware)
 import CSDC.Network.Class (checkPerson)
 import CSDC.Network.Mock (Store, makeEmptyStore, runMock)
+
+import qualified CSDC.Auth as Auth
 
 import Control.Concurrent.MVar (MVar)
 import Network.Wai (Middleware)
@@ -44,7 +45,7 @@ mainWith config = do
 
 makeMiddleware :: Config -> IO Middleware
 makeMiddleware config = do
-  authentication <- authenticationMiddleware (config_orcid config)
+  authentication <- Auth.middleware (config_auth config)
   let corsOptions = Cors.simpleCorsResourcePolicy
        { Cors.corsRequestHeaders = Cors.simpleHeaders }
       cors = Cors.cors (\_ -> Just corsOptions)
@@ -54,7 +55,7 @@ application :: FilePath -> MVar Store -> Application
 application path store = \request response ->
   let
     proxy = Proxy @API
-    token = getToken request
+    token = Auth.getUserToken request
     server = hoistServer proxy (runMock store) (serveAPI path)
   in do
     runMock store (checkPerson token)

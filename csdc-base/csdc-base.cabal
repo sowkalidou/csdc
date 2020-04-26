@@ -28,9 +28,8 @@ library
     CSDC.Network.Mock
     CSDC.Network.Types
     CSDC.Prelude
-    CSDC.User
   build-depends:
-    csdc-orcid,
+    csdc-auth,
     aeson,
     base,
     containers,
