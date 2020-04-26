@@ -4,7 +4,7 @@ module Main where
 
 import CSDC.API (API, serveAPI)
 import CSDC.Config (Config (..), readConfig, showConfig)
-import CSDC.ORCID (getToken, authenticationMiddleware)
+import CSDC.Auth.ORCID (getToken, authenticationMiddleware)
 import CSDC.Network.Class (checkPerson)
 import CSDC.Network.Mock (Store, makeEmptyStore, runMock)
 

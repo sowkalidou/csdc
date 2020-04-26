@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 
-import CSDC.ORCID
+import CSDC.Auth.ORCID
 
 import Data.Aeson (encode, decodeFileStrict)
 import Network.HTTP.Types (status200)

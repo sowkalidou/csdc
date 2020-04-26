@@ -1,11 +1,11 @@
 name:
-  csdc-orcid
+  csdc-auth
 version:
   0.1.0.0
 synopsis:
-  Library for talking with the ORCID API.
+  Library for authenticating users.
 description:
-  Library for talking with the ORCID API.
+  Library for authenticating users.
 license:
   BSD3
 author:
@@ -21,7 +21,7 @@ executable orcid-test-server
   main-is:
     Main.hs
   build-depends:
-    csdc-orcid,
+    csdc-auth,
     aeson,
     base,
     http-types,
@@ -36,8 +36,8 @@ executable orcid-test-server
 
 library
   exposed-modules:
-    CSDC.ORCID
-    CSDC.ORCID.OAuth2
+    CSDC.Auth.ORCID
+    CSDC.Auth.ORCID.OAuth2
   build-depends:
     aeson,
     base,

@@ -14,7 +14,7 @@
 --
 --------------------------------------------------------------------------------
 
-module CSDC.ORCID
+module CSDC.Auth.ORCID
   ( -- * Configuration
     Config (..)
   , Endpoint (..)
@@ -29,7 +29,7 @@ module CSDC.ORCID
   , getUserRecord
   ) where
 
-import CSDC.ORCID.OAuth2 (OAuth2 (..), getAccessToken)
+import CSDC.Auth.ORCID.OAuth2 (OAuth2 (..), getAccessToken)
 
 import Data.Aeson
   ( FromJSON (..)

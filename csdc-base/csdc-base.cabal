@@ -30,7 +30,7 @@ library
     CSDC.Prelude
     CSDC.User
   build-depends:
-    csdc-orcid,
+    csdc-auth,
     aeson,
     base,
     containers,

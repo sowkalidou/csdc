@@ -10,7 +10,7 @@ module CSDC.Network.Types
 import CSDC.Aeson (JSON (..))
 import CSDC.Data.Id (Id)
 
-import qualified CSDC.ORCID as ORCID
+import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Text (Text)

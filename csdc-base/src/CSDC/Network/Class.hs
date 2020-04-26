@@ -9,7 +9,7 @@ import CSDC.Data.Id (Id)
 import CSDC.Data.IdMap (IdMap)
 import CSDC.Network.Types (Person (..), Unit, Member, Subpart)
 
-import qualified CSDC.ORCID as ORCID
+import qualified CSDC.Auth.ORCID as ORCID
 
 import Control.Monad (void)
 

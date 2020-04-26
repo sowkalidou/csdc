@@ -8,7 +8,7 @@ module CSDC.Config
 
 import CSDC.Prelude
 
-import qualified CSDC.ORCID as ORCID
+import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.Aeson (decodeFileStrict)
 import Data.Aeson.Encode.Pretty (encodePretty)

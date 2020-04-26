@@ -6,7 +6,8 @@
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TupleSections     #-}
-module CSDC.ORCID.OAuth2
+
+module CSDC.Auth.ORCID.OAuth2
   ( OAuth2(..)
   , oAuth2Parser
   , URIParseException(..)
