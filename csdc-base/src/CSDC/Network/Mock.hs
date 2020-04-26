@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -63,6 +64,9 @@ instance MonadIO m => MonadNetwork (Mock m) where
   selectPerson uid =
     IdMap.lookup uid <$> use store_person
 
+  selectPersonORCID uid =
+    IdMap.find (\p -> person_orcid p == uid) <$> use store_person
+
   insertPerson p =
     stating store_person (IdMap.insertNew p)
 
@@ -73,6 +77,7 @@ instance MonadIO m => MonadNetwork (Mock m) where
     modifying store_person (IdMap.delete uid)
 
   -- Unit manipulation
+
   rootUnit =
     use store_root
 

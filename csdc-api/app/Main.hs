@@ -5,6 +5,7 @@ module Main where
 import CSDC.API (API, serveAPI)
 import CSDC.Config (Config (..), readConfig, showConfig)
 import CSDC.ORCID (getToken, authenticationMiddleware)
+import CSDC.Network.Class (checkPerson)
 import CSDC.Network.Mock (Store, makeEmptyStore, runMock)
 
 import Control.Concurrent.MVar (MVar)
@@ -55,5 +56,6 @@ application path store = \request response ->
     proxy = Proxy @API
     token = getToken request
     server = hoistServer proxy (runMock store) (serveAPI path)
-  in
+  in do
+    runMock store (checkPerson token)
     serve proxy server request response

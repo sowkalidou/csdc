@@ -2,6 +2,7 @@ module CSDC.Data.IdMap
   ( IdMap (..)
   , empty
   , lookup
+  , find
   , insert
   , insertNew
   , delete
@@ -13,6 +14,7 @@ import CSDC.Data.Id (Id (..), zero, next)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.IntMap.Strict (IntMap)
 
+import qualified Data.List as List
 import qualified Data.IntMap.Strict as IntMap
 
 import Prelude hiding (lookup, filter)
@@ -29,6 +31,9 @@ empty = IdMap (IntMap.empty)
 
 lookup :: Id a -> IdMap a -> Maybe a
 lookup (Id uid) (IdMap m) = IntMap.lookup uid m
+
+find :: (a -> Bool) -> IdMap a -> Maybe a
+find p (IdMap m) = List.find p $ IntMap.elems m
 
 insert :: Id a -> a -> IdMap a -> IdMap a
 insert (Id uid) a (IdMap m) = IdMap $ IntMap.insert uid a m
