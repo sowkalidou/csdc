@@ -13,7 +13,7 @@ import CSDC.Data.Id (Id (..))
 import CSDC.Data.IdMap (IdMap)
 import CSDC.Data.RIO (RIO, runRIO)
 import CSDC.Network.Types (Person (..), Unit (..), Member (..), Subpart (..))
-import CSDC.Network.Class (MonadNetwork (..))
+import CSDC.Network.Class (HasNetwork (..))
 
 import qualified CSDC.Data.IdMap as IdMap
 
@@ -57,7 +57,7 @@ newtype Mock m a = Mock (RIO Store m a)
 runMock :: MonadIO m => MVar Store -> Mock m a -> m a
 runMock var (Mock m) = runRIO var m
 
-instance MonadIO m => MonadNetwork (Mock m) where
+instance MonadIO m => HasNetwork (Mock m) where
 
   -- Person manipulation
 

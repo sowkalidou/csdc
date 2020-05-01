@@ -5,7 +5,7 @@ module CSDC.API.Network
 
 import CSDC.Data.Id (Id)
 import CSDC.Data.IdMap (IdMap)
-import CSDC.Network.Class (MonadNetwork (..))
+import CSDC.Network.Class (HasNetwork (..))
 import CSDC.Network.Types (Person, Unit, Member, Subpart)
 
 import GHC.Types (Symbol)
@@ -22,7 +22,7 @@ type CRUD (name :: Symbol) a =
 
 type PersonAPI = CRUD "person" Person
 
-servePersonAPI :: MonadNetwork m => ServerT PersonAPI m
+servePersonAPI :: HasNetwork m => ServerT PersonAPI m
 servePersonAPI =
        selectPerson
   :<|> insertPerson
@@ -33,7 +33,7 @@ type UnitAPI =
        "unit" :> "root" :> Get '[JSON] (Id Unit)
   :<|> CRUD "unit" Unit
 
-serveUnitAPI :: MonadNetwork m => ServerT UnitAPI m
+serveUnitAPI :: HasNetwork m => ServerT UnitAPI m
 serveUnitAPI =
        rootUnit
   :<|> selectUnit
@@ -52,7 +52,7 @@ type REL (name :: Symbol) (left :: Symbol) (right :: Symbol) r a b =
 
 type MemberAPI = REL "member" "person" "unit" Member Person Unit
 
-serveMemberAPI :: MonadNetwork m => ServerT MemberAPI m
+serveMemberAPI :: HasNetwork m => ServerT MemberAPI m
 serveMemberAPI =
        selectMemberPerson
   :<|> selectMemberUnit
@@ -61,7 +61,7 @@ serveMemberAPI =
 
 type SubpartAPI = REL "subpart" "child" "parent" Subpart Unit Unit
 
-serveSubpartAPI :: MonadNetwork m => ServerT SubpartAPI m
+serveSubpartAPI :: HasNetwork m => ServerT SubpartAPI m
 serveSubpartAPI =
        selectSubpartChild
   :<|> selectSubpartParent
@@ -73,7 +73,7 @@ serveSubpartAPI =
 
 type API = PersonAPI :<|> UnitAPI :<|> MemberAPI :<|> SubpartAPI
 
-serveAPI :: MonadNetwork m => ServerT API m
+serveAPI :: HasNetwork m => ServerT API m
 serveAPI =
        servePersonAPI
   :<|> serveUnitAPI

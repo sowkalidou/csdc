@@ -1,5 +1,5 @@
 module CSDC.Network.Class
-  ( MonadNetwork (..)
+  ( HasNetwork (..)
   ) where
 
 import CSDC.Data.Id (Id)
@@ -14,7 +14,7 @@ import Control.Monad.Trans (MonadTrans (..))
 --------------------------------------------------------------------------------
 -- Class
 
-class Monad m => MonadNetwork m where
+class Monad m => HasNetwork m where
 
   -- Person manipulation
 
@@ -61,7 +61,7 @@ class Monad m => MonadNetwork m where
 
 -- | This instance is here for the delegation to @UserT@. It only depends on
 -- 'MonadTrans'.
-instance MonadNetwork m => MonadNetwork (ReaderT r m) where
+instance HasNetwork m => HasNetwork (ReaderT r m) where
   selectPerson  = lift1 selectPerson
   selectPersonORCID = lift1 selectPersonORCID
   insertPerson = lift1 insertPerson

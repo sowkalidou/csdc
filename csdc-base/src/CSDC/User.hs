@@ -13,7 +13,7 @@ module CSDC.User
 
 import CSDC.Auth (UserToken)
 import CSDC.Auth.User (User (..))
-import CSDC.Network.Class (MonadNetwork (..))
+import CSDC.Network.Class (HasNetwork (..))
 import CSDC.Network.Types (Person (..))
 import CSDC.Data.Id (Id)
 
@@ -42,10 +42,10 @@ newtype UserT m a = UserT (ReaderT UserToken m a)
     , Applicative
     , Monad
     , MonadTrans
-    , MonadNetwork
+    , HasNetwork
     )
 
-instance MonadNetwork m => HasUser (UserT m) where
+instance HasNetwork m => HasUser (UserT m) where
   getUser = UserT $
     ask >>= \case
       Admin ->

@@ -30,7 +30,7 @@ type API =
        Auth :> "api" :> Network.API
   :<|> Raw
 
-serveAPI :: MonadNetwork m => FilePath -> ServerT API m
+serveAPI :: HasNetwork m => FilePath -> ServerT API m
 serveAPI path =
          serveNetworkAPI
     :<|> serveDirectoryWith (options path)
