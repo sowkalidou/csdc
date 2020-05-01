@@ -3,10 +3,7 @@ module CSDC.API.Network
   , serveAPI
   ) where
 
-import CSDC.Data.Id (Id)
-import CSDC.Data.IdMap (IdMap)
-import CSDC.Network.Class (MonadNetwork (..))
-import CSDC.Network.Types (Person, Unit, Member, Subpart)
+import CSDC.Prelude hiding (JSON)
 
 import GHC.Types (Symbol)
 import Servant
@@ -20,11 +17,14 @@ type CRUD (name :: Symbol) a =
   :<|> name :> Capture "id" (Id a) :> ReqBody '[JSON] a :> Post '[JSON] ()
   :<|> name :> Capture "id" (Id a) :> Delete '[JSON] ()
 
-type PersonAPI = CRUD "person" Person
+type PersonAPI =
+       "person" :> "root" :> Get '[JSON] UserId
+  :<|> CRUD "person" Person
 
-servePersonAPI :: MonadNetwork m => ServerT PersonAPI m
+servePersonAPI :: (HasUser m, HasNetwork m) => ServerT PersonAPI m
 servePersonAPI =
-       selectPerson
+       getUser
+  :<|> selectPerson
   :<|> insertPerson
   :<|> updatePerson
   :<|> deletePerson
@@ -33,7 +33,7 @@ type UnitAPI =
        "unit" :> "root" :> Get '[JSON] (Id Unit)
   :<|> CRUD "unit" Unit
 
-serveUnitAPI :: MonadNetwork m => ServerT UnitAPI m
+serveUnitAPI :: HasNetwork m => ServerT UnitAPI m
 serveUnitAPI =
        rootUnit
   :<|> selectUnit
@@ -52,7 +52,7 @@ type REL (name :: Symbol) (left :: Symbol) (right :: Symbol) r a b =
 
 type MemberAPI = REL "member" "person" "unit" Member Person Unit
 
-serveMemberAPI :: MonadNetwork m => ServerT MemberAPI m
+serveMemberAPI :: HasNetwork m => ServerT MemberAPI m
 serveMemberAPI =
        selectMemberPerson
   :<|> selectMemberUnit
@@ -61,7 +61,7 @@ serveMemberAPI =
 
 type SubpartAPI = REL "subpart" "child" "parent" Subpart Unit Unit
 
-serveSubpartAPI :: MonadNetwork m => ServerT SubpartAPI m
+serveSubpartAPI :: HasNetwork m => ServerT SubpartAPI m
 serveSubpartAPI =
        selectSubpartChild
   :<|> selectSubpartParent
@@ -73,7 +73,7 @@ serveSubpartAPI =
 
 type API = PersonAPI :<|> UnitAPI :<|> MemberAPI :<|> SubpartAPI
 
-serveAPI :: MonadNetwork m => ServerT API m
+serveAPI :: (HasUser m, HasNetwork m) => ServerT API m
 serveAPI =
        servePersonAPI
   :<|> serveUnitAPI

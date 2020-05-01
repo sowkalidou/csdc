@@ -32,8 +32,11 @@ empty = IdMap (IntMap.empty)
 lookup :: Id a -> IdMap a -> Maybe a
 lookup (Id uid) (IdMap m) = IntMap.lookup uid m
 
-find :: (a -> Bool) -> IdMap a -> Maybe a
-find p (IdMap m) = List.find p $ IntMap.elems m
+find :: (a -> Bool) -> IdMap a -> Maybe (Id a, a)
+find p (IdMap m) =
+  fmap (\(uid,a) -> (Id uid,a)) $
+  List.find (p . snd) $
+  IntMap.toList m
 
 insert :: Id a -> a -> IdMap a -> IdMap a
 insert (Id uid) a (IdMap m) = IdMap $ IntMap.insert uid a m
