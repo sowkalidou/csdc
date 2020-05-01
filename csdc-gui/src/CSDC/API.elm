@@ -18,7 +18,8 @@ decodeNull =
 -- Msg
 
 type Msg
-  = SelectPerson (Result Http.Error Person)
+  = RootPerson (Result Http.Error UserId)
+  | SelectPerson (Result Http.Error Person)
   | InsertPerson (Result Http.Error (Id Person))
   | UpdatePerson (Result Http.Error ())
   | DeletePerson (Result Http.Error ())
@@ -38,6 +39,13 @@ type Msg
 
 --------------------------------------------------------------------------------
 -- Person
+
+rootPerson : Cmd Msg
+rootPerson =
+  Http.get
+    { url = baseUrl ++ "person/root"
+    , expect = Http.expectJson RootPerson (decodeUser decodeId)
+    }
 
 selectPerson : Id Person -> Cmd Msg
 selectPerson id =
