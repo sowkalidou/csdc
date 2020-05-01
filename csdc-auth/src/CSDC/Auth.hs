@@ -1,8 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module CSDC.Auth
-  ( Config (..)
+  ( -- * Authentication middleware
+    Config (..)
   , middleware
+    -- * Authentication tokens
+  , UserToken
   , getUserToken
   ) where
 
@@ -72,7 +75,9 @@ settings config =
 middleware :: Config -> IO Middleware
 middleware = mkAuthMiddleware . settings
 
-getUserToken :: HasCallStack => Request -> User ORCID.Token
+type UserToken = User ORCID.Token
+
+getUserToken :: HasCallStack => Request -> UserToken
 getUserToken request =
   case getAccessToken request of
     Nothing ->
