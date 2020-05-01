@@ -28,6 +28,7 @@ library
     CSDC.Network.Mock
     CSDC.Network.Types
     CSDC.Prelude
+    CSDC.User
   build-depends:
     csdc-auth,
     aeson,

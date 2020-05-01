@@ -1,16 +1,19 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module CSDC.API
   ( API
   , serveAPI
+    -- * Utils
+  , Auth
   ) where
 
 import CSDC.Auth (getUserToken)
 import CSDC.Prelude
+import CSDC.User (runUserT)
 
 import qualified CSDC.API.Network as Network
 
@@ -24,14 +27,16 @@ import WaiAppStatic.Storage.Filesystem (defaultWebAppSettings)
 -- API
 
 type API =
-       UserCredentials :> "api" :> Network.API
+       Auth :> "api" :> Network.API
   :<|> Raw
 
 serveAPI :: MonadNetwork m => FilePath -> ServerT API m
 serveAPI path =
-       -- XXX: use credentials
-       (\_ -> Network.serveAPI)
-  :<|> serveDirectoryWith (options path)
+         serveNetworkAPI
+    :<|> serveDirectoryWith (options path)
+  where
+    serveNetworkAPI token =
+      hoistServer (Proxy @Network.API) (runUserT token) Network.serveAPI
 
 options :: FilePath -> StaticSettings
 options path =
@@ -45,14 +50,17 @@ options path =
     base { ssLookupFile = indexRedirect (ssLookupFile base) }
 
 --------------------------------------------------------------------------------
--- UserCredentials
+-- Auth
 
--- | This type is used for representing credentials at the servant API level.
-data UserCredentials
+-- | This type is used for representing authentication credentials at the
+-- servant API level.
+data Auth
 
-instance HasServer api context => HasServer (UserCredentials :> api) context where
-  type ServerT (UserCredentials :> api) m = UserToken -> ServerT api m
+instance HasServer api context => HasServer (Auth :> api) context where
+  type ServerT (Auth :> api) m = UserToken -> ServerT api m
 
   route Proxy context subserver =
     route (Proxy @api) context (passToServer subserver getUserToken)
-  hoistServerWithContext _ pc nt s = hoistServerWithContext (Proxy :: Proxy api) pc nt . s
+
+  hoistServerWithContext _ pc nat s =
+    hoistServerWithContext (Proxy @api) pc nat . s

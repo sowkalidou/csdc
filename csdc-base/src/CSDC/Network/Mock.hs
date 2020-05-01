@@ -65,7 +65,7 @@ instance MonadIO m => MonadNetwork (Mock m) where
     IdMap.lookup uid <$> use store_person
 
   selectPersonORCID uid =
-    IdMap.find (\p -> person_orcid p == uid) <$> use store_person
+    fmap fst <$> IdMap.find (\p -> person_orcid p == uid) <$> use store_person
 
   insertPerson p =
     stating store_person (IdMap.insertNew p)

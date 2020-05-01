@@ -1,18 +1,15 @@
-{-# LANGUAGE LambdaCase #-}
-
 module CSDC.Network.Class
   ( MonadNetwork (..)
-  , checkPerson
   ) where
 
 import CSDC.Data.Id (Id)
 import CSDC.Data.IdMap (IdMap)
 import CSDC.Network.Types (Person (..), Unit, Member, Subpart)
-import CSDC.Auth.User (User (..))
 
 import qualified CSDC.Auth.ORCID as ORCID
 
-import Control.Monad (void)
+import Control.Monad.Reader (ReaderT)
+import Control.Monad.Trans (MonadTrans (..))
 
 --------------------------------------------------------------------------------
 -- Class
@@ -23,7 +20,7 @@ class Monad m => MonadNetwork m where
 
   selectPerson :: Id Person -> m (Maybe Person)
 
-  selectPersonORCID :: ORCID.Id -> m (Maybe Person)
+  selectPersonORCID :: ORCID.Id -> m (Maybe (Id Person))
 
   insertPerson :: Person -> m (Id Person)
 
@@ -62,17 +59,30 @@ class Monad m => MonadNetwork m where
 
   deleteSubpart :: Id Subpart -> m ()
 
-checkPerson :: MonadNetwork m => User ORCID.Token -> m ()
-checkPerson Admin = pure ()
-checkPerson (User token) =
-  selectPersonORCID (ORCID.token_orcid token) >>= \case
-    Nothing ->
-      let
-        person = Person
-          { person_name = ORCID.token_name token
-          , person_orcid = ORCID.token_orcid token
-          }
-      in
-        void $ insertPerson person
-    Just _ ->
-      pure ()
+-- | This instance is here for the delegation to @UserT@. It only depends on
+-- 'MonadTrans'.
+instance MonadNetwork m => MonadNetwork (ReaderT r m) where
+  selectPerson  = lift1 selectPerson
+  selectPersonORCID = lift1 selectPersonORCID
+  insertPerson = lift1 insertPerson
+  updatePerson = lift2 updatePerson
+  deletePerson = lift1 deletePerson
+  rootUnit = lift rootUnit
+  selectUnit = lift1 selectUnit
+  insertUnit = lift1 insertUnit
+  updateUnit = lift2 updateUnit
+  deleteUnit = lift1 deleteUnit
+  selectMemberPerson = lift1 selectMemberPerson
+  selectMemberUnit = lift1 selectMemberUnit
+  insertMember = lift1 insertMember
+  deleteMember = lift1 deleteMember
+  selectSubpartChild = lift1 selectSubpartChild
+  selectSubpartParent = lift1 selectSubpartParent
+  insertSubpart = lift1 insertSubpart
+  deleteSubpart = lift1 deleteSubpart
+
+lift1 :: (MonadTrans t, Monad m) => (a -> m b) -> a -> t m b
+lift1 f a = lift (f a)
+
+lift2 :: (MonadTrans t, Monad m) => (a -> b -> m c) -> a -> b -> t m c
+lift2 f a b = lift (f a b)
