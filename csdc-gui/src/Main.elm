@@ -5,6 +5,7 @@ import CSDC.Component.Explorer as Explorer
 import CSDC.Component.Menu as Menu
 import CSDC.Component.NewPerson as NewPerson
 import CSDC.Component.NewUnit as NewUnit
+import CSDC.Component.Studio as Studio
 import CSDC.Types exposing (..)
 
 import Browser
@@ -39,19 +40,25 @@ type alias Model =
   , newPerson : NewPerson.Model
   , newUnit : NewUnit.Model
   , explorer : Explorer.Model
+  , studio : Studio.Model
   }
 
 init : () -> (Model, Cmd Msg)
 init _ =
   let
-    (explorer, cmd) = Explorer.initial ()
+    (explorer, explorerCmd) = Explorer.initial ()
+    (studio, studioCmd) = Studio.initial ()
   in
     ( { menu = Menu.initial
       , explorer = explorer
       , newPerson = NewPerson.initial
       , newUnit = NewUnit.initial
+      , studio = studio
       }
-    , Cmd.map ExplorerMsg cmd
+    , Cmd.batch
+        [ Cmd.map ExplorerMsg explorerCmd
+        , Cmd.map StudioMsg studioCmd
+        ]
     )
 
 --------------------------------------------------------------------------------
@@ -62,6 +69,7 @@ type Msg
   | NewUnitMsg NewUnit.Msg
   | MenuMsg Menu.Msg
   | ExplorerMsg Explorer.Msg
+  | StudioMsg Studio.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -97,6 +105,15 @@ update msg model =
         ( { model | explorer = explorer }
         , Cmd.map ExplorerMsg cmd
         )
+
+    StudioMsg m ->
+      let
+        (studio, cmd) = Studio.update m model.studio
+      in
+        ( { model | studio = studio }
+        , Cmd.map StudioMsg cmd
+        )
+
 
 --------------------------------------------------------------------------------
 -- Subscriptions
@@ -141,4 +158,5 @@ mainPanel model =
         Explorer.view model.explorer
 
       Menu.Studio ->
-        []
+        List.map (Element.map StudioMsg) <|
+        Studio.view model.studio
