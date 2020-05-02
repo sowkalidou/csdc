@@ -32,17 +32,24 @@ idFromString s =
 --------------------------------------------------------------------------------
 -- IdMap
 
-type IdMap a = IdMap (Dict Int a)
+type IdMap a b = IdMap (Dict Int b)
 
-decodeIdMap : Decoder a -> Decoder (IdMap a)
+decodeIdMap : Decoder b -> Decoder (IdMap a b)
 decodeIdMap decode =
   let
-    decodePair = Decoder.map2 pair Decoder.int decode
+    decodePair =
+      Decoder.map2 pair (Decoder.index 0 Decoder.int) (Decoder.index 1 decode)
   in
     Decoder.map (IdMap << Dict.fromList) (Decoder.list decodePair)
 
-dictIdMap : IdMap a -> Dict Int a
-dictIdMap (IdMap a) = a
+idMapToList : IdMap a b -> List (Id a, b)
+idMapToList (IdMap m) = List.map (\(i,a) -> (Id i, a)) (Dict.toList m)
+
+idMapEmpty : IdMap a b
+idMapEmpty = IdMap (Dict.empty)
+
+idMapLookup : Id a -> IdMap a b -> Maybe b
+idMapLookup (Id a) (IdMap b) = Dict.get a b
 
 --------------------------------------------------------------------------------
 -- User

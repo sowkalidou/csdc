@@ -30,6 +30,7 @@ let
             # Elm
             elmPackages.elm
             elm2nix
+            nodePackages.uglify-js
           ];
       };
 in

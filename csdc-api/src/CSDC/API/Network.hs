@@ -19,11 +19,13 @@ type CRUD (name :: Symbol) a =
 
 type PersonAPI =
        "person" :> "root" :> Get '[JSON] UserId
+  :<|> "person" :> Capture "id" (Id Person) :> "units" :> Get '[JSON] (IdMap Member Unit)
   :<|> CRUD "person" Person
 
 servePersonAPI :: (HasUser m, HasNetwork m) => ServerT PersonAPI m
 servePersonAPI =
        getUser
+  :<|> getUserUnits
   :<|> selectPerson
   :<|> insertPerson
   :<|> updatePerson
@@ -45,8 +47,8 @@ serveUnitAPI =
 -- API for relations
 
 type REL (name :: Symbol) (left :: Symbol) (right :: Symbol) r a b =
-       name :> left :> Capture left (Id a) :> Get '[JSON] (IdMap r)
-  :<|> name :> right :> Capture right (Id b) :> Get '[JSON] (IdMap r)
+       name :> left :> Capture left (Id a) :> Get '[JSON] (IdMap r r)
+  :<|> name :> right :> Capture right (Id b) :> Get '[JSON] (IdMap r r)
   :<|> name :> ReqBody '[JSON] r :> Post '[JSON] (Id r)
   :<|> name :> Capture "id" (Id r) :> Delete '[JSON] ()
 

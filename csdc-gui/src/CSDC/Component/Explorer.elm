@@ -8,6 +8,8 @@ module CSDC.Component.Explorer exposing
 
 import CSDC.API as API
 import CSDC.Component.Panel as Panel
+import CSDC.Notification as Notification
+import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
 
 import Dict
@@ -17,9 +19,10 @@ import Element exposing (..)
 -- Model
 
 type alias Model =
-  { left : Panel.Model
-  , center : Panel.Model
-  , right : Panel.Model
+  { left : Panel.Model (Id Unit)
+  , center : Panel.Model (Id Unit)
+  , right : Panel.Model (Id Unit)
+  , notification : Notification
   }
 
 initial : () -> (Model, Cmd Msg)
@@ -27,6 +30,7 @@ initial _ =
   ( { left = Panel.initial "Parents"
     , center = Panel.initial "Units"
     , right = Panel.initial "Children"
+    , notification = Notification.Empty
     }
   , Cmd.map (APIMsg Root) <| API.rootUnit
   )
@@ -41,9 +45,9 @@ type Component
   | Root
 
 type Msg
-  = LeftMsg Panel.Msg
-  | CenterMsg Panel.Msg
-  | RightMsg Panel.Msg
+  = LeftMsg (Panel.Msg (Id Unit))
+  | CenterMsg (Panel.Msg (Id Unit))
+  | RightMsg (Panel.Msg (Id Unit))
   | APIMsg Component API.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -66,11 +70,10 @@ update msg model =
       case m of
         API.RootUnit res ->
           case res of
-            -- XXX: report error
             Err err ->
-               ( model
-               , Cmd.none
-               )
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
 
             Ok id ->
                ( model
@@ -78,19 +81,18 @@ update msg model =
                )
 
         -- XXX: Show unit in placeholder
-        API.SelectUnit (Id id) res ->
+        API.SelectUnit id res ->
           case res of
-            -- XXX: report error
             Err err ->
-               ( model
-               , Cmd.none
-               )
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
 
             Ok unit ->
               case component of
                 Root ->
                   let
-                    dict = Dict.singleton id unit.name
+                    dict = [(id,unit.name)]
                     center = Panel.update (Panel.SetItems dict) model.center
                   in
                     ( { model | center = center }
@@ -125,4 +127,5 @@ view model =
       , width fill
       ]
       [ text "Placeholder" ]
-  ]
+  ] ++
+  Notification.view model.notification

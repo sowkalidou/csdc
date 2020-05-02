@@ -4,6 +4,7 @@ module CSDC.Component.Panel exposing
   , Msg (..)
   , update
   , view
+  , getSelected
   )
 
 import Element exposing (..)
@@ -18,40 +19,43 @@ import List
 --------------------------------------------------------------------------------
 -- Model
 
-type alias Model =
+type Model i = Model
   { name : String
-  , items : Dict Int String
-  , selected : Maybe Int
+  , items : List (i, String)
+  , selected : Maybe i
   }
 
-initial : String -> Model
-initial name =
+initial : String -> Model i
+initial name = Model
   { name = name
-  , items = Dict.empty
+  , items = []
   , selected = Nothing
   }
+
+getSelected : Model i -> Maybe i
+getSelected (Model m) = m.selected
 
 --------------------------------------------------------------------------------
 -- Update
 
-type Msg
-  = SetItems (Dict Int String)
-  | SetSelected (Maybe Int)
+type Msg i
+  = SetItems (List (i, String))
+  | SetSelected (Maybe i)
 
-update : Msg -> Model -> Model
-update msg model =
+update : Msg i -> Model i -> Model i
+update msg (Model model) =
   case msg of
     SetItems items ->
-      { model | items = items }
+      Model { model | items = items }
 
     SetSelected selected ->
-      { model | selected = selected }
+      Model { model | selected = selected }
 
 --------------------------------------------------------------------------------
 -- View
 
-view : Model -> Element Msg
-view model =
+view : Model i -> Element (Msg i)
+view (Model model) =
   column
     [ height fill
     , width <| fillPortion 1
@@ -60,10 +64,10 @@ view model =
     , Border.rounded 5
     ]
     ( [ viewTitle model.name ] ++
-      List.map (viewItem model.selected) (Dict.toList model.items)
+      List.map (viewItem model.selected) model.items
     )
 
-viewTitle : String -> Element Msg
+viewTitle : String -> Element (Msg i)
 viewTitle name =
   row
     [ height (px 50)
@@ -75,7 +79,7 @@ viewTitle name =
     [ el [ centerX ] (text name)
     ]
 
-viewItem : Maybe Int -> (Int, String) -> Element Msg
+viewItem : Maybe i -> (i, String) -> Element (Msg i)
 viewItem selected (this,name) =
   row
     [ height (px 30)

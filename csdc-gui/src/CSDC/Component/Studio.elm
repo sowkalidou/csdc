@@ -1,12 +1,14 @@
 module CSDC.Component.Studio exposing
   ( Model
   , initial
+  , setup
   , Msg
   , update
   , view
   )
 
 import CSDC.API as API
+import CSDC.Component.Panel as Panel
 import CSDC.Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
@@ -21,48 +23,55 @@ import String
 -- Model
 
 type alias Model =
-  { id : Maybe UserId
-  , person : Maybe (User Person)
+  { person : Maybe Person
+  , member : IdMap Member Member
+  , units : IdMap Member Unit
+  , panelUnits : Panel.Model (Id Member)
+  , panelMessages : Panel.Model Int -- todo: actually implement messages
   , notification : Notification
   }
 
-initial : () -> (Model, Cmd Msg)
-initial _ =
-  ( { id = Nothing
-    , person = Nothing
-    , notification = Notification.Empty
-    }
-  , Cmd.map APIMsg API.rootPerson
-  )
+initial : Model
+initial =
+  { person = Nothing
+  , member = idMapEmpty
+  , units = idMapEmpty
+  , panelUnits = Panel.initial "Units"
+  , panelMessages = Panel.initial "Messages"
+  , notification = Notification.Empty
+  }
+
+setup : Id Person -> Cmd Msg
+setup id =
+  Cmd.batch
+    [ Cmd.map APIMsg <| API.selectPerson id
+    , Cmd.map APIMsg <| API.selectMemberPerson id
+    , Cmd.map APIMsg <| API.unitsPerson id
+    ]
 
 --------------------------------------------------------------------------------
 -- Update
 
 type Msg
   = APIMsg API.Msg
+  | UnitsMsg (Panel.Msg (Id Member))
+  | MessagesMsg (Panel.Msg Int)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    UnitsMsg m ->
+      ( { model | panelUnits = Panel.update m model.panelUnits }
+      , Cmd.none
+      )
+
+    MessagesMsg m ->
+      ( { model | panelMessages = Panel.update m model.panelMessages }
+      , Cmd.none
+      )
+
     APIMsg apimsg ->
       case apimsg of
-        API.RootPerson result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok id ->
-              case id of
-                Admin ->
-                  ( { model | id = Just Admin, person = Just Admin }
-                  , Cmd.none
-                  )
-                User pid ->
-                  ( { model | id = Just (User pid) }
-                  , Cmd.map APIMsg <| API.selectPerson pid
-                  )
-
         API.SelectPerson result ->
           case result of
             Err err ->
@@ -70,7 +79,36 @@ update msg model =
               , Cmd.none
               )
             Ok person ->
-              ( { model | person = Just (User person) }
+              ( { model | person = Just person }
+              , Cmd.none
+              )
+
+        API.SelectMemberPerson result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+            Ok member ->
+              ( { model | member = member }
+              , Cmd.none
+              )
+
+        API.UnitsPerson result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+            Ok units ->
+              let
+                pairs =
+                  idMapToList units |>
+                  List.map (\(uid,unit) -> (uid,unit.name))
+
+                panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
+              in
+              ( { model | panelUnits = panelUnits, units = units }
               , Cmd.none
               )
 
@@ -82,20 +120,44 @@ update msg model =
 
 view : Model -> List (Element Msg)
 view model =
-  [ row
-      [ Font.bold, Font.size 30 ]
-      [ text "Studio" ]
-  ] ++
-  ( case model.person of
-      Nothing ->
-        [ text "Loading..." ]
-      Just Admin ->
-        [ text "You are the Admin." ]
-      Just (User person) ->
-        [ row []
-            [ text person.name ]
-        , row []
-            [ text person.orcid ]
-        ]
-  ) ++
-  Notification.view model.notification
+  case model.person of
+    Nothing ->
+      [ text "Loading..."
+      ] ++
+      Notification.view model.notification
+
+    Just person ->
+      [ row
+          [ Font.bold, Font.size 30 ]
+          [ text "Studio" ]
+      , row []
+          [ text person.name ]
+      , row []
+          [ el [ Font.bold ] (text "ORCID ID: ")
+          , newTabLink []
+              { url = "https://orcid.org/" ++ person.orcid
+              , label = text person.orcid
+              }
+          ]
+      , row
+          [ height <| fillPortion 1
+          , width fill
+          , spacing 10
+          ]
+          [ map UnitsMsg <| Panel.view model.panelUnits
+          , map MessagesMsg <| Panel.view model.panelMessages
+          ]
+      , case Panel.getSelected model.panelUnits of
+          Nothing ->
+            row [] []
+          Just id ->
+            row
+              [ height <| fillPortion 1
+              , width fill
+              ]
+              [ case idMapLookup id model.units of
+                  Nothing -> text "Error."
+                  Just unit -> text unit.name
+              ]
+      ] ++
+      Notification.view model.notification

@@ -26,10 +26,10 @@ import Control.Lens (Lens', makeLenses, view, set, use, modifying)
 -- In-memory store
 
 data Store = Store
-  { _store_person :: IdMap Person
-  , _store_unit :: IdMap Unit
-  , _store_member :: IdMap Member
-  , _store_subpart :: IdMap Subpart
+  { _store_person :: IdMap Person Person
+  , _store_unit :: IdMap Unit Unit
+  , _store_member :: IdMap Member Member
+  , _store_subpart :: IdMap Subpart Subpart
   , _store_root :: Id Unit
   } deriving (Show, Eq)
 
