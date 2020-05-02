@@ -65,18 +65,24 @@ update msg model =
 
 view : Model -> List (Element Msg)
 view model =
-  [ row
-      [ Font.bold, Font.size 30 ]
-      [ text "Studio" ]
-  ] ++
-  ( case model.person of
-      Nothing ->
-        [ text "Loading..." ]
-      Just person ->
-        [ row []
-            [ text person.name ]
-        , row []
-            [ text person.orcid ]
-        ]
-  ) ++
-  Notification.view model.notification
+  case model.person of
+    Nothing ->
+      [ text "Loading..."
+      ] ++
+      Notification.view model.notification
+
+    Just person ->
+      [ row
+          [ Font.bold, Font.size 30 ]
+          [ text "Studio" ]
+      , row []
+          [ text person.name ]
+      , row []
+          [ el [ Font.bold ] (text "ORCID ID: ")
+          , newTabLink []
+              { url = "https://orcid.org/" ++ person.orcid
+              , label = text person.orcid
+              }
+          ]
+      ] ++
+      Notification.view model.notification
