@@ -38,7 +38,11 @@ initial =
   }
 
 setup : Id Person -> Cmd Msg
-setup id = Cmd.map APIMsg <| API.selectPerson id
+setup id =
+  Cmd.batch
+    [ Cmd.map APIMsg <| API.selectPerson id
+    , Cmd.map APIMsg <| API.selectMemberPerson id
+    ]
 
 --------------------------------------------------------------------------------
 -- Update
@@ -71,6 +75,24 @@ update msg model =
               )
             Ok person ->
               ( { model | person = Just person }
+              , Cmd.none
+              )
+
+        API.SelectMemberPerson result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+            Ok idmap ->
+              let
+                pairs =
+                  idMapToList idmap |>
+                  List.map (\(_,member) -> (member.unit, idToString member.unit))
+
+                units = Panel.update (Panel.SetItems pairs) model.units
+              in
+              ( { model | units = units }
               , Cmd.none
               )
 

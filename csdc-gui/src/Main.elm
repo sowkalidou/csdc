@@ -3,6 +3,7 @@ module Main exposing (..)
 import CSDC.API as API
 import CSDC.Component.Explorer as Explorer
 import CSDC.Component.Menu as Menu
+import CSDC.Component.NewMember as NewMember
 import CSDC.Component.NewPerson as NewPerson
 import CSDC.Component.NewUnit as NewUnit
 import CSDC.Component.Studio as Studio
@@ -40,6 +41,7 @@ main =
 type alias Model =
   { id : Maybe UserId
   , menu : Menu.Model
+  , newMember : NewMember.Model
   , newPerson : NewPerson.Model
   , newUnit : NewUnit.Model
   , explorer : Explorer.Model
@@ -55,6 +57,7 @@ init _ =
     ( { id = Nothing
       , menu = Menu.initial
       , explorer = explorer
+      , newMember = NewMember.initial
       , newPerson = NewPerson.initial
       , newUnit = NewUnit.initial
       , studio = Studio.initial
@@ -70,7 +73,8 @@ init _ =
 -- Update
 
 type Msg
-  = NewPersonMsg NewPerson.Msg
+  = NewMemberMsg NewMember.Msg
+  | NewPersonMsg NewPerson.Msg
   | NewUnitMsg NewUnit.Msg
   | MenuMsg Menu.Msg
   | ExplorerMsg Explorer.Msg
@@ -80,22 +84,6 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    NewUnitMsg m ->
-      let
-        (newUnit, cmd) = NewUnit.update m model.newUnit
-      in
-        ( { model | newUnit = newUnit }
-        , Cmd.map NewUnitMsg cmd
-        )
-
-    NewPersonMsg m ->
-      let
-        (newPerson, cmd) = NewPerson.update m model.newPerson
-      in
-        ( { model | newPerson = newPerson }
-        , Cmd.map NewPersonMsg cmd
-        )
-
     MenuMsg m ->
       let
         menu = Menu.update m model.menu
@@ -139,6 +127,33 @@ update msg model =
 
         _ -> (model, Cmd.none)
 
+    -- Admin
+
+    NewUnitMsg m ->
+      let
+        (newUnit, cmd) = NewUnit.update m model.newUnit
+      in
+        ( { model | newUnit = newUnit }
+        , Cmd.map NewUnitMsg cmd
+        )
+
+    NewPersonMsg m ->
+      let
+        (newPerson, cmd) = NewPerson.update m model.newPerson
+      in
+        ( { model | newPerson = newPerson }
+        , Cmd.map NewPersonMsg cmd
+        )
+
+    NewMemberMsg m ->
+      let
+        (newMember, cmd) = NewMember.update m model.newMember
+      in
+        ( { model | newMember = newMember }
+        , Cmd.map NewMemberMsg cmd
+        )
+
+
 --------------------------------------------------------------------------------
 -- Subscriptions
 
@@ -169,18 +184,18 @@ mainPanel model =
     , padding 10
     ] <|
     case model.menu of
-      Menu.NewPerson ->
-        [ Element.map NewPersonMsg <| NewPerson.view model.newPerson
-        ]
-
-      Menu.NewUnit ->
-        [ Element.map NewUnitMsg <| NewUnit.view model.newUnit
-        ]
+      Menu.Studio ->
+        List.map (Element.map StudioMsg) <|
+        Studio.view model.studio
 
       Menu.Explorer ->
         List.map (Element.map ExplorerMsg) <|
         Explorer.view model.explorer
 
-      Menu.Studio ->
-        List.map (Element.map StudioMsg) <|
-        Studio.view model.studio
+      Menu.Admin ->
+        [ Element.map NewPersonMsg <| NewPerson.view model.newPerson
+        , Element.map NewUnitMsg <| NewUnit.view model.newUnit
+        , Element.map NewMemberMsg <| NewMember.view model.newMember
+        ]
+
+

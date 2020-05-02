@@ -25,13 +25,12 @@ import String
 -- Model
 
 type Model
-  = NewPerson
-  | NewUnit
-  | Explorer
+  = Explorer
   | Studio
+  | Admin
 
 initial : Model
-initial = NewPerson
+initial = Studio
 
 --------------------------------------------------------------------------------
 -- Update
@@ -84,9 +83,8 @@ view model =
     , Font.color <| rgb255 255 255 255
     ]
     [ title
-    , item model "New Person" NewPerson
-    , item model "New Unit" NewUnit
-    , item model "Explorer" Explorer
     , item model "Studio" Studio
+    , item model "Explorer" Explorer
+    , item model "Admin" Admin
     ]
 

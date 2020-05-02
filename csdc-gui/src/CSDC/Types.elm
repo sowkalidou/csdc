@@ -37,12 +37,13 @@ type IdMap a = IdMap (Dict Int a)
 decodeIdMap : Decoder a -> Decoder (IdMap a)
 decodeIdMap decode =
   let
-    decodePair = Decoder.map2 pair Decoder.int decode
+    decodePair =
+      Decoder.map2 pair (Decoder.index 0 Decoder.int) (Decoder.index 1 decode)
   in
     Decoder.map (IdMap << Dict.fromList) (Decoder.list decodePair)
 
-dictIdMap : IdMap a -> Dict Int a
-dictIdMap (IdMap a) = a
+idMapToList : IdMap a -> List (Id a, a)
+idMapToList (IdMap m) = List.map (\(i,a) -> (Id i, a)) (Dict.toList m)
 
 --------------------------------------------------------------------------------
 -- User
