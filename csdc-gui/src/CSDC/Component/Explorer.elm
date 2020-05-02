@@ -8,6 +8,8 @@ module CSDC.Component.Explorer exposing
 
 import CSDC.API as API
 import CSDC.Component.Panel as Panel
+import CSDC.Notification as Notification
+import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
 
 import Dict
@@ -20,6 +22,7 @@ type alias Model =
   { left : Panel.Model (Id Unit)
   , center : Panel.Model (Id Unit)
   , right : Panel.Model (Id Unit)
+  , notification : Notification
   }
 
 initial : () -> (Model, Cmd Msg)
@@ -27,6 +30,7 @@ initial _ =
   ( { left = Panel.initial "Parents"
     , center = Panel.initial "Units"
     , right = Panel.initial "Children"
+    , notification = Notification.Empty
     }
   , Cmd.map (APIMsg Root) <| API.rootUnit
   )
@@ -66,11 +70,10 @@ update msg model =
       case m of
         API.RootUnit res ->
           case res of
-            -- XXX: report error
             Err err ->
-               ( model
-               , Cmd.none
-               )
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
 
             Ok id ->
                ( model
@@ -80,11 +83,10 @@ update msg model =
         -- XXX: Show unit in placeholder
         API.SelectUnit id res ->
           case res of
-            -- XXX: report error
             Err err ->
-               ( model
-               , Cmd.none
-               )
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
 
             Ok unit ->
               case component of
@@ -125,4 +127,5 @@ view model =
       , width fill
       ]
       [ text "Placeholder" ]
-  ]
+  ] ++
+  Notification.view model.notification
