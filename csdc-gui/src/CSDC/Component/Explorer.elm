@@ -17,9 +17,9 @@ import Element exposing (..)
 -- Model
 
 type alias Model =
-  { left : Panel.Model
-  , center : Panel.Model
-  , right : Panel.Model
+  { left : Panel.Model (Id Unit)
+  , center : Panel.Model (Id Unit)
+  , right : Panel.Model (Id Unit)
   }
 
 initial : () -> (Model, Cmd Msg)
@@ -41,9 +41,9 @@ type Component
   | Root
 
 type Msg
-  = LeftMsg Panel.Msg
-  | CenterMsg Panel.Msg
-  | RightMsg Panel.Msg
+  = LeftMsg (Panel.Msg (Id Unit))
+  | CenterMsg (Panel.Msg (Id Unit))
+  | RightMsg (Panel.Msg (Id Unit))
   | APIMsg Component API.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -78,7 +78,7 @@ update msg model =
                )
 
         -- XXX: Show unit in placeholder
-        API.SelectUnit (Id id) res ->
+        API.SelectUnit id res ->
           case res of
             -- XXX: report error
             Err err ->
@@ -90,7 +90,7 @@ update msg model =
               case component of
                 Root ->
                   let
-                    dict = Dict.singleton id unit.name
+                    dict = [(id,unit.name)]
                     center = Panel.update (Panel.SetItems dict) model.center
                   in
                     ( { model | center = center }
