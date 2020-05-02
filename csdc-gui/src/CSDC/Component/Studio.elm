@@ -8,6 +8,7 @@ module CSDC.Component.Studio exposing
   )
 
 import CSDC.API as API
+import CSDC.Component.Panel as Panel
 import CSDC.Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
@@ -23,12 +24,16 @@ import String
 
 type alias Model =
   { person : Maybe Person
+  , units : Panel.Model (Id Unit)
+  , messages : Panel.Model Int -- todo: actually implement messages
   , notification : Notification
   }
 
 initial : Model
 initial =
   { person = Nothing
+  , units = Panel.initial "Units"
+  , messages = Panel.initial "Messages"
   , notification = Notification.Empty
   }
 
@@ -40,10 +45,22 @@ setup id = Cmd.map APIMsg <| API.selectPerson id
 
 type Msg
   = APIMsg API.Msg
+  | UnitsMsg (Panel.Msg (Id Unit))
+  | MessagesMsg (Panel.Msg Int)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    UnitsMsg m ->
+      ( { model | units = Panel.update m model.units }
+      , Cmd.none
+      )
+
+    MessagesMsg m ->
+      ( { model | messages = Panel.update m model.messages }
+      , Cmd.none
+      )
+
     APIMsg apimsg ->
       case apimsg of
         API.SelectPerson result ->
@@ -84,5 +101,18 @@ view model =
               , label = text person.orcid
               }
           ]
+      , row
+          [ height <| fillPortion 1
+          , width fill
+          , spacing 10
+          ]
+          [ map UnitsMsg <| Panel.view model.units
+          , map MessagesMsg <| Panel.view model.messages
+          ]
+      , row
+          [ height <| fillPortion 1
+          , width fill
+          ]
+          [ text "Placeholder" ]
       ] ++
       Notification.view model.notification
