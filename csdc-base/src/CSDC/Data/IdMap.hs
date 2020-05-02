@@ -22,26 +22,26 @@ import Prelude hiding (lookup, filter)
 --------------------------------------------------------------------------------
 -- Type definition
 
-newtype IdMap a = IdMap { getIdMap :: IntMap a }
+newtype IdMap a b = IdMap { getIdMap :: IntMap b }
   deriving newtype (Show, Eq, Functor, Foldable, ToJSON, FromJSON)
   deriving stock (Traversable)
 
-empty :: IdMap a
+empty :: IdMap a b
 empty = IdMap (IntMap.empty)
 
-lookup :: Id a -> IdMap a -> Maybe a
+lookup :: Id a -> IdMap a b -> Maybe b
 lookup (Id uid) (IdMap m) = IntMap.lookup uid m
 
-find :: (a -> Bool) -> IdMap a -> Maybe (Id a, a)
+find :: (b -> Bool) -> IdMap a b -> Maybe (Id a, b)
 find p (IdMap m) =
   fmap (\(uid,a) -> (Id uid,a)) $
   List.find (p . snd) $
   IntMap.toList m
 
-insert :: Id a -> a -> IdMap a -> IdMap a
+insert :: Id a -> b -> IdMap a b -> IdMap a b
 insert (Id uid) a (IdMap m) = IdMap $ IntMap.insert uid a m
 
-insertNew :: a -> IdMap a -> (Id a, IdMap a)
+insertNew :: b -> IdMap a b -> (Id a, IdMap a b)
 insertNew a idmap@(IdMap m) =
   let
     uid =
@@ -51,8 +51,8 @@ insertNew a idmap@(IdMap m) =
   in
     (uid, insert uid a idmap)
 
-delete :: Id a -> IdMap a -> IdMap a
+delete :: Id a -> IdMap a b -> IdMap a b
 delete (Id uid) (IdMap m) = IdMap $ IntMap.delete uid m
 
-filter :: (a -> Bool) -> IdMap a -> IdMap a
+filter :: (b -> Bool) -> IdMap a b -> IdMap a b
 filter f (IdMap m) = IdMap $ IntMap.filter f m

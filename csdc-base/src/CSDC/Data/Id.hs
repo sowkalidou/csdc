@@ -9,7 +9,7 @@ import Web.Internal.HttpApiData (FromHttpApiData)
 
 -- | A unique identifier for some type.
 newtype Id a = Id Int
-  deriving newtype (Show, Eq, ToJSON, FromJSON, FromHttpApiData)
+  deriving newtype (Show, Eq, Ord, ToJSON, FromJSON, FromHttpApiData)
 
 zero :: Id a
 zero = Id 0

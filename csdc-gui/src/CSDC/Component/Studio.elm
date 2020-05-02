@@ -24,7 +24,8 @@ import String
 
 type alias Model =
   { person : Maybe Person
-  , units : Panel.Model (Id Unit)
+  , member : IdMap Member Member
+  , units : Panel.Model (Id Member)
   , messages : Panel.Model Int -- todo: actually implement messages
   , notification : Notification
   }
@@ -32,6 +33,7 @@ type alias Model =
 initial : Model
 initial =
   { person = Nothing
+  , member = idMapEmpty
   , units = Panel.initial "Units"
   , messages = Panel.initial "Messages"
   , notification = Notification.Empty
@@ -42,6 +44,7 @@ setup id =
   Cmd.batch
     [ Cmd.map APIMsg <| API.selectPerson id
     , Cmd.map APIMsg <| API.selectMemberPerson id
+    , Cmd.map APIMsg <| API.unitsPerson id
     ]
 
 --------------------------------------------------------------------------------
@@ -49,7 +52,7 @@ setup id =
 
 type Msg
   = APIMsg API.Msg
-  | UnitsMsg (Panel.Msg (Id Unit))
+  | UnitsMsg (Panel.Msg (Id Member))
   | MessagesMsg (Panel.Msg Int)
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -84,11 +87,22 @@ update msg model =
               ( { model | notification = Notification.HttpError err }
               , Cmd.none
               )
+            Ok member ->
+              ( { model | member = member }
+              , Cmd.none
+              )
+
+        API.UnitsPerson result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
             Ok idmap ->
               let
                 pairs =
                   idMapToList idmap |>
-                  List.map (\(_,member) -> (member.unit, idToString member.unit))
+                  List.map (\(uid,unit) -> (uid,unit.name))
 
                 units = Panel.update (Panel.SetItems pairs) model.units
               in

@@ -1,15 +1,20 @@
+{-# LANGUAGE LambdaCase #-}
+
 module CSDC.Network.Class
   ( HasNetwork (..)
+  , getUserUnits
   ) where
 
 import CSDC.Data.Id (Id)
 import CSDC.Data.IdMap (IdMap)
-import CSDC.Network.Types (Person (..), Unit, Member, Subpart)
+import CSDC.Network.Types (Person (..), Unit, Member (..), Subpart)
 
 import qualified CSDC.Auth.ORCID as ORCID
+import qualified CSDC.Data.IdMap as IdMap
 
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans (MonadTrans (..))
+import Data.Traversable (forM)
 
 --------------------------------------------------------------------------------
 -- Class
@@ -29,6 +34,7 @@ class Monad m => HasNetwork m where
   deletePerson :: Id Person -> m ()
 
   -- Unit manipulation
+
   rootUnit :: m (Id Unit)
 
   selectUnit :: Id Unit -> m (Maybe Unit)
@@ -41,9 +47,9 @@ class Monad m => HasNetwork m where
 
   -- Member manipulation
 
-  selectMemberPerson :: Id Person -> m (IdMap Member)
+  selectMemberPerson :: Id Person -> m (IdMap Member Member)
 
-  selectMemberUnit :: Id Unit -> m (IdMap Member)
+  selectMemberUnit :: Id Unit -> m (IdMap Member Member)
 
   insertMember :: Member -> m (Id Member)
 
@@ -51,13 +57,25 @@ class Monad m => HasNetwork m where
 
   -- Subpart manipulation
 
-  selectSubpartChild :: Id Unit -> m (IdMap Subpart)
+  selectSubpartChild :: Id Unit -> m (IdMap Subpart Subpart)
 
-  selectSubpartParent :: Id Unit -> m (IdMap Subpart)
+  selectSubpartParent :: Id Unit -> m (IdMap Subpart Subpart)
 
   insertSubpart :: Subpart -> m (Id Subpart)
 
   deleteSubpart :: Id Subpart -> m ()
+
+getUserUnits :: HasNetwork m => Id Person -> m (IdMap Member Unit)
+getUserUnits uid = do
+  members <- selectMemberPerson uid
+  pairs <- forM members $ \(Member _ unitId) ->
+    selectUnit unitId
+  case sequence pairs of
+    Nothing -> pure IdMap.empty
+    Just m -> pure m
+
+--------------------------------------------------------------------------------
+-- Instances
 
 -- | This instance is here for the delegation to @UserT@. It only depends on
 -- 'MonadTrans'.

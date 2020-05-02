@@ -19,6 +19,7 @@ decodeNull =
 
 type Msg
   = RootPerson (Result Http.Error UserId)
+  | UnitsPerson (Result Http.Error (IdMap Member Unit))
   | SelectPerson (Result Http.Error Person)
   | InsertPerson (Result Http.Error (Id Person))
   | UpdatePerson (Result Http.Error ())
@@ -28,12 +29,12 @@ type Msg
   | InsertUnit (Result Http.Error (Id Unit))
   | UpdateUnit (Result Http.Error ())
   | DeleteUnit (Result Http.Error ())
-  | SelectMemberPerson (Result Http.Error (IdMap Member))
-  | SelectMemberUnit (Result Http.Error (IdMap Member))
+  | SelectMemberPerson (Result Http.Error (IdMap Member Member))
+  | SelectMemberUnit (Result Http.Error (IdMap Member Member))
   | InsertMember (Result Http.Error (Id Member))
   | DeleteMember (Result Http.Error ())
-  | SelectSubpartChild (Result Http.Error (IdMap Subpart))
-  | SelectSubpartParent (Result Http.Error (IdMap Subpart))
+  | SelectSubpartChild (Result Http.Error (IdMap Subpart Subpart))
+  | SelectSubpartParent (Result Http.Error (IdMap Subpart Subpart))
   | InsertSubpart (Result Http.Error (Id Subpart))
   | DeleteSubpart (Result Http.Error ())
 
@@ -45,6 +46,13 @@ rootPerson =
   Http.get
     { url = baseUrl ++ "person/root"
     , expect = Http.expectJson RootPerson (decodeUser decodeId)
+    }
+
+unitsPerson : Id Person -> Cmd Msg
+unitsPerson id =
+  Http.get
+    { url = baseUrl ++ "person/" ++ idToString id ++ "/units"
+    , expect = Http.expectJson UnitsPerson (decodeIdMap decodeUnit)
     }
 
 selectPerson : Id Person -> Cmd Msg
