@@ -6,6 +6,8 @@ import CSDC.Component.Menu as Menu
 import CSDC.Component.NewPerson as NewPerson
 import CSDC.Component.NewUnit as NewUnit
 import CSDC.Component.Studio as Studio
+import CSDC.Notification as Notification
+import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
 
 import Browser
@@ -36,28 +38,31 @@ main =
 -- Model
 
 type alias Model =
-  { menu: Menu.Model
+  { id : Maybe UserId
+  , menu : Menu.Model
   , newPerson : NewPerson.Model
   , newUnit : NewUnit.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
+  , notification : Notification
   }
 
 init : () -> (Model, Cmd Msg)
 init _ =
   let
     (explorer, explorerCmd) = Explorer.initial ()
-    (studio, studioCmd) = Studio.initial ()
   in
-    ( { menu = Menu.initial
+    ( { id = Nothing
+      , menu = Menu.initial
       , explorer = explorer
       , newPerson = NewPerson.initial
       , newUnit = NewUnit.initial
-      , studio = studio
+      , studio = Studio.initial
+      , notification = Notification.Empty
       }
     , Cmd.batch
         [ Cmd.map ExplorerMsg explorerCmd
-        , Cmd.map StudioMsg studioCmd
+        , Cmd.map APIMsg API.rootPerson
         ]
     )
 
@@ -70,6 +75,7 @@ type Msg
   | MenuMsg Menu.Msg
   | ExplorerMsg Explorer.Msg
   | StudioMsg Studio.Msg
+  | APIMsg API.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -114,6 +120,24 @@ update msg model =
         , Cmd.map StudioMsg cmd
         )
 
+    APIMsg m ->
+      case m of
+        API.RootPerson result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+            Ok id ->
+              ( { model | id = Just id }
+              , case id of
+                  Admin ->
+                    Cmd.none
+                  User pid ->
+                    Cmd.map StudioMsg <| Studio.setup pid
+              )
+
+        _ -> (model, Cmd.none)
 
 --------------------------------------------------------------------------------
 -- Subscriptions

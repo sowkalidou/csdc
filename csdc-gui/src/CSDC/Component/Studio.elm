@@ -1,6 +1,7 @@
 module CSDC.Component.Studio exposing
   ( Model
   , initial
+  , setup
   , Msg
   , update
   , view
@@ -21,19 +22,18 @@ import String
 -- Model
 
 type alias Model =
-  { id : Maybe UserId
-  , person : Maybe (User Person)
+  { person : Maybe Person
   , notification : Notification
   }
 
-initial : () -> (Model, Cmd Msg)
-initial _ =
-  ( { id = Nothing
-    , person = Nothing
-    , notification = Notification.Empty
-    }
-  , Cmd.map APIMsg API.rootPerson
-  )
+initial : Model
+initial =
+  { person = Nothing
+  , notification = Notification.Empty
+  }
+
+setup : Id Person -> Cmd Msg
+setup id = Cmd.map APIMsg <| API.selectPerson id
 
 --------------------------------------------------------------------------------
 -- Update
@@ -46,23 +46,6 @@ update msg model =
   case msg of
     APIMsg apimsg ->
       case apimsg of
-        API.RootPerson result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok id ->
-              case id of
-                Admin ->
-                  ( { model | id = Just Admin, person = Just Admin }
-                  , Cmd.none
-                  )
-                User pid ->
-                  ( { model | id = Just (User pid) }
-                  , Cmd.map APIMsg <| API.selectPerson pid
-                  )
-
         API.SelectPerson result ->
           case result of
             Err err ->
@@ -70,7 +53,7 @@ update msg model =
               , Cmd.none
               )
             Ok person ->
-              ( { model | person = Just (User person) }
+              ( { model | person = Just person }
               , Cmd.none
               )
 
@@ -89,9 +72,7 @@ view model =
   ( case model.person of
       Nothing ->
         [ text "Loading..." ]
-      Just Admin ->
-        [ text "You are the Admin." ]
-      Just (User person) ->
+      Just person ->
         [ row []
             [ text person.name ]
         , row []
