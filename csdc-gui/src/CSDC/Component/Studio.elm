@@ -25,8 +25,9 @@ import String
 type alias Model =
   { person : Maybe Person
   , member : IdMap Member Member
-  , units : Panel.Model (Id Member)
-  , messages : Panel.Model Int -- todo: actually implement messages
+  , units : IdMap Member Unit
+  , panelUnits : Panel.Model (Id Member)
+  , panelMessages : Panel.Model Int -- todo: actually implement messages
   , notification : Notification
   }
 
@@ -34,8 +35,9 @@ initial : Model
 initial =
   { person = Nothing
   , member = idMapEmpty
-  , units = Panel.initial "Units"
-  , messages = Panel.initial "Messages"
+  , units = idMapEmpty
+  , panelUnits = Panel.initial "Units"
+  , panelMessages = Panel.initial "Messages"
   , notification = Notification.Empty
   }
 
@@ -59,12 +61,12 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     UnitsMsg m ->
-      ( { model | units = Panel.update m model.units }
+      ( { model | panelUnits = Panel.update m model.panelUnits }
       , Cmd.none
       )
 
     MessagesMsg m ->
-      ( { model | messages = Panel.update m model.messages }
+      ( { model | panelMessages = Panel.update m model.panelMessages }
       , Cmd.none
       )
 
@@ -98,15 +100,15 @@ update msg model =
               ( { model | notification = Notification.HttpError err }
               , Cmd.none
               )
-            Ok idmap ->
+            Ok units ->
               let
                 pairs =
-                  idMapToList idmap |>
+                  idMapToList units |>
                   List.map (\(uid,unit) -> (uid,unit.name))
 
-                units = Panel.update (Panel.SetItems pairs) model.units
+                panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
               in
-              ( { model | units = units }
+              ( { model | panelUnits = panelUnits, units = units }
               , Cmd.none
               )
 
@@ -142,13 +144,20 @@ view model =
           , width fill
           , spacing 10
           ]
-          [ map UnitsMsg <| Panel.view model.units
-          , map MessagesMsg <| Panel.view model.messages
+          [ map UnitsMsg <| Panel.view model.panelUnits
+          , map MessagesMsg <| Panel.view model.panelMessages
           ]
-      , row
-          [ height <| fillPortion 1
-          , width fill
-          ]
-          [ text "Placeholder" ]
+      , case Panel.getSelected model.panelUnits of
+          Nothing ->
+            row [] []
+          Just id ->
+            row
+              [ height <| fillPortion 1
+              , width fill
+              ]
+              [ case idMapLookup id model.units of
+                  Nothing -> text "Error."
+                  Just unit -> text unit.name
+              ]
       ] ++
       Notification.view model.notification

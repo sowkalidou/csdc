@@ -48,6 +48,9 @@ idMapToList (IdMap m) = List.map (\(i,a) -> (Id i, a)) (Dict.toList m)
 idMapEmpty : IdMap a b
 idMapEmpty = IdMap (Dict.empty)
 
+idMapLookup : Id a -> IdMap a b -> Maybe b
+idMapLookup (Id a) (IdMap b) = Dict.get a b
+
 --------------------------------------------------------------------------------
 -- User
 

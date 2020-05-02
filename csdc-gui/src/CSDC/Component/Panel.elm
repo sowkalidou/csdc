@@ -4,6 +4,7 @@ module CSDC.Component.Panel exposing
   , Msg (..)
   , update
   , view
+  , getSelected
   )
 
 import Element exposing (..)
@@ -30,6 +31,9 @@ initial name = Model
   , items = []
   , selected = Nothing
   }
+
+getSelected : Model i -> Maybe i
+getSelected (Model m) = m.selected
 
 --------------------------------------------------------------------------------
 -- Update
