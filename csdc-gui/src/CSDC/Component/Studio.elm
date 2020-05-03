@@ -2,14 +2,14 @@ module CSDC.Component.Studio exposing
   ( Model
   , initial
   , setup
-  , Msg
+  , Msg (..)
   , update
   , view
   )
 
 import CSDC.API as API
 import CSDC.Component.Panel as Panel
-import CSDC.Input
+import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
@@ -18,6 +18,7 @@ import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import String
+import Tuple exposing (pair)
 
 --------------------------------------------------------------------------------
 -- Model
@@ -56,6 +57,7 @@ type Msg
   = APIMsg API.Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | MessagesMsg (Panel.Msg Int)
+  | ViewSelected (Id Unit)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -69,6 +71,8 @@ update msg model =
       ( { model | panelMessages = Panel.update m model.panelMessages }
       , Cmd.none
       )
+
+    ViewSelected _ -> (model, Cmd.none)
 
     APIMsg apimsg ->
       case apimsg of
@@ -156,10 +160,17 @@ view model =
             row
               [ height <| fillPortion 1
               , width fill
-              ]
-              [ case idMapLookup id model.units of
-                  Nothing -> text "Error."
-                  Just unit -> text unit.name
-              ]
+              ] <|
+              case
+                Maybe.map2 pair
+                  (idMapLookup id model.member)
+                  (idMapLookup id model.units)
+                of
+                Nothing ->
+                  [ text "Error." ]
+                Just (member, unit) ->
+                  [ text unit.name
+                  , button (ViewSelected member.unit) "View Unit"
+                  ]
       ] ++
       Notification.view model.notification

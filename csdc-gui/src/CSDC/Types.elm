@@ -29,6 +29,17 @@ idFromString s =
     Nothing -> Nothing
     Just n -> Just (Id n)
 
+type alias WithId a =
+  { id : Id a
+  , value : a
+  }
+
+decodeWithId : Decoder a -> Decoder (WithId a)
+decodeWithId decode =
+  Decoder.map2 WithId
+    (Decoder.field "id" decodeId)
+    (Decoder.field "value" decode)
+
 --------------------------------------------------------------------------------
 -- IdMap
 

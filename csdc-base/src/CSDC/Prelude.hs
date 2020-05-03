@@ -5,7 +5,7 @@ module CSDC.Prelude
 import CSDC.Aeson as Export
 import CSDC.Network.Class as Export
 import CSDC.Network.Types as Export
-import CSDC.Data.Id as Export (Id (..))
+import CSDC.Data.Id as Export (Id (..), WithId (..))
 import CSDC.Data.IdMap as Export (IdMap (..))
 import CSDC.Auth as Export (UserToken)
 import CSDC.User as Export (HasUser (..), User (..), UserId)

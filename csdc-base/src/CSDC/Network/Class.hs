@@ -3,11 +3,13 @@
 module CSDC.Network.Class
   ( HasNetwork (..)
   , getUserUnits
+  , getUnitMembers
+  , getUnitSubparts
   ) where
 
-import CSDC.Data.Id (Id)
+import CSDC.Data.Id (Id, WithId (..))
 import CSDC.Data.IdMap (IdMap)
-import CSDC.Network.Types (Person (..), Unit, Member (..), Subpart)
+import CSDC.Network.Types (Person (..), Unit, Member (..), Subpart (..))
 
 import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.Data.IdMap as IdMap
@@ -70,6 +72,24 @@ getUserUnits uid = do
   members <- selectMemberPerson uid
   pairs <- forM members $ \(Member _ unitId) ->
     selectUnit unitId
+  case sequence pairs of
+    Nothing -> pure IdMap.empty
+    Just m -> pure m
+
+getUnitMembers :: HasNetwork m => Id Unit -> m (IdMap Member (WithId Person))
+getUnitMembers uid = do
+  members <- selectMemberUnit uid
+  pairs <- forM members $ \(Member personId _) ->
+    fmap (WithId personId) <$> selectPerson personId
+  case sequence pairs of
+    Nothing -> pure IdMap.empty
+    Just m -> pure m
+
+getUnitSubparts :: HasNetwork m => Id Unit -> m (IdMap Subpart (WithId Unit))
+getUnitSubparts uid = do
+  subparts <- selectSubpartParent uid
+  pairs <- forM subparts $ \(Subpart childId _) ->
+    fmap (WithId childId) <$> selectUnit childId
   case sequence pairs of
     Nothing -> pure IdMap.empty
     Just m -> pure m
