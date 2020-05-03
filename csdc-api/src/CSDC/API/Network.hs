@@ -33,11 +33,15 @@ servePersonAPI =
 
 type UnitAPI =
        "unit" :> "root" :> Get '[JSON] (Id Unit)
+  :<|> "unit" :> Capture "id" (Id Unit) :> "members" :> Get '[JSON] (IdMap Member (WithId Person))
+  :<|> "unit" :> Capture "id" (Id Unit) :> "subparts" :> Get '[JSON] (IdMap Subpart (WithId Unit))
   :<|> CRUD "unit" Unit
 
 serveUnitAPI :: HasNetwork m => ServerT UnitAPI m
 serveUnitAPI =
        rootUnit
+  :<|> getUnitMembers
+  :<|> getUnitSubparts
   :<|> selectUnit
   :<|> insertUnit
   :<|> updateUnit

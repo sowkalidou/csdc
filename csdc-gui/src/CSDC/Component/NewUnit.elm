@@ -62,7 +62,7 @@ update msg model =
           )
         Just name ->
           ( { model | notification = Notification.Processing }
-          , Cmd.map APIMsg <| API.insertUnit (Unit name)
+          , Cmd.map APIMsg <| API.insertUnit (Unit name "")
           )
 
     APIMsg apimsg ->

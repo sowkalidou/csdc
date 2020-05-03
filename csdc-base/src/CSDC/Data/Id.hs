@@ -2,9 +2,13 @@ module CSDC.Data.Id
   ( Id (..)
   , zero
   , next
+  , WithId (..)
   ) where
 
+import CSDC.Aeson (JSON (..))
+
 import Data.Aeson (ToJSON, FromJSON)
+import GHC.Generics (Generic)
 import Web.Internal.HttpApiData (FromHttpApiData)
 
 -- | A unique identifier for some type.
@@ -16,3 +20,9 @@ zero = Id 0
 
 next :: Id a -> Id a
 next (Id a) = Id (a + 1)
+
+data WithId a = WithId
+  { withId_id :: Id a
+  , withId_value :: a
+  } deriving (Show, Eq, Ord, Generic)
+    deriving (FromJSON, ToJSON) via JSON (WithId a)

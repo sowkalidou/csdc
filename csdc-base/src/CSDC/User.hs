@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module CSDC.User
   ( -- * Type
@@ -58,6 +59,7 @@ instance HasNetwork m => HasUser (UserT m) where
               person = Person
                 { person_name = ORCID.token_name token
                 , person_orcid = ORCID.token_orcid token
+                , person_description = ""
                 }
             in
               User <$> insertPerson person

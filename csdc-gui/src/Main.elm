@@ -7,6 +7,7 @@ import CSDC.Component.NewMember as NewMember
 import CSDC.Component.NewPerson as NewPerson
 import CSDC.Component.NewUnit as NewUnit
 import CSDC.Component.Studio as Studio
+import CSDC.Component.ViewUnit as ViewUnit
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
@@ -44,6 +45,7 @@ type alias Model =
   , newMember : NewMember.Model
   , newPerson : NewPerson.Model
   , newUnit : NewUnit.Model
+  , viewUnit : ViewUnit.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
   , notification : Notification
@@ -61,6 +63,7 @@ init _ =
       , newPerson = NewPerson.initial
       , newUnit = NewUnit.initial
       , studio = Studio.initial
+      , viewUnit = ViewUnit.initial
       , notification = Notification.Empty
       }
     , Cmd.batch
@@ -78,6 +81,7 @@ type Msg
   | NewUnitMsg NewUnit.Msg
   | MenuMsg Menu.Msg
   | ExplorerMsg Explorer.Msg
+  | ViewUnitMsg ViewUnit.Msg
   | StudioMsg Studio.Msg
   | APIMsg API.Msg
 
@@ -103,9 +107,25 @@ update msg model =
     StudioMsg m ->
       let
         (studio, cmd) = Studio.update m model.studio
+        (newModel, newCmd) =
+          ( { model | studio = studio }
+          , Cmd.map StudioMsg cmd
+          )
       in
-        ( { model | studio = studio }
-        , Cmd.map StudioMsg cmd
+        case m of
+          Studio.ViewSelected uid ->
+            ( { newModel | menu = Menu.ViewUnit }
+            , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) (API.selectUnit uid)
+            )
+
+          _ -> (newModel, newCmd)
+
+    ViewUnitMsg m ->
+      let
+        (viewUnit, cmd) = ViewUnit.update m model.viewUnit
+      in
+        ( { model | viewUnit = viewUnit }
+        , Cmd.map ViewUnitMsg cmd
         )
 
     APIMsg m ->
@@ -191,6 +211,10 @@ mainPanel model =
       Menu.Explorer ->
         List.map (Element.map ExplorerMsg) <|
         Explorer.view model.explorer
+
+      Menu.ViewUnit ->
+        List.map (Element.map ViewUnitMsg) <|
+        ViewUnit.view model.viewUnit
 
       Menu.Admin ->
         [ Element.map NewPersonMsg <| NewPerson.view model.newPerson
