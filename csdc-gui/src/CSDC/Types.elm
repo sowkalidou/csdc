@@ -76,7 +76,8 @@ decodeUser decode =
 
 type alias Person =
   { name : String
-  , orcid: String
+  , orcid : String
+  , description : String
   }
 
 encodePerson : Person -> Value
@@ -84,33 +85,38 @@ encodePerson person =
   Encoder.object
     [ ("name", Encoder.string person.name)
     , ("orcid", Encoder.string person.orcid)
+    , ("description", Encoder.string person.description)
     ]
 
 
 decodePerson : Decoder Person
 decodePerson =
-  Decoder.map2 Person
+  Decoder.map3 Person
     (Decoder.field "name" Decoder.string)
     (Decoder.field "orcid" Decoder.string)
+    (Decoder.field "description" Decoder.string)
 
 --------------------------------------------------------------------------------
 -- Unit
 
 type alias Unit =
   { name : String
+  , description : String
   }
 
 encodeUnit : Unit -> Value
 encodeUnit unit =
   Encoder.object
     [ ("name", Encoder.string unit.name)
+    , ("description", Encoder.string unit.description)
     ]
 
 
 decodeUnit : Decoder Unit
 decodeUnit =
-  Decoder.map Unit
+  Decoder.map2 Unit
     (Decoder.field "name" Decoder.string)
+    (Decoder.field "description" Decoder.string)
 
 --------------------------------------------------------------------------------
 -- Member

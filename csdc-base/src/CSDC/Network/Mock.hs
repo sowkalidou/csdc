@@ -46,7 +46,7 @@ makeEmptyStore = liftIO $ newMVar
     }
   where
     uid = Id 0
-    unit = Unit "CS-DC"
+    unit = Unit "CS-DC" "The root of the CS-DC network."
 
 --------------------------------------------------------------------------------
 -- Mock implementation
