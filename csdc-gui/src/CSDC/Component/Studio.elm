@@ -139,6 +139,8 @@ view model =
               , label = text person.orcid
               }
           ]
+      , row []
+          [ text person.description ]
       , row
           [ height <| fillPortion 1
           , width fill
