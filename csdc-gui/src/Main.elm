@@ -118,6 +118,18 @@ update msg model =
             , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) (API.selectUnit uid)
             )
 
+          Studio.APIMsg (API.CreateUnit result) ->
+            case result of
+              Err err ->
+                ( { model | notification = Notification.HttpError err }
+                , Cmd.none
+                )
+              Ok member ->
+                ( { newModel | menu = Menu.ViewUnit }
+                , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg)
+                    <| API.selectUnit (getMemberUnit member.value)
+                )
+
           _ -> (newModel, newCmd)
 
     ViewUnitMsg m ->
@@ -137,13 +149,23 @@ update msg model =
               , Cmd.none
               )
             Ok id ->
-              ( { model | id = Just id }
-              , case id of
-                  Admin ->
-                    Cmd.none
-                  User pid ->
-                    Cmd.map StudioMsg <| Studio.setup pid
-              )
+              let
+                studio = model.studio
+                newStudio =
+                  case id of
+                    User uid -> { studio | id = Just uid }
+                    Admin -> studio
+              in
+                ( { model
+                  | id = Just id
+                  , studio = newStudio
+                  }
+                , case id of
+                    Admin ->
+                      Cmd.none
+                    User pid ->
+                      Cmd.map StudioMsg <| Studio.setup pid
+                )
 
         _ -> (model, Cmd.none)
 
@@ -214,7 +236,7 @@ mainPanel model =
 
       Menu.ViewUnit ->
         List.map (Element.map ViewUnitMsg) <|
-        ViewUnit.view model.viewUnit
+        ViewUnit.view model.id model.viewUnit
 
       Menu.Admin ->
         [ Element.map NewPersonMsg <| NewPerson.view model.newPerson

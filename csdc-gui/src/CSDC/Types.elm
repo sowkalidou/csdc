@@ -146,6 +146,9 @@ makeMember person unit = Member
   , unit = unit
   }
 
+getMemberUnit : Member -> Id Unit
+getMemberUnit (Member m) = m.unit
+
 encodeMember : Member -> Value
 encodeMember (Member member) =
   Encoder.object

@@ -8,7 +8,7 @@ module CSDC.Component.ViewUnit exposing
 
 import CSDC.API as API
 import CSDC.Component.Panel as Panel
-import CSDC.Input
+import CSDC.Input exposing (..)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
@@ -17,6 +17,7 @@ import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import String
+import Tuple exposing (pair)
 
 --------------------------------------------------------------------------------
 -- Model
@@ -29,6 +30,8 @@ type alias Model =
   , panelSubparts : Panel.Model (Id Subpart)
   , panelMembers : Panel.Model (Id Member)
   , notification : Notification
+  , editName : EditableMode
+  , editDescription : EditableMode
   }
 
 initial : Model
@@ -40,7 +43,22 @@ initial =
   , panelSubparts = Panel.initial "Sub-Units"
   , panelMembers = Panel.initial "Members"
   , notification = Notification.Empty
+  , editName = EditableModeShow
+  , editDescription = EditableModeShow
   }
+
+canEdit : Maybe UserId -> Model -> Bool
+canEdit mid model =
+  case mid of
+    Nothing -> False
+    Just Admin -> True
+    Just (User id) ->
+      case model.unit of
+        Nothing -> False
+        Just unit ->
+          case idMapLookup unit.chair model.members of
+            Nothing -> False
+            Just member -> id == member.id
 
 --------------------------------------------------------------------------------
 -- Update
@@ -49,6 +67,8 @@ type Msg
   = APIMsg API.Msg
   | SubpartsMsg (Panel.Msg (Id Subpart))
   | MembersMsg (Panel.Msg (Id Member))
+  | EditName EditableMsg
+  | EditDescription EditableMsg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -62,6 +82,48 @@ update msg model =
       ( { model | panelMembers = Panel.update m model.panelMembers }
       , Cmd.none
       )
+
+    EditName m ->
+      case m of
+        EditableEdit ->
+          ( { model | editName = EditableModeEdit }
+          , Cmd.none
+          )
+        EditableUpdate name ->
+          ( { model
+            | unit = Maybe.map (\unit -> { unit | name = name }) model.unit
+            }
+          , Cmd.none
+          )
+        EditableSave ->
+          ( { model | editName = EditableModeShow }
+          , case Maybe.map2 pair model.id model.unit of
+              Nothing ->
+                Cmd.none
+              Just (id, unit) ->
+                Cmd.map APIMsg <| API.updateUnit id unit
+          )
+
+    EditDescription m ->
+      case m of
+        EditableEdit ->
+          ( { model | editDescription = EditableModeEdit }
+          , Cmd.none
+          )
+        EditableUpdate description ->
+          ( { model
+            | unit = Maybe.map (\unit -> { unit | description = description }) model.unit
+            }
+          , Cmd.none
+          )
+        EditableSave ->
+          ( { model | editDescription = EditableModeShow }
+          , case Maybe.map2 pair model.id model.unit of
+              Nothing ->
+                Cmd.none
+              Just (id, unit) ->
+                Cmd.map APIMsg <| API.updateUnit id unit
+          )
 
     APIMsg apimsg ->
       case apimsg of
@@ -77,6 +139,17 @@ update msg model =
                   [ Cmd.map APIMsg <| API.getUnitMembers id
                   , Cmd.map APIMsg <| API.getUnitSubparts id
                   ]
+              )
+
+        API.UpdateUnit result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+            Ok unit ->
+              ( { model | notification = Notification.Success }
+              , Cmd.none
               )
 
         API.GetUnitMembers result ->
@@ -121,8 +194,8 @@ update msg model =
 --------------------------------------------------------------------------------
 -- View
 
-view : Model -> List (Element Msg)
-view model =
+view : Maybe UserId -> Model -> List (Element Msg)
+view mid model =
   case model.unit of
     Nothing ->
       [ text "Loading..."
@@ -133,10 +206,20 @@ view model =
       [ row
           [ Font.bold, Font.size 30 ]
           [ text "Unit Viewer" ]
-      , row []
-          [ text unit.name ]
-      , row []
-          [ text unit.description ]
+      , editable
+          { canEdit = canEdit mid model
+          , mode = model.editName
+          , label = "Name"
+          , value = unit.name
+          , event = EditName
+          }
+      , editable
+          { canEdit = canEdit mid model
+          , mode = model.editDescription
+          , label = "Description"
+          , value = unit.description
+          , event = EditDescription
+          }
       , row []
           [ text <| "Chair: " ++
               case idMapLookup unit.chair model.members of
