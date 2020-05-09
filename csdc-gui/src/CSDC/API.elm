@@ -27,6 +27,7 @@ type Msg
   | RootUnit (Result Http.Error (Id Unit))
   | GetUnitMembers (Result Http.Error (IdMap Member (WithId Person)))
   | GetUnitSubparts (Result Http.Error (IdMap Subpart (WithId Unit)))
+  | CreateUnit (Result Http.Error (WithId Member))
   | SelectUnit (Id Unit) (Result Http.Error Unit)
   | InsertUnit (Result Http.Error (Id Unit))
   | UpdateUnit (Result Http.Error ())
@@ -105,6 +106,14 @@ getUnitSubparts id =
   Http.get
     { url = baseUrl ++ "unit/" ++ idToString id ++ "/subparts"
     , expect = Http.expectJson GetUnitSubparts (decodeIdMap (decodeWithId decodeUnit))
+    }
+
+createUnit : Id Person -> Cmd Msg
+createUnit id =
+  Http.post
+    { url = baseUrl ++ "unit/create"
+    , body = Http.jsonBody (encodeId id)
+    , expect = Http.expectJson CreateUnit (decodeWithId decodeMember)
     }
 
 selectUnit : Id Unit -> Cmd Msg

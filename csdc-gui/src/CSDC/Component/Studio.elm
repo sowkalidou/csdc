@@ -24,7 +24,8 @@ import Tuple exposing (pair)
 -- Model
 
 type alias Model =
-  { person : Maybe Person
+  { id : Maybe (Id Person)
+  , person : Maybe Person
   , member : IdMap Member Member
   , units : IdMap Member Unit
   , panelUnits : Panel.Model (Id Member)
@@ -34,7 +35,8 @@ type alias Model =
 
 initial : Model
 initial =
-  { person = Nothing
+  { id = Nothing
+  , person = Nothing
   , member = idMapEmpty
   , units = idMapEmpty
   , panelUnits = Panel.initial "Units"
@@ -57,6 +59,7 @@ type Msg
   = APIMsg API.Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | MessagesMsg (Panel.Msg Int)
+  | CreateUnit
   | ViewSelected (Id Unit)
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -73,6 +76,13 @@ update msg model =
       )
 
     ViewSelected _ -> (model, Cmd.none)
+
+    CreateUnit ->
+      ( model
+      , case model.id of
+          Nothing -> Cmd.none
+          Just id -> Cmd.map APIMsg <| API.createUnit id
+      )
 
     APIMsg apimsg ->
       case apimsg of
@@ -145,6 +155,8 @@ view model =
           ]
       , row []
           [ text person.description ]
+      , row []
+          [ button CreateUnit "Create New Unit" ]
       , row
           [ height <| fillPortion 1
           , width fill
@@ -168,7 +180,7 @@ view model =
                 of
                 Nothing ->
                   [ text "Error." ]
-                Just (member, unit) ->
+                Just (Member member, unit) ->
                   [ text unit.name
                   , button (ViewSelected member.unit) "View Unit"
                   ]

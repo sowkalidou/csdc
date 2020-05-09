@@ -47,6 +47,8 @@ class Monad m => HasDAO m where
 
   deleteUnit :: Id Unit -> m ()
 
+  createUnit :: Id Person -> m (WithId Member)
+
   -- Member manipulation
 
   selectMemberPerson :: Id Person -> m (IdMap Member Member)
@@ -110,6 +112,7 @@ instance HasDAO m => HasDAO (ReaderT r m) where
   insertUnit = lift1 insertUnit
   updateUnit = lift2 updateUnit
   deleteUnit = lift1 deleteUnit
+  createUnit = lift1 createUnit
   selectMemberPerson = lift1 selectMemberPerson
   selectMemberUnit = lift1 selectMemberUnit
   insertMember = lift1 insertMember
