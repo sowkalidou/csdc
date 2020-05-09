@@ -168,7 +168,7 @@ view model =
                 of
                 Nothing ->
                   [ text "Error." ]
-                Just (member, unit) ->
+                Just (Member member, unit) ->
                   [ text unit.name
                   , button (ViewSelected member.unit) "View Unit"
                   ]

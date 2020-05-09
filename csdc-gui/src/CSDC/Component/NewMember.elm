@@ -69,7 +69,7 @@ update msg model =
         )
 
     Submit ->
-      case Maybe.map2 Member model.person model.unit of
+      case Maybe.map2 makeMember model.person model.unit of
         Nothing ->
           ( { model | notification = Notification.Error "Input wrong!" }
           , Cmd.none

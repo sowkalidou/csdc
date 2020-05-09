@@ -21,13 +21,13 @@ import String
 -- Model
 
 type alias Model =
-  { name : Maybe String
+  { chair : Maybe (Id Person)
   , notification : Notification
   }
 
 initial : Model
 initial =
-  { name = Nothing
+  { chair = Nothing
   , notification = Notification.Empty
   }
 
@@ -35,7 +35,7 @@ initial =
 -- Update
 
 type Msg
-  = InputName String
+  = InputId String
   | APIMsg API.Msg
   | Submit
   | Reset
@@ -43,37 +43,31 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    InputName name ->
-      let
-        newName =
-          if String.isEmpty name
-          then Nothing
-          else Just name
-      in
-        ( { model | name = newName }
-        , Cmd.none
-        )
+    InputId chair ->
+      ( { model | chair = idFromString chair }
+      , Cmd.none
+      )
 
     Submit ->
-      case model.name of
+      case model.chair of
         Nothing ->
-          ( { model | notification = Notification.Error "Name must not be empty!" }
+          ( { model | notification = Notification.Error "Chair must not be empty!" }
           , Cmd.none
           )
-        Just name ->
+        Just id ->
           ( { model | notification = Notification.Processing }
-          , Cmd.map APIMsg <| API.insertUnit (Unit name "")
+          , Cmd.map APIMsg <| API.createUnit id
           )
 
     APIMsg apimsg ->
       case apimsg of
-        API.InsertUnit result ->
+        API.CreateUnit result ->
           case result of
             Err err ->
               ( { model | notification = Notification.HttpError err }
               , Cmd.none
               )
-            Ok _ ->
+            Ok memberWithId ->
               ( { initial | notification = Notification.Success }
               , Notification.reset Reset
               )
@@ -96,10 +90,10 @@ view model =
         [ text "New Unit" ]
     , Input.text
         []
-        { onChange = InputName
+        { onChange = InputId
         , placeholder = Nothing
-        , label = Input.labelAbove [] (text "Name")
-        , text = Maybe.withDefault "" model.name
+        , label = Input.labelAbove [] (text "Chair Id")
+        , text = Maybe.withDefault "" (Maybe.map idToString model.chair)
         }
     , CSDC.Input.button Submit "Submit"
     ] ++ Notification.view model.notification

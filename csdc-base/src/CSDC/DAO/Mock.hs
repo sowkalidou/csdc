@@ -9,12 +9,13 @@ module CSDC.DAO.Mock
   , makeEmptyStore
   ) where
 
-import CSDC.Data.Id (Id (..))
+import CSDC.Data.Id (Id (..), WithId (..))
 import CSDC.Data.IdMap (IdMap)
 import CSDC.Data.RIO (RIO, runRIO)
 import CSDC.DAO.Types (Person (..), Unit (..), Member (..), Subpart (..))
 import CSDC.DAO.Class (HasDAO (..))
 
+import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.Data.IdMap as IdMap
 
 import Control.Concurrent.MVar (MVar, newMVar)
@@ -38,15 +39,31 @@ makeLenses ''Store
 makeEmptyStore :: MonadIO m => m (MVar Store)
 makeEmptyStore = liftIO $ newMVar
   Store
-    { _store_person = IdMap.empty
-    , _store_unit = IdMap.insert uid unit IdMap.empty
-    , _store_member = IdMap.empty
+    { _store_person = singleton personId person
+    , _store_unit = singleton unitId unit
+    , _store_member = singleton memberId member
     , _store_subpart = IdMap.empty
-    , _store_root = uid
+    , _store_root = unitId
     }
   where
-    uid = Id 0
-    unit = Unit "CS-DC" "The root of the CS-DC network."
+    singleton uid val = IdMap.insert uid val IdMap.empty
+
+    personId = Id 0
+    person = Person
+      { person_name = "Mr. President"
+      , person_description = "The president of the CS-DC."
+      , person_orcid = ORCID.Id "dummy"
+      }
+
+    unitId = Id 0
+    unit = Unit
+      { unit_name = "CS-DC"
+      , unit_description = "The root of the CS-DC network."
+      , unit_chair = memberId
+      }
+
+    memberId = Id 0
+    member = Member personId unitId
 
 --------------------------------------------------------------------------------
 -- Mock implementation
@@ -92,6 +109,17 @@ instance MonadIO m => HasDAO (Mock m) where
 
   deleteUnit uid =
     modifying store_unit (IdMap.delete uid)
+
+  -- XXX: This implementation is horrible.
+  createUnit personId = do
+    let dummyMemberId = Id 0
+        dummyUnit = Unit "" "" dummyMemberId
+    unitId <- stating store_unit (IdMap.insertNew dummyUnit)
+    let member = Member personId unitId
+    memberId <- insertMember member
+    let unit = Unit "New Unit" "Unit Description" memberId
+    updateUnit unitId unit
+    pure $ WithId memberId member
 
   -- Member manipulation
 

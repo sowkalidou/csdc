@@ -137,6 +137,12 @@ view model =
           [ text unit.name ]
       , row []
           [ text unit.description ]
+      , row []
+          [ text <| "Chair: " ++
+              case idMapLookup unit.chair model.members of
+                Nothing -> "Loading..."
+                Just withid -> withid.value.name
+          ]
       , row
           [ height <| fillPortion 1
           , width fill

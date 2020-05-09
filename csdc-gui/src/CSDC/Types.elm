@@ -113,6 +113,7 @@ decodePerson =
 type alias Unit =
   { name : String
   , description : String
+  , chair : Id Member
   }
 
 encodeUnit : Unit -> Value
@@ -120,25 +121,33 @@ encodeUnit unit =
   Encoder.object
     [ ("name", Encoder.string unit.name)
     , ("description", Encoder.string unit.description)
+    , ("chair", encodeId unit.chair)
     ]
 
 
 decodeUnit : Decoder Unit
 decodeUnit =
-  Decoder.map2 Unit
+  Decoder.map3 Unit
     (Decoder.field "name" Decoder.string)
     (Decoder.field "description" Decoder.string)
+    (Decoder.field "chair" decodeId)
 
 --------------------------------------------------------------------------------
 -- Member
 
-type alias Member =
+type Member = Member
   { person : Id Person
   , unit: Id Unit
   }
 
+makeMember : Id Person -> Id Unit -> Member
+makeMember person unit = Member
+  { person = person
+  , unit = unit
+  }
+
 encodeMember : Member -> Value
-encodeMember member =
+encodeMember (Member member) =
   Encoder.object
     [ ("person", encodeId member.person)
     , ("unit", encodeId member.unit)
@@ -146,7 +155,7 @@ encodeMember member =
 
 decodeMember : Decoder Member
 decodeMember =
-  Decoder.map2 Member
+  Decoder.map2 makeMember
     (Decoder.field "person" decodeId)
     (Decoder.field "unit" decodeId)
 

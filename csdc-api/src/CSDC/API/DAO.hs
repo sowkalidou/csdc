@@ -35,6 +35,7 @@ type UnitAPI =
        "unit" :> "root" :> Get '[JSON] (Id Unit)
   :<|> "unit" :> Capture "id" (Id Unit) :> "members" :> Get '[JSON] (IdMap Member (WithId Person))
   :<|> "unit" :> Capture "id" (Id Unit) :> "subparts" :> Get '[JSON] (IdMap Subpart (WithId Unit))
+  :<|> "unit" :> "create" :> ReqBody '[JSON] (Id Person) :> Post '[JSON] (WithId Member)
   :<|> CRUD "unit" Unit
 
 serveUnitAPI :: HasDAO m => ServerT UnitAPI m
@@ -42,6 +43,7 @@ serveUnitAPI =
        rootUnit
   :<|> getUnitMembers
   :<|> getUnitSubparts
+  :<|> createUnit
   :<|> selectUnit
   :<|> insertUnit
   :<|> updateUnit
