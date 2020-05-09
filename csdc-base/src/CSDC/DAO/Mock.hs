@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module CSDC.Network.Mock
+module CSDC.DAO.Mock
   ( Mock
   , runMock
   , Store
@@ -12,8 +12,8 @@ module CSDC.Network.Mock
 import CSDC.Data.Id (Id (..))
 import CSDC.Data.IdMap (IdMap)
 import CSDC.Data.RIO (RIO, runRIO)
-import CSDC.Network.Types (Person (..), Unit (..), Member (..), Subpart (..))
-import CSDC.Network.Class (HasNetwork (..))
+import CSDC.DAO.Types (Person (..), Unit (..), Member (..), Subpart (..))
+import CSDC.DAO.Class (HasDAO (..))
 
 import qualified CSDC.Data.IdMap as IdMap
 
@@ -57,7 +57,7 @@ newtype Mock m a = Mock (RIO Store m a)
 runMock :: MonadIO m => MVar Store -> Mock m a -> m a
 runMock var (Mock m) = runRIO var m
 
-instance MonadIO m => HasNetwork (Mock m) where
+instance MonadIO m => HasDAO (Mock m) where
 
   -- Person manipulation
 

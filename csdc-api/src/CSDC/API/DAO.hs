@@ -1,4 +1,4 @@
-module CSDC.API.Network
+module CSDC.API.DAO
   ( API
   , serveAPI
   ) where
@@ -22,7 +22,7 @@ type PersonAPI =
   :<|> "person" :> Capture "id" (Id Person) :> "units" :> Get '[JSON] (IdMap Member Unit)
   :<|> CRUD "person" Person
 
-servePersonAPI :: (HasUser m, HasNetwork m) => ServerT PersonAPI m
+servePersonAPI :: (HasUser m, HasDAO m) => ServerT PersonAPI m
 servePersonAPI =
        getUser
   :<|> getUserUnits
@@ -37,7 +37,7 @@ type UnitAPI =
   :<|> "unit" :> Capture "id" (Id Unit) :> "subparts" :> Get '[JSON] (IdMap Subpart (WithId Unit))
   :<|> CRUD "unit" Unit
 
-serveUnitAPI :: HasNetwork m => ServerT UnitAPI m
+serveUnitAPI :: HasDAO m => ServerT UnitAPI m
 serveUnitAPI =
        rootUnit
   :<|> getUnitMembers
@@ -58,7 +58,7 @@ type REL (name :: Symbol) (left :: Symbol) (right :: Symbol) r a b =
 
 type MemberAPI = REL "member" "person" "unit" Member Person Unit
 
-serveMemberAPI :: HasNetwork m => ServerT MemberAPI m
+serveMemberAPI :: HasDAO m => ServerT MemberAPI m
 serveMemberAPI =
        selectMemberPerson
   :<|> selectMemberUnit
@@ -67,7 +67,7 @@ serveMemberAPI =
 
 type SubpartAPI = REL "subpart" "child" "parent" Subpart Unit Unit
 
-serveSubpartAPI :: HasNetwork m => ServerT SubpartAPI m
+serveSubpartAPI :: HasDAO m => ServerT SubpartAPI m
 serveSubpartAPI =
        selectSubpartChild
   :<|> selectSubpartParent
@@ -79,7 +79,7 @@ serveSubpartAPI =
 
 type API = PersonAPI :<|> UnitAPI :<|> MemberAPI :<|> SubpartAPI
 
-serveAPI :: (HasUser m, HasNetwork m) => ServerT API m
+serveAPI :: (HasUser m, HasDAO m) => ServerT API m
 serveAPI =
        servePersonAPI
   :<|> serveUnitAPI

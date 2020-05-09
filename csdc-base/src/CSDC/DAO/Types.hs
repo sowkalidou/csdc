@@ -1,4 +1,4 @@
-module CSDC.Network.Types
+module CSDC.DAO.Types
   ( -- Entities
     Person (..)
   , Unit (..)

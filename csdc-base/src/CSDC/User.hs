@@ -14,8 +14,8 @@ module CSDC.User
 
 import CSDC.Auth (UserToken)
 import CSDC.Auth.User (User (..))
-import CSDC.Network.Class (HasNetwork (..))
-import CSDC.Network.Types (Person (..))
+import CSDC.DAO.Class (HasDAO (..))
+import CSDC.DAO.Types (Person (..))
 import CSDC.Data.Id (Id)
 
 import qualified CSDC.Auth.ORCID as ORCID
@@ -43,10 +43,10 @@ newtype UserT m a = UserT (ReaderT UserToken m a)
     , Applicative
     , Monad
     , MonadTrans
-    , HasNetwork
+    , HasDAO
     )
 
-instance HasNetwork m => HasUser (UserT m) where
+instance HasDAO m => HasUser (UserT m) where
   getUser = UserT $
     ask >>= \case
       Admin ->

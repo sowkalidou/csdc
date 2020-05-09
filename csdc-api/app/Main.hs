@@ -4,7 +4,7 @@ module Main where
 
 import CSDC.API (API, serveAPI)
 import CSDC.Config (Config (..), readConfig, showConfig)
-import CSDC.Network.Mock (Store, makeEmptyStore, runMock)
+import CSDC.DAO.Mock (Store, makeEmptyStore, runMock)
 
 import qualified CSDC.Auth as Auth
 

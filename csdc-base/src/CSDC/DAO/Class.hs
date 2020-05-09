@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 
-module CSDC.Network.Class
-  ( HasNetwork (..)
+module CSDC.DAO.Class
+  ( HasDAO (..)
   , getUserUnits
   , getUnitMembers
   , getUnitSubparts
@@ -9,7 +9,7 @@ module CSDC.Network.Class
 
 import CSDC.Data.Id (Id, WithId (..))
 import CSDC.Data.IdMap (IdMap)
-import CSDC.Network.Types (Person (..), Unit, Member (..), Subpart (..))
+import CSDC.DAO.Types (Person (..), Unit, Member (..), Subpart (..))
 
 import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.Data.IdMap as IdMap
@@ -21,7 +21,7 @@ import Data.Traversable (forM)
 --------------------------------------------------------------------------------
 -- Class
 
-class Monad m => HasNetwork m where
+class Monad m => HasDAO m where
 
   -- Person manipulation
 
@@ -67,7 +67,7 @@ class Monad m => HasNetwork m where
 
   deleteSubpart :: Id Subpart -> m ()
 
-getUserUnits :: HasNetwork m => Id Person -> m (IdMap Member Unit)
+getUserUnits :: HasDAO m => Id Person -> m (IdMap Member Unit)
 getUserUnits uid = do
   members <- selectMemberPerson uid
   pairs <- forM members $ \(Member _ unitId) ->
@@ -76,7 +76,7 @@ getUserUnits uid = do
     Nothing -> pure IdMap.empty
     Just m -> pure m
 
-getUnitMembers :: HasNetwork m => Id Unit -> m (IdMap Member (WithId Person))
+getUnitMembers :: HasDAO m => Id Unit -> m (IdMap Member (WithId Person))
 getUnitMembers uid = do
   members <- selectMemberUnit uid
   pairs <- forM members $ \(Member personId _) ->
@@ -85,7 +85,7 @@ getUnitMembers uid = do
     Nothing -> pure IdMap.empty
     Just m -> pure m
 
-getUnitSubparts :: HasNetwork m => Id Unit -> m (IdMap Subpart (WithId Unit))
+getUnitSubparts :: HasDAO m => Id Unit -> m (IdMap Subpart (WithId Unit))
 getUnitSubparts uid = do
   subparts <- selectSubpartParent uid
   pairs <- forM subparts $ \(Subpart childId _) ->
@@ -99,7 +99,7 @@ getUnitSubparts uid = do
 
 -- | This instance is here for the delegation to @UserT@. It only depends on
 -- 'MonadTrans'.
-instance HasNetwork m => HasNetwork (ReaderT r m) where
+instance HasDAO m => HasDAO (ReaderT r m) where
   selectPerson  = lift1 selectPerson
   selectPersonORCID = lift1 selectPersonORCID
   insertPerson = lift1 insertPerson

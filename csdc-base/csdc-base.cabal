@@ -24,9 +24,9 @@ library
     CSDC.Data.IdMap
     CSDC.Data.RIO
     CSDC.Error
-    CSDC.Network.Class
-    CSDC.Network.Mock
-    CSDC.Network.Types
+    CSDC.DAO.Class
+    CSDC.DAO.Mock
+    CSDC.DAO.Types
     CSDC.Prelude
     CSDC.User
   build-depends:

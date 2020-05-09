@@ -15,7 +15,7 @@ import CSDC.Auth (getUserToken)
 import CSDC.Prelude
 import CSDC.User (runUserT)
 
-import qualified CSDC.API.Network as Network
+import qualified CSDC.API.DAO as DAO
 
 import Servant
 import Servant.Server.Internal.Delayed (passToServer)
@@ -27,16 +27,16 @@ import WaiAppStatic.Storage.Filesystem (defaultWebAppSettings)
 -- API
 
 type API =
-       Auth :> "api" :> Network.API
+       Auth :> "api" :> DAO.API
   :<|> Raw
 
-serveAPI :: HasNetwork m => FilePath -> ServerT API m
+serveAPI :: HasDAO m => FilePath -> ServerT API m
 serveAPI path =
-         serveNetworkAPI
+         serveDAOAPI
     :<|> serveDirectoryWith (options path)
   where
-    serveNetworkAPI token =
-      hoistServer (Proxy @Network.API) (runUserT token) Network.serveAPI
+    serveDAOAPI token =
+      hoistServer (Proxy @DAO.API) (runUserT token) DAO.serveAPI
 
 options :: FilePath -> StaticSettings
 options path =

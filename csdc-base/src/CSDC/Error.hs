@@ -6,7 +6,7 @@ module CSDC.Error
 
 import Control.Monad.Except (MonadError)
 
-data Error = NetworkError String
+data Error = DAOError String
   deriving (Show, Eq)
 
 class IsError e where

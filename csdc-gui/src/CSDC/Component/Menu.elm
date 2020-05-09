@@ -72,7 +72,7 @@ title =
     , width fill
     , padding 20
     ]
-    [ el [ centerX ] (text "CS-DC Network")
+    [ el [ centerX ] (text "CS-DC DAO")
     ]
 
 view : Model -> Element Msg
