@@ -9,77 +9,133 @@ import GHC.Types (Symbol)
 import Servant
 
 --------------------------------------------------------------------------------
--- API for types
+-- Synonyms
 
-type CRUD (name :: Symbol) a =
-       name :> Capture "id" (Id a) :> Get '[JSON] (Maybe a)
-  :<|> name :> ReqBody '[JSON] a :> Post '[JSON] (Id a)
-  :<|> name :> Capture "id" (Id a) :> ReqBody '[JSON] a :> Post '[JSON] ()
-  :<|> name :> Capture "id" (Id a) :> Delete '[JSON] ()
+type GetJSON a = Get '[JSON] a
+type PostJSON a b = ReqBody '[JSON] a :> Post '[JSON] b
+type DeleteJSON a = Delete '[JSON] a
+type CaptureId a = Capture "id" (Id a)
+
+--------------------------------------------------------------------------------
+-- CRUD, REL and MSG API
+
+type CRUD a =
+       CaptureId a :> GetJSON (Maybe a)
+  :<|> PostJSON a (Id a)
+  :<|> CaptureId a :> PostJSON a ()
+  :<|> CaptureId a :> DeleteJSON ()
+
+serveCRUD :: HasCRUD a m => ServerT (CRUD a) m
+serveCRUD =
+       select
+  :<|> insert
+  :<|> update
+  :<|> delete
+
+type REL (left :: Symbol) (right :: Symbol) r =
+       left :> CaptureId (RelationL r) :> GetJSON (IdMap r r)
+  :<|> right :> CaptureId (RelationR r) :> GetJSON (IdMap r r)
+  :<|> PostJSON r (Id r)
+  :<|> CaptureId r :> DeleteJSON ()
+
+serveREL ::
+  (IsRelation r, HasRelation r m) => ServerT (REL left right r) m
+serveREL =
+       selectRelationL
+  :<|> selectRelationR
+  :<|> insertRelation
+  :<|> deleteRelation
+
+type MSG r =
+       "send" :> PostJSON (Message r) (Id (Message r))
+  :<|> "reply" :> PostJSON (Reply r) (Id (Reply r))
+  :<|> "view" :> PostJSON (Id (Reply r)) ()
+
+serveMSG :: (Show r, HasMessage r m) => ServerT (MSG r) m
+serveMSG =
+       sendMessage
+  :<|> sendReply
+  :<|> viewReply
+
+--------------------------------------------------------------------------------
+-- Person API
 
 type PersonAPI =
-       "person" :> "root" :> Get '[JSON] UserId
-  :<|> "person" :> Capture "id" (Id Person) :> "units" :> Get '[JSON] (IdMap Member Unit)
-  :<|> CRUD "person" Person
+       "root" :> GetJSON UserId
+  :<|> CaptureId Person :> "info" :> GetJSON (Maybe PersonInfo)
+  :<|> CaptureId Person :> "units" :> GetJSON (IdMap Member Unit)
+  :<|> CRUD Person
 
 servePersonAPI :: (HasUser m, HasDAO m) => ServerT PersonAPI m
 servePersonAPI =
        getUser
+  :<|> getPersonInfo
   :<|> getUserUnits
-  :<|> selectPerson
-  :<|> insertPerson
-  :<|> updatePerson
-  :<|> deletePerson
+  :<|> serveCRUD
+
+--------------------------------------------------------------------------------
+-- Unit API
 
 type UnitAPI =
-       "unit" :> "root" :> Get '[JSON] (Id Unit)
-  :<|> "unit" :> Capture "id" (Id Unit) :> "members" :> Get '[JSON] (IdMap Member (WithId Person))
-  :<|> "unit" :> Capture "id" (Id Unit) :> "subparts" :> Get '[JSON] (IdMap Subpart (WithId Unit))
-  :<|> "unit" :> "create" :> ReqBody '[JSON] (Id Person) :> Post '[JSON] (WithId Member)
-  :<|> CRUD "unit" Unit
+       "root" :> Get '[JSON] (Id Unit)
+  :<|> CaptureId Unit :> "info" :> GetJSON (Maybe UnitInfo)
+  :<|> CaptureId Unit :> "members" :> GetJSON (IdMap Member (WithId Person))
+  :<|> CaptureId Unit :> "children" :> GetJSON (IdMap Subpart (WithId Unit))
+  :<|> CaptureId Unit :> "parents" :> GetJSON (IdMap Subpart (WithId Unit))
+  :<|> "create" :> PostJSON (Id Person) (WithId Member)
+  :<|> CRUD Unit
 
 serveUnitAPI :: HasDAO m => ServerT UnitAPI m
 serveUnitAPI =
        rootUnit
+  :<|> getUnitInfo
   :<|> getUnitMembers
-  :<|> getUnitSubparts
+  :<|> getUnitChildren
+  :<|> getUnitParents
   :<|> createUnit
-  :<|> selectUnit
-  :<|> insertUnit
-  :<|> updateUnit
-  :<|> deleteUnit
+  :<|> serveCRUD
 
 --------------------------------------------------------------------------------
--- API for relations
+-- Member API
 
-type REL (name :: Symbol) (left :: Symbol) (right :: Symbol) r a b =
-       name :> left :> Capture left (Id a) :> Get '[JSON] (IdMap r r)
-  :<|> name :> right :> Capture right (Id b) :> Get '[JSON] (IdMap r r)
-  :<|> name :> ReqBody '[JSON] r :> Post '[JSON] (Id r)
-  :<|> name :> Capture "id" (Id r) :> Delete '[JSON] ()
-
-type MemberAPI = REL "member" "person" "unit" Member Person Unit
+type MemberAPI = REL "person" "unit" Member
 
 serveMemberAPI :: HasDAO m => ServerT MemberAPI m
-serveMemberAPI =
-       selectMemberPerson
-  :<|> selectMemberUnit
-  :<|> insertMember
-  :<|> deleteMember
+serveMemberAPI = serveREL
 
-type SubpartAPI = REL "subpart" "child" "parent" Subpart Unit Unit
+--------------------------------------------------------------------------------
+-- Subpart API
+
+type SubpartAPI = REL "child" "parent" Subpart
 
 serveSubpartAPI :: HasDAO m => ServerT SubpartAPI m
-serveSubpartAPI =
-       selectSubpartChild
-  :<|> selectSubpartParent
-  :<|> insertSubpart
-  :<|> deleteSubpart
+serveSubpartAPI = serveREL
+
+--------------------------------------------------------------------------------
+-- Message API
+
+type MessageAPI =
+       "member" :> MSG Member
+  :<|> "subpart" :> MSG Subpart
+  :<|> "inbox" :> "person" :> CaptureId Person :> GetJSON Inbox
+  :<|> "inbox" :> "unit" :> CaptureId Unit :> GetJSON Inbox
+
+serveMessageAPI :: HasDAO m => ServerT MessageAPI m
+serveMessageAPI =
+       serveMSG
+  :<|> serveMSG
+  :<|> inboxPerson
+  :<|> inboxUnit
 
 --------------------------------------------------------------------------------
 -- API
 
-type API = PersonAPI :<|> UnitAPI :<|> MemberAPI :<|> SubpartAPI
+type API =
+       "person" :> PersonAPI
+  :<|> "unit" :> UnitAPI
+  :<|> "member" :> MemberAPI
+  :<|> "subpart" :> SubpartAPI
+  :<|> "message" :> MessageAPI
 
 serveAPI :: (HasUser m, HasDAO m) => ServerT API m
 serveAPI =
@@ -87,3 +143,4 @@ serveAPI =
   :<|> serveUnitAPI
   :<|> serveMemberAPI
   :<|> serveSubpartAPI
+  :<|> serveMessageAPI

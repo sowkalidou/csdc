@@ -1,12 +1,15 @@
 module CSDC.Data.IdMap
   ( IdMap (..)
+  , IdMap'
   , empty
   , lookup
   , find
   , insert
   , insertNew
+  , update
   , delete
   , filter
+  , keys
   ) where
 
 import CSDC.Data.Id (Id (..), zero, next)
@@ -26,6 +29,8 @@ newtype IdMap a b = IdMap { getIdMap :: IntMap b }
   deriving newtype (Show, Eq, Functor, Foldable, ToJSON, FromJSON)
   deriving stock (Traversable)
 
+type IdMap' a = IdMap a a
+
 empty :: IdMap a b
 empty = IdMap (IntMap.empty)
 
@@ -40,6 +45,9 @@ find p (IdMap m) =
 
 insert :: Id a -> b -> IdMap a b -> IdMap a b
 insert (Id uid) a (IdMap m) = IdMap $ IntMap.insert uid a m
+
+update :: Id a -> (b -> b) -> IdMap a b -> IdMap a b
+update (Id uid) f (IdMap m) = IdMap $ IntMap.adjust f uid m
 
 insertNew :: b -> IdMap a b -> (Id a, IdMap a b)
 insertNew a idmap@(IdMap m) =
@@ -56,3 +64,6 @@ delete (Id uid) (IdMap m) = IdMap $ IntMap.delete uid m
 
 filter :: (b -> Bool) -> IdMap a b -> IdMap a b
 filter f (IdMap m) = IdMap $ IntMap.filter f m
+
+keys :: IdMap a b -> [Id a]
+keys (IdMap m) = Id <$> IntMap.keys m

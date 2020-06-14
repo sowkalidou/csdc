@@ -27,8 +27,10 @@ import String
 type Model
   = Explorer
   | Studio
+  | ViewPerson
   | ViewUnit
   | Admin
+  | ViewUnitAdmin
 
 initial : Model
 initial = Studio
@@ -86,6 +88,7 @@ view model =
     [ title
     , item model "Studio" Studio
     , item model "Explorer" Explorer
+    , item model "View Person" ViewPerson
     , item model "View Unit" ViewUnit
     , item model "Admin" Admin
     ]

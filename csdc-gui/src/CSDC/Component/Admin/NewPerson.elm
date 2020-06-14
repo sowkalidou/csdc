@@ -1,4 +1,4 @@
-module CSDC.Component.NewUnit exposing
+module CSDC.Component.Admin.NewPerson exposing
   ( Model
   , initial
   , Msg
@@ -21,13 +21,13 @@ import String
 -- Model
 
 type alias Model =
-  { chair : Maybe (Id Person)
+  { name : Maybe String
   , notification : Notification
   }
 
 initial : Model
 initial =
-  { chair = Nothing
+  { name = Nothing
   , notification = Notification.Empty
   }
 
@@ -35,7 +35,7 @@ initial =
 -- Update
 
 type Msg
-  = InputId String
+  = InputName String
   | APIMsg API.Msg
   | Submit
   | Reset
@@ -43,31 +43,37 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    InputId chair ->
-      ( { model | chair = idFromString chair }
-      , Cmd.none
-      )
+    InputName name ->
+      let
+        newName =
+          if String.isEmpty name
+          then Nothing
+          else Just name
+      in
+        ( { model | name = newName }
+        , Cmd.none
+        )
 
     Submit ->
-      case model.chair of
+      case model.name of
         Nothing ->
-          ( { model | notification = Notification.Error "Chair must not be empty!" }
+          ( { model | notification = Notification.Error "Name must not be empty!" }
           , Cmd.none
           )
-        Just id ->
+        Just name ->
           ( { model | notification = Notification.Processing }
-          , Cmd.map APIMsg <| API.createUnit id
+          , Cmd.map APIMsg <| API.insertPerson (Person name "ORCID" "")
           )
 
     APIMsg apimsg ->
       case apimsg of
-        API.CreateUnit result ->
+        API.InsertPerson result ->
           case result of
             Err err ->
               ( { model | notification = Notification.HttpError err }
               , Cmd.none
               )
-            Ok memberWithId ->
+            Ok _ ->
               ( { initial | notification = Notification.Success }
               , Notification.reset Reset
               )
@@ -87,13 +93,13 @@ view model =
   column [ width <| fillPortion 2, padding 10, spacing 10 ] <|
     [ row
         [ Font.bold, Font.size 30 ]
-        [ text "New Unit" ]
+        [ text "New Person" ]
     , Input.text
         []
-        { onChange = InputId
+        { onChange = InputName
         , placeholder = Nothing
-        , label = Input.labelAbove [] (text "Chair Id")
-        , text = Maybe.withDefault "" (Maybe.map idToString model.chair)
+        , label = Input.labelAbove [] (text "Name")
+        , text = Maybe.withDefault "" model.name
         }
     , CSDC.Input.button Submit "Submit"
     ] ++ Notification.view model.notification

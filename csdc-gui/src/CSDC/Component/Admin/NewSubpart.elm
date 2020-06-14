@@ -1,4 +1,4 @@
-module CSDC.Component.NewMember exposing
+module CSDC.Component.Admin.NewSubpart exposing
   ( Model
   , initial
   , Msg
@@ -21,15 +21,15 @@ import String
 -- Model
 
 type alias Model =
-  { person : Maybe (Id Person)
-  , unit : Maybe (Id Unit)
+  { child : Maybe (Id Unit)
+  , parent : Maybe (Id Unit)
   , notification : Notification
   }
 
 initial : Model
 initial =
-  { person = Nothing
-  , unit = Nothing
+  { child = Nothing
+  , parent = Nothing
   , notification = Notification.Empty
   }
 
@@ -37,8 +37,8 @@ initial =
 -- Update
 
 type Msg
-  = InputPerson String
-  | InputUnit String
+  = InputChild String
+  | InputParent String
   | APIMsg API.Msg
   | Submit
   | Reset
@@ -46,42 +46,42 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    InputPerson str ->
+    InputChild str ->
       let
         newPerson =
           case String.toInt str of
             Nothing -> Nothing
             Just n -> Just (Id n)
       in
-        ( { model | person = newPerson }
+        ( { model | child = newPerson }
         , Cmd.none
         )
 
-    InputUnit str ->
+    InputParent str ->
       let
         newUnit =
           case String.toInt str of
             Nothing -> Nothing
             Just n -> Just (Id n)
       in
-        ( { model | unit = newUnit }
+        ( { model | parent = newUnit }
         , Cmd.none
         )
 
     Submit ->
-      case Maybe.map2 makeMember model.person model.unit of
+      case Maybe.map2 Subpart model.child model.parent of
         Nothing ->
           ( { model | notification = Notification.Error "Input wrong!" }
           , Cmd.none
           )
         Just member ->
           ( { model | notification = Notification.Processing }
-          , Cmd.map APIMsg <| API.insertMember member
+          , Cmd.map APIMsg <| API.insertSubpart member
           )
 
     APIMsg apimsg ->
       case apimsg of
-        API.InsertMember result ->
+        API.InsertSubpart result ->
           case result of
             Err err ->
               ( { model | notification = Notification.HttpError err }
@@ -107,21 +107,21 @@ view model =
   column [ width <| fillPortion 2, padding 10, spacing 10 ] <|
     [ row
         [ Font.bold, Font.size 30 ]
-        [ text "New Member" ]
+        [ text "New Subpart" ]
     , Input.text
         []
-        { onChange = InputPerson
+        { onChange = InputChild
         , placeholder = Nothing
-        , label = Input.labelAbove [] (text "Person")
-        , text = Maybe.withDefault "" (Maybe.map idToString model.person)
+        , label = Input.labelAbove [] (text "Child")
+        , text = Maybe.withDefault "" (Maybe.map idToString model.child)
         }
 
     , Input.text
         []
-        { onChange = InputUnit
+        { onChange = InputParent
         , placeholder = Nothing
-        , label = Input.labelAbove [] (text "Unit")
-        , text = Maybe.withDefault "" (Maybe.map idToString model.unit)
+        , label = Input.labelAbove [] (text "Parent")
+        , text = Maybe.withDefault "" (Maybe.map idToString model.parent)
         }
 
     , CSDC.Input.button Submit "Submit"

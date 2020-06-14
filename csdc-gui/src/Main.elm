@@ -1,13 +1,13 @@
 module Main exposing (..)
 
 import CSDC.API as API
+import CSDC.Component.Admin as Admin
 import CSDC.Component.Explorer as Explorer
 import CSDC.Component.Menu as Menu
-import CSDC.Component.NewMember as NewMember
-import CSDC.Component.NewPerson as NewPerson
-import CSDC.Component.NewUnit as NewUnit
 import CSDC.Component.Studio as Studio
+import CSDC.Component.ViewPerson as ViewPerson
 import CSDC.Component.ViewUnit as ViewUnit
+import CSDC.Component.ViewUnitAdmin as ViewUnitAdmin
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
@@ -40,12 +40,12 @@ main =
 -- Model
 
 type alias Model =
-  { id : Maybe UserId
+  { info : Maybe (User PersonInfo)
   , menu : Menu.Model
-  , newMember : NewMember.Model
-  , newPerson : NewPerson.Model
-  , newUnit : NewUnit.Model
+  , admin : Admin.Model
+  , viewPerson : ViewPerson.Model
   , viewUnit : ViewUnit.Model
+  , viewUnitAdmin : ViewUnitAdmin.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
   , notification : Notification
@@ -56,14 +56,14 @@ init _ =
   let
     (explorer, explorerCmd) = Explorer.initial ()
   in
-    ( { id = Nothing
+    ( { info = Nothing
       , menu = Menu.initial
       , explorer = explorer
-      , newMember = NewMember.initial
-      , newPerson = NewPerson.initial
-      , newUnit = NewUnit.initial
+      , admin = Admin.initial
       , studio = Studio.initial
+      , viewPerson = ViewPerson.initial
       , viewUnit = ViewUnit.initial
+      , viewUnitAdmin = ViewUnitAdmin.initial
       , notification = Notification.Empty
       }
     , Cmd.batch
@@ -76,18 +76,26 @@ init _ =
 -- Update
 
 type Msg
-  = NewMemberMsg NewMember.Msg
-  | NewPersonMsg NewPerson.Msg
-  | NewUnitMsg NewUnit.Msg
+  = AdminMsg Admin.Msg
   | MenuMsg Menu.Msg
   | ExplorerMsg Explorer.Msg
+  | ViewPersonMsg ViewPerson.Msg
   | ViewUnitMsg ViewUnit.Msg
+  | ViewUnitAdminMsg ViewUnitAdmin.Msg
   | StudioMsg Studio.Msg
   | APIMsg API.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    AdminMsg m ->
+      let
+        (admin, cmd) = Admin.update m model.admin
+      in
+        ( { model | admin = admin }
+        , Cmd.map AdminMsg cmd
+        )
+
     MenuMsg m ->
       let
         menu = Menu.update m model.menu
@@ -97,12 +105,18 @@ update msg model =
         )
 
     ExplorerMsg m ->
-      let
-        (explorer, cmd) = Explorer.update m model.explorer
-      in
-        ( { model | explorer = explorer }
-        , Cmd.map ExplorerMsg cmd
-        )
+      case m of
+        Explorer.ViewUnit uid ->
+            ( { model | menu = Menu.ViewUnit }
+            , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) (API.getUnitInfo uid)
+            )
+        _ ->
+          let
+            (explorer, cmd) = Explorer.update m model.explorer
+          in
+            ( { model | explorer = explorer }
+            , Cmd.map ExplorerMsg cmd
+            )
 
     StudioMsg m ->
       let
@@ -113,9 +127,9 @@ update msg model =
           )
       in
         case m of
-          Studio.ViewSelected uid ->
+          Studio.View (Studio.ViewSelectedUnit uid) ->
             ( { newModel | menu = Menu.ViewUnit }
-            , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) (API.selectUnit uid)
+            , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) (API.getUnitInfo uid)
             )
 
           Studio.APIMsg (API.CreateUnit result) ->
@@ -127,17 +141,52 @@ update msg model =
               Ok member ->
                 ( { newModel | menu = Menu.ViewUnit }
                 , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg)
-                    <| API.selectUnit (getMemberUnit member.value)
+                    <| API.getUnitInfo (getMemberUnit member.value)
                 )
 
           _ -> (newModel, newCmd)
+
+    ViewPersonMsg m ->
+      let
+        (viewPerson, cmd) = ViewPerson.update m model.viewPerson
+      in
+        case m of
+          ViewPerson.ViewSelected id ->
+            ( { model | menu = Menu.ViewUnit }
+            , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) <|
+              API.getUnitInfo id
+            )
+          _ ->
+            ( { model | viewPerson = viewPerson }
+            , Cmd.map ViewPersonMsg cmd
+            )
 
     ViewUnitMsg m ->
       let
         (viewUnit, cmd) = ViewUnit.update m model.viewUnit
       in
-        ( { model | viewUnit = viewUnit }
-        , Cmd.map ViewUnitMsg cmd
+        case m of
+          ViewUnit.View (ViewUnit.ViewSelectedPerson id) ->
+            ( { model | menu = Menu.ViewPerson }
+            , Cmd.map (ViewPersonMsg << ViewPerson.APIMsg) <|
+              API.selectPerson id
+            )
+          ViewUnit.ViewAdmin id ->
+            ( { model | menu = Menu.ViewUnitAdmin }
+            , Cmd.map (ViewUnitAdminMsg << ViewUnitAdmin.APIMsg) <|
+              API.unitInbox id
+            )
+          _ ->
+            ( { model | viewUnit = viewUnit }
+            , Cmd.map ViewUnitMsg cmd
+            )
+
+    ViewUnitAdminMsg m ->
+      let
+        (viewUnitAdmin, cmd) = ViewUnitAdmin.update m model.viewUnitAdmin
+      in
+        ( { model | viewUnitAdmin = viewUnitAdmin }
+        , Cmd.map ViewUnitAdminMsg cmd
         )
 
     APIMsg m ->
@@ -149,52 +198,32 @@ update msg model =
               , Cmd.none
               )
             Ok id ->
-              let
-                studio = model.studio
-                newStudio =
-                  case id of
-                    User uid -> { studio | id = Just uid }
-                    Admin -> studio
-              in
-                ( { model
-                  | id = Just id
-                  , studio = newStudio
-                  }
-                , case id of
-                    Admin ->
-                      Cmd.none
-                    User pid ->
-                      Cmd.map StudioMsg <| Studio.setup pid
-                )
+              case id of
+                Admin ->
+                  ( { model | info = Just Admin }
+                  , Cmd.none
+                  )
+                User pid ->
+                  ( model
+                  , Cmd.batch
+                      [ Cmd.map StudioMsg <| Studio.setup pid
+                      , Cmd.map APIMsg <| API.getPersonInfo pid
+                      ]
+                  )
+
+        API.GetPersonInfo result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+            Ok info ->
+              ( { model | info = Just (User info) }
+              , Cmd.none
+              )
+
 
         _ -> (model, Cmd.none)
-
-    -- Admin
-
-    NewUnitMsg m ->
-      let
-        (newUnit, cmd) = NewUnit.update m model.newUnit
-      in
-        ( { model | newUnit = newUnit }
-        , Cmd.map NewUnitMsg cmd
-        )
-
-    NewPersonMsg m ->
-      let
-        (newPerson, cmd) = NewPerson.update m model.newPerson
-      in
-        ( { model | newPerson = newPerson }
-        , Cmd.map NewPersonMsg cmd
-        )
-
-    NewMemberMsg m ->
-      let
-        (newMember, cmd) = NewMember.update m model.newMember
-      in
-        ( { model | newMember = newMember }
-        , Cmd.map NewMemberMsg cmd
-        )
-
 
 --------------------------------------------------------------------------------
 -- Subscriptions
@@ -234,14 +263,18 @@ mainPanel model =
         List.map (Element.map ExplorerMsg) <|
         Explorer.view model.explorer
 
+      Menu.ViewPerson ->
+        List.map (Element.map ViewPersonMsg) <|
+        ViewPerson.view model.viewPerson
+
       Menu.ViewUnit ->
         List.map (Element.map ViewUnitMsg) <|
-        ViewUnit.view model.id model.viewUnit
+        ViewUnit.view model.info model.viewUnit
+
+      Menu.ViewUnitAdmin ->
+        List.map (Element.map ViewUnitAdminMsg) <|
+        ViewUnitAdmin.view model.info model.viewUnitAdmin
 
       Menu.Admin ->
-        [ Element.map NewPersonMsg <| NewPerson.view model.newPerson
-        , Element.map NewUnitMsg <| NewUnit.view model.newUnit
-        , Element.map NewMemberMsg <| NewMember.view model.newMember
-        ]
-
-
+        List.map (Element.map AdminMsg) <|
+        Admin.view model.admin
