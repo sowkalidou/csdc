@@ -18,6 +18,9 @@ nix-shell
 which will download all necessary dependencies. Most common commands are
 accessible from the Makefile. To list the available commands, run `make`.
 
+For faster Haskell development, there are many `ghcid-*` targerts in the
+Makefile.
+
 ## Running the server
 
 First, make sure the GUI is build with:
