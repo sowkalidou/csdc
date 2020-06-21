@@ -18,12 +18,15 @@ nix-shell
 which will download all necessary dependencies. Most common commands are
 accessible from the Makefile. To list the available commands, run `make`.
 
-For faster Haskell development, there are many `ghcid-*` targerts in the
-Makefile.
+In particular:
+
+  - For faster Haskell development, there are many `ghcid-*` targerts.
+
+  - For Elm development, there is `make gui-build`.
 
 ## Running the server
 
-First, make sure the GUI is build with:
+First, make sure the GUI is built with:
 
 ```
 make gui-build
