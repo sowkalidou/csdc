@@ -11,48 +11,46 @@ import CSDC.Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
+import Field exposing (Field)
+import Input
+import Validation exposing (Validation)
 
 import Element exposing (..)
 import Element.Font as Font
-import Element.Input as Input
 import String
 
 --------------------------------------------------------------------------------
 -- Model
 
 type alias Model =
-  { message : Maybe (Id (Message Member))
-  , replyType : Maybe ReplyType
-  , messageType : Maybe MessageType
-  , replyStatus : Maybe ReplyStatus
+  { message : Field String (Id (Message Member))
+  , replyType : Field (Maybe ReplyType) ReplyType
+  , messageType : Field (Maybe MessageType) MessageType
+  , replyStatus : Field (Maybe ReplyStatus) ReplyStatus
   , notification : Notification
   }
 
 initial : Model
 initial =
-  { message = Nothing
-  , replyType = Nothing
-  , messageType = Nothing
-  , replyStatus = Nothing
+  { message = Field.requiredId "Message"
+  , replyType = Field.required "Reply Type"
+  , messageType = Field.required "Message Type"
+  , replyStatus = Field.required "Reply Status"
   , notification = Notification.Empty
   }
 
-validate : Model -> Maybe (Reply Member)
+validate : Model -> Result (List String) (Reply Member)
 validate model =
-  model.message |> Maybe.andThen
-    (\message ->
-      model.replyType |> Maybe.andThen
-        (\replyType ->
-         model.messageType |> Maybe.andThen
-           (\messageType ->
-             model.replyStatus |> Maybe.andThen
-               (\replyStatus ->
-                 Just <|
-                 makeReply replyType messageType "Reply" replyStatus message
-               )
-           )
-       )
-    )
+  let
+    result =
+      Validation.valid makeReply
+        |> Validation.andMap (Field.validate model.replyType)
+        |> Validation.andMap (Field.validate model.messageType)
+        |> Validation.andMap (Validation.valid "Reply")
+        |> Validation.andMap (Field.validate model.replyStatus)
+        |> Validation.andMap (Field.validate model.message)
+  in
+    Validation.validate result
 
 --------------------------------------------------------------------------------
 -- Update
@@ -70,39 +68,33 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     InputMessage str ->
-      let
-        message =
-          case String.toInt str of
-            Nothing -> Nothing
-            Just n -> Just (Id n)
-      in
-        ( { model | message = message }
-        , Cmd.none
-        )
+      ( { model | message = Field.set str model.message }
+      , Cmd.none
+      )
 
     Submit ->
       case validate model of
-        Nothing ->
-          ( { model | notification = Notification.Error "Input wrong!" }
+        Err e ->
+          ( { model | notification = Notification.Error e }
           , Cmd.none
           )
-        Just reply ->
+        Ok reply ->
           ( { model | notification = Notification.Processing }
           , Cmd.map APIMsg <| API.sendReplyMember reply
           )
 
     InputReplyStatus replyStatus ->
-      ( { model | replyStatus = Just replyStatus }
+      ( { model | replyStatus = Field.set (Just replyStatus) model.replyStatus }
       , Cmd.none
       )
 
     InputReplyType replyType ->
-      ( { model | replyType = Just replyType }
+      ( { model | replyType = Field.set (Just replyType) model.replyType }
       , Cmd.none
       )
 
     InputMessageType messageType ->
-      ( { model | messageType = Just messageType }
+      ( { model | messageType = Field.set (Just messageType) model.messageType }
       , Cmd.none
       )
 
@@ -150,56 +142,41 @@ view model =
     , selectReplyType model
     , selectReplyStatus model
     , Input.text
-        []
         { onChange = InputMessage
-        , placeholder = Nothing
-        , label = Input.labelAbove [] (text "Message")
-        , text = Maybe.withDefault "" (Maybe.map idToString model.message)
+        , field = model.message
         }
     , CSDC.Input.button Submit "Submit"
     ] ++ Notification.view model.notification
 
 selectReplyType : Model -> Element Msg
 selectReplyType model =
-  Input.radioRow
-    [ padding 10
-    , spacing 20
-    ]
+  Input.radio
     { onChange = InputReplyType
-    , selected = model.replyType
-    , label = Input.labelAbove [] (text "Reply Type")
+    , field = model.replyType
     , options =
-        [ Input.option Accept (text "Accept")
-        , Input.option Reject (text "Reject")
+        [ (Accept, "Accept")
+        , (Reject, "Reject")
         ]
     }
 
 selectMessageType : Model -> Element Msg
 selectMessageType model =
-  Input.radioRow
-    [ padding 10
-    , spacing 20
-    ]
+  Input.radio
     { onChange = InputMessageType
-    , selected = model.messageType
-    , label = Input.labelAbove [] (text "Message Type")
+    , field = model.messageType
     , options =
-        [ Input.option Invitation (text "Invitation")
-        , Input.option Submission (text "Submission")
+        [ (Invitation, "Invitation")
+        , (Submission, "Submission")
         ]
     }
 
 selectReplyStatus : Model -> Element Msg
 selectReplyStatus model =
-  Input.radioRow
-    [ padding 10
-    , spacing 20
-    ]
+  Input.radio
     { onChange = InputReplyStatus
-    , selected = model.replyStatus
-    , label = Input.labelAbove [] (text "Reply Status")
+    , field = model.replyStatus
     , options =
-        [ Input.option Seen (text "Seen")
-        , Input.option NotSeen (text "Not Seen")
+        [ (Seen, "Seen")
+        , (NotSeen, "Not Seen")
         ]
     }
