@@ -54,6 +54,14 @@ library
     CSDC.API
     CSDC.API.DAO
     CSDC.SQL
+    CSDC.SQL.Decoder
+    CSDC.SQL.Encoder
+    CSDC.SQL.Members
+    CSDC.SQL.MessageMembers
+    CSDC.SQL.MessageSubparts
+    CSDC.SQL.Persons
+    CSDC.SQL.Subparts
+    CSDC.SQL.Units
   hs-source-dirs:
     src
   ghc-options:

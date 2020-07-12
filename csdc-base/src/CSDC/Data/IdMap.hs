@@ -10,11 +10,13 @@ module CSDC.Data.IdMap
   , delete
   , filter
   , keys
+  , fromList
   ) where
 
 import CSDC.Data.Id (Id (..), zero, next)
 
 import Data.Aeson (ToJSON, FromJSON)
+import Data.Coerce (coerce)
 import Data.IntMap.Strict (IntMap)
 
 import qualified Data.List as List
@@ -39,7 +41,7 @@ lookup (Id uid) (IdMap m) = IntMap.lookup uid m
 
 find :: (b -> Bool) -> IdMap a b -> Maybe (Id a, b)
 find p (IdMap m) =
-  fmap (\(uid,a) -> (Id uid,a)) $
+  coerce $
   List.find (p . snd) $
   IntMap.toList m
 
@@ -67,3 +69,6 @@ filter f (IdMap m) = IdMap $ IntMap.filter f m
 
 keys :: IdMap a b -> [Id a]
 keys (IdMap m) = Id <$> IntMap.keys m
+
+fromList :: [(Id a, b)] -> IdMap a b
+fromList = IdMap . IntMap.fromList . coerce

@@ -146,7 +146,7 @@ data Token = Token
 newtype Scope = Scope Text
   deriving newtype (Show, Eq, FromJSON, ToJSON)
 
-newtype Id = Id Text
+newtype Id = Id { getId :: Text }
   deriving newtype (Show, Eq, FromJSON, ToJSON)
 
 instance FromJSON Token where
