@@ -4,6 +4,10 @@ module CSDC.SQL.Decoder
     -- * Local types
   , id
   , orcidId
+  , messageType
+  , messageStatus
+  , replyType
+  , replyStatus
     -- * Reexport
   , Decoders.rowList
   , Decoders.rowMaybe
@@ -35,3 +39,36 @@ id = Id . fromIntegral <$> column (nonNullable Decoders.int4)
 
 orcidId :: Row ORCID.Id
 orcidId = ORCID.Id <$> column (nonNullable Decoders.text)
+
+messageType :: Row MessageType
+messageType = column (nonNullable (Decoders.enum decode))
+  where
+    decode a = lookup a
+      [ ("Invitation", Invitation)
+      , ("Submission", Submission)
+      ]
+
+messageStatus :: Row MessageStatus
+messageStatus = column (nonNullable (Decoders.enum decode))
+  where
+    decode a = lookup a
+      [ ("Waiting", Waiting)
+      , ("Accepted", Accepted)
+      , ("Rejected", Rejected)
+      ]
+
+replyType :: Row ReplyType
+replyType = column (nonNullable (Decoders.enum decode))
+  where
+    decode a = lookup a
+      [ ("Accept", Accept)
+      , ("Reject", Reject)
+      ]
+
+replyStatus :: Row ReplyStatus
+replyStatus = column (nonNullable (Decoders.enum decode))
+  where
+    decode a = lookup a
+      [ ("Seen", Seen)
+      , ("NotSeen", NotSeen)
+      ]

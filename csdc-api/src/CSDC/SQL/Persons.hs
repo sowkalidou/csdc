@@ -56,7 +56,7 @@ update = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "UPDATE persons"
-      , "VALUES (name = $2, description = $3, orcid = $4)"
+      , "SET name = $2, description = $3, orcid = $4"
       , "WHERE id = $1"
       ]
 

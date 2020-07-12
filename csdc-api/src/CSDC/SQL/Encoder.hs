@@ -4,6 +4,10 @@ module CSDC.SQL.Encoder
   , id
     -- * Local types
   , orcidId
+  , messageType
+  , messageStatus
+  , replyType
+  , replyStatus
   ) where
 
 import CSDC.Prelude
@@ -35,3 +39,28 @@ orcidId :: Params ORCID.Id
 orcidId =
   contramap ORCID.getId $
   param (nonNullable Encoders.text)
+
+messageType :: Params MessageType
+messageType = contramap encode text
+  where
+    encode Invitation = "Invitation"
+    encode Submission = "Submission"
+
+messageStatus :: Params MessageStatus
+messageStatus = contramap encode text
+  where
+    encode Waiting = "Waiting"
+    encode Accepted = "Accepted"
+    encode Rejected = "Rejected"
+
+replyType :: Params ReplyType
+replyType = contramap encode text
+  where
+    encode Accept = "Accept"
+    encode Reject = "Reject"
+
+replyStatus :: Params ReplyStatus
+replyStatus = contramap encode text
+  where
+    encode Seen = "Seen"
+    encode NotSeen = "NotSeen"
