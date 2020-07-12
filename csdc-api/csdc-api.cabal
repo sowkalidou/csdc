@@ -58,6 +58,7 @@ library
     CSDC.SQL.Encoder
     CSDC.SQL.Members
     CSDC.SQL.Persons
+    CSDC.SQL.Subparts
     CSDC.SQL.Units
   hs-source-dirs:
     src
