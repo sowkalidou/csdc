@@ -54,6 +54,9 @@ library
     CSDC.API
     CSDC.API.DAO
     CSDC.SQL
+    CSDC.SQL.Decoder
+    CSDC.SQL.Encoder
+    CSDC.SQL.Persons
   hs-source-dirs:
     src
   ghc-options:
