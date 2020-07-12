@@ -61,9 +61,17 @@ elm-nix-update: ## Update Nix files for Elm.
 # Database
 
 psql: ## Launch psql with the correct arguments.
-	PGHOST=localhost PGDATABASE=csdc PGPASSWORD=csdc PGPORT=5432 PGUSER=csdc psql
+	PGHOST=localhost PGPORT=5432 PGDATABASE=csdc PGUSER=csdc PGPASSWORD=csdc psql
 
 .PHONY: psql
+
+migrate: ## Run SQL migrations.
+	CON="host=localhost port=5432 dbname=csdc user=csdc password=csdc"
+	migrate init "$$CON"
+	migrate migrate "$$CON" database/migrations
+
+.ONESHELL: migrate
+.PHONY: migrate
 
 ################################################################################
 # Docker
