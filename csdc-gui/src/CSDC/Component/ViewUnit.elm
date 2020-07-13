@@ -75,7 +75,7 @@ canEdit mid model =
       case model.info of
         Nothing -> False
         Just info ->
-          case idMapLookup info.unit.chair info.members of
+          case idMapFind (\w -> w.id == info.unit.chair) info.members of
             Nothing -> False
             Just member -> pinfo.id == member.id
 
@@ -379,7 +379,7 @@ view mid model =
           }
       , row []
           [ text <| "Chair: " ++
-              case idMapLookup info.unit.chair info.members of
+              case idMapFind (\w -> w.id == info.unit.chair) info.members of
                 Nothing -> "Loading..."
                 Just withid -> withid.value.name
           ]

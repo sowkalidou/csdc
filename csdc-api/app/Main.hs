@@ -4,11 +4,10 @@ module Main where
 
 import CSDC.API (API, serveAPI)
 import CSDC.Config (Context (..), readConfig, readSecret, showConfig, activate)
-import CSDC.DAO.Mock (Store, makeEmptyStore, runMock)
 
 import qualified CSDC.Auth as Auth
+import qualified CSDC.DAO as DAO
 
-import Data.IORef (IORef)
 import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (runSettings, setPort, setLogger, defaultSettings)
 import Network.Wai.Logger (withStdoutLogger)
@@ -42,17 +41,17 @@ main = do
           showConfig config
           putStrLn ""
           context <- activate config secret
+          DAO.run (context_dao context) DAO.check
           mainWith context
 
 mainWith :: Context -> IO ()
 mainWith context = do
-  store <- makeEmptyStore
   middleware <- makeMiddleware context
   withStdoutLogger $ \logger -> do
     let port = context_port context
         path = context_path context
         settings = setPort port $ setLogger logger defaultSettings
-    runSettings settings $ middleware $ application path store
+    runSettings settings $ middleware $ application path $ context_dao context
 
 makeMiddleware :: Context -> IO Middleware
 makeMiddleware context = do
@@ -62,10 +61,10 @@ makeMiddleware context = do
       cors = Cors.cors (\_ -> Just corsOptions)
   pure $ authentication . cors
 
-application :: FilePath -> IORef Store -> Application
-application path store = \request response ->
+application :: FilePath -> DAO.Context -> Application
+application path context = \request response ->
   let
     proxy = Proxy @API
-    server = hoistServer proxy (runMock store) (serveAPI path)
+    server = hoistServer proxy (DAO.run context) (serveAPI path)
   in do
     serve proxy server request response

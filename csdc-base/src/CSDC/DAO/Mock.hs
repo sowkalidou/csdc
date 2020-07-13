@@ -109,15 +109,11 @@ instance MonadIO m => HasDAO (Mock m) where
   rootUnit =
     use store_root
 
-  -- XXX: This implementation is horrible.
   createUnit personId = do
-    let dummyMemberId = Id 0
-        dummyUnit = Unit "" "" dummyMemberId
-    unitId <- stating store_unit (IdMap.insertNew dummyUnit)
+    let unit = Unit "New Unit" "Unit Description" personId
+    unitId <- stating store_unit (IdMap.insertNew unit)
     let member = Member personId unitId
     memberId <- insertRelation @Member member
-    let unit = Unit "New Unit" "Unit Description" memberId
-    update @Unit unitId unit
     pure $ WithId memberId member
 
   inboxPerson personId = do

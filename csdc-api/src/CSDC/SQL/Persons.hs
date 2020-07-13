@@ -3,13 +3,16 @@
 module CSDC.SQL.Persons
   ( select
   , insert
+  , insertAt
   , update
   , delete
+  , selectORCID
   ) where
 
 import CSDC.DAO.Types (Person (..))
 import CSDC.Data.Id (Id (..))
 
+import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder
 
@@ -35,6 +38,19 @@ select = Statement sql encoder decoder True
         Decoder.text <*>
         Decoder.orcidId
 
+selectORCID :: Statement ORCID.Id (Maybe (Id Person))
+selectORCID = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "SELECT id"
+      , "FROM persons"
+      , "WHERE orcid = $1"
+      ]
+
+    encoder = Encoder.orcidId
+
+    decoder = Decoder.rowMaybe Decoder.id
+
 insert :: Statement Person (Id Person)
 insert = Statement sql encoder decoder True
   where
@@ -50,6 +66,22 @@ insert = Statement sql encoder decoder True
       (contramap person_orcid Encoder.orcidId)
 
     decoder = Decoder.singleRow Decoder.id
+
+insertAt :: Statement (Id Person, Person) ()
+insertAt = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "INSERT INTO persons (id, name, description, orcid)"
+      , "VALUES ($1, $2, $3, $4)"
+      ]
+
+    encoder =
+      (contramap fst Encoder.id) <>
+      (contramap (person_name . snd) Encoder.text) <>
+      (contramap (person_description . snd) Encoder.text) <>
+      (contramap (person_orcid . snd) Encoder.orcidId)
+
+    decoder = Decoder.noResult
 
 update :: Statement (Id Person, Person) ()
 update = Statement sql encoder decoder True

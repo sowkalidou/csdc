@@ -3,6 +3,7 @@
 module CSDC.SQL.Units
   ( select
   , insert
+  , insertAt
   , update
   , delete
   ) where
@@ -50,6 +51,22 @@ insert = Statement sql encoder decoder True
       (contramap unit_chair Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
+
+insertAt :: Statement (Id Unit, Unit) ()
+insertAt = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "INSERT INTO units (id, name, description, chair)"
+      , "VALUES ($1, $2, $3, $4)"
+      ]
+
+    encoder =
+      (contramap fst Encoder.id) <>
+      (contramap (unit_name . snd) Encoder.text) <>
+      (contramap (unit_description . snd) Encoder.text) <>
+      (contramap (unit_chair . snd) Encoder.id)
+
+    decoder = Decoder.noResult
 
 update :: Statement (Id Unit, Unit) ()
 update = Statement sql encoder decoder True
