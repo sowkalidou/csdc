@@ -7,7 +7,7 @@ module CSDC.SQL.Subparts
   , delete
   ) where
 
-import CSDC.DAO.Types (Person, Unit, Subpart (..))
+import CSDC.DAO.Types (Unit, Subpart (..))
 import CSDC.Data.Id (Id (..))
 import CSDC.Data.IdMap (IdMap')
 
@@ -20,7 +20,7 @@ import Hasql.Statement (Statement (..))
 
 import qualified Data.ByteString.Char8 as ByteString
 
-selectL :: Statement (Id Person) (IdMap' Subpart)
+selectL :: Statement (Id Unit) (IdMap' Subpart)
 selectL = Statement sql encoder decoder True
   where
     sql = ByteString.unlines

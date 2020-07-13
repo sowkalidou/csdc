@@ -1,8 +1,10 @@
 module CSDC.SQL.Encoder
   ( -- * Base types
     text
-  , id
     -- * Local types
+  , id
+  , idNullable
+  , idList
   , orcidId
   , messageType
   , messageStatus
@@ -15,9 +17,11 @@ import Prelude hiding (id)
 
 import qualified CSDC.Auth.ORCID as ORCID
 
+import Data.Foldable (foldl')
 import Data.Functor.Contravariant (Contravariant (..))
 import Data.Text (Text)
-import Hasql.Encoders (Params, param, nonNullable)
+import Hasql.Encoders
+  (Params, dimension, param, nonNullable, nullable, element, array)
 
 import qualified Hasql.Encoders as Encoders
 
@@ -34,6 +38,18 @@ id :: Params (Id a)
 id =
   contramap (fromIntegral . getId) $
   param (nonNullable Encoders.int4)
+
+idNullable :: Params (Maybe (Id a))
+idNullable =
+  contramap (fmap (fromIntegral . getId)) $
+  param (nullable Encoders.int4)
+
+idList :: Params [Id a]
+idList =
+  contramap (fmap (fromIntegral . getId)) $
+  param (nonNullable (array (dim (element (nonNullable Encoders.int4)))))
+  where
+    dim = dimension foldl'
 
 orcidId :: Params ORCID.Id
 orcidId =

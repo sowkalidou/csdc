@@ -11,9 +11,10 @@ module CSDC.Data.IdMap
   , filter
   , keys
   , fromList
+  , fromWithIds
   ) where
 
-import CSDC.Data.Id (Id (..), zero, next)
+import CSDC.Data.Id (Id (..), WithId (..), zero, next)
 
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Coerce (coerce)
@@ -72,3 +73,6 @@ keys (IdMap m) = Id <$> IntMap.keys m
 
 fromList :: [(Id a, b)] -> IdMap a b
 fromList = IdMap . IntMap.fromList . coerce
+
+fromWithIds :: [WithId a] -> IdMap a a
+fromWithIds = fromList . fmap (\(WithId i a) -> (i,a))

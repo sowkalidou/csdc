@@ -4,10 +4,12 @@ module CSDC.SQL.MessageSubparts
   ( sendMessage
   , sendReply
   , viewReply
+  , unitMessages
+  , unitReplies
   ) where
 
-import CSDC.DAO.Types (Message (..), Reply (..), Subpart (..))
-import CSDC.Data.Id (Id (..))
+import CSDC.DAO.Types (Unit (..), Message (..), Reply (..), Subpart (..))
+import CSDC.Data.Id (Id (..), WithId (..))
 
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder
@@ -65,3 +67,50 @@ sendReply = Statement sql encoder decoder True
       (contramap reply_id Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
+
+unitMessages :: Statement (Id Unit) [WithId (Message Subpart)]
+unitMessages = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "SELECT id, mtype, mstatus, message, child, parent"
+      , "FROM messages_subpart"
+      , "WHERE unit = $1"
+      ]
+
+    encoder = Encoder.id
+
+    makeMessage uid ty tx st p u =
+      WithId uid (Message ty tx st (Subpart p u))
+
+    decoder = Decoder.rowList $
+      makeMessage <$>
+        Decoder.id <*>
+        Decoder.messageType <*>
+        Decoder.text <*>
+        Decoder.messageStatus <*>
+        Decoder.id <*>
+        Decoder.id
+
+unitReplies :: Statement [Id (Message Subpart)] [WithId (Reply Subpart)]
+unitReplies = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "SELECT id, rtype, mtype, rstatus, reply, message"
+      , "FROM replies_subpart"
+      , "WHERE message = ANY($1)"
+      ]
+
+    encoder = Encoder.idList
+
+    makeReply uid ty mty tx st mid =
+      WithId uid (Reply ty mty tx st mid)
+
+    decoder = Decoder.rowList $
+      makeReply <$>
+        Decoder.id <*>
+        Decoder.replyType <*>
+        Decoder.messageType <*>
+        Decoder.text <*>
+        Decoder.replyStatus <*>
+        Decoder.id
+
