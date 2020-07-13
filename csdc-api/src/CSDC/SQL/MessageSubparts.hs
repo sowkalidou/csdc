@@ -37,7 +37,7 @@ sendMessage = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "INSERT INTO messages_subpart (mtype, mstatus, message, child, parent)"
-      , "VALUES ($1, $2, $3, $4, $5)"
+      , "VALUES ($1 :: message_type, $2 :: message_status, $3, $4, $5)"
       , "RETURNING id"
       ]
 
@@ -55,7 +55,7 @@ sendReply = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "INSERT INTO replies_subpart (rtype, mtype, rstatus, reply, message)"
-      , "VALUES ($1, $2, $3, $4, $5)"
+      , "VALUES ($1 :: reply_type, $2 :: message_type, $3 :: reply_status, $4, $5)"
       , "RETURNING id"
       ]
 
@@ -72,9 +72,9 @@ unitMessages :: Statement (Id Unit) [WithId (Message Subpart)]
 unitMessages = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, mtype, mstatus, message, child, parent"
+      [ "SELECT id, mtype, message, mstatus, child, parent"
       , "FROM messages_subpart"
-      , "WHERE unit = $1"
+      , "WHERE child = $1 OR parent = $1"
       ]
 
     encoder = Encoder.id
@@ -95,7 +95,7 @@ unitReplies :: Statement [Id (Message Subpart)] [WithId (Reply Subpart)]
 unitReplies = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, rtype, mtype, rstatus, reply, message"
+      [ "SELECT id, rtype, mtype, reply, rstatus, message"
       , "FROM replies_subpart"
       , "WHERE message = ANY($1)"
       ]

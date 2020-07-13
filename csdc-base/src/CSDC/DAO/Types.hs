@@ -43,7 +43,7 @@ data Person = Person
 data Unit = Unit
   { unit_name :: Text
   , unit_description :: Text
-  , unit_chair :: Id Member
+  , unit_chair :: Id Person
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Unit
 

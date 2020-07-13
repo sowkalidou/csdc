@@ -5,6 +5,7 @@ module CSDC.DAO where
 
 import CSDC.Prelude
 
+import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.Data.IdMap as IdMap
 import qualified CSDC.SQL as SQL
 import qualified CSDC.SQL.Members as SQL.Members
@@ -23,14 +24,15 @@ import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
 
 data Context = Context
   { context_sql :: SQL.Context
-  } deriving (Show)
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON Context
 
 --------------------------------------------------------------------------------
 -- Error
 
 data Error
   = ErrorSQL SQL.Error
-    deriving (Show)
+    deriving (Show, Eq)
 
 instance Exception Error
 
@@ -43,6 +45,20 @@ newtype Action a = Action (ReaderT Context IO a)
 run :: MonadIO m => Context -> Action a -> m a
 run ctx (Action act) = liftIO $
   runReaderT act ctx
+
+check :: Action ()
+check = do
+  select rootUnitId >>= \case
+    Nothing -> do
+      let person = Person "President" "" (ORCID.Id "")
+      runSQL $ SQL.query SQL.Persons.insertAt (rootPersonId,person)
+      let unit = Unit "CSDC" "" rootPersonId
+      runSQL $ SQL.query SQL.Units.insertAt (rootUnitId,unit)
+      let member = Member rootPersonId rootUnitId
+      _ <- runSQL $ SQL.query SQL.Members.insert member
+      pure ()
+    Just _ ->
+      pure ()
 
 runSQL :: SQL.Action a -> Action a
 runSQL act = do
@@ -93,13 +109,13 @@ instance HasMessage Subpart Action where
 instance HasDAO Action where
   selectPersonORCID i = runSQL $ SQL.query SQL.Persons.selectORCID i
 
-  rootUnit = pure $ Id 0
+  rootUnit = pure rootUnitId
 
   createUnit pid = do
     let unit = Unit
           { unit_name = "New unit"
           , unit_description = "New unit description"
-          , unit_chair = Id 0
+          , unit_chair = pid
           }
     uid <- insert unit
     let member = Member
@@ -107,8 +123,6 @@ instance HasDAO Action where
           , member_unit = uid
           }
     mid <- insertRelation member
-    let unit' = unit { unit_chair = mid }
-    update uid unit'
     return $ WithId mid member
 
   inboxPerson pid = do
@@ -198,4 +212,11 @@ instance HasDAO Action where
       , inbox_replySubpart = repliesSubpart
       }
 
+--------------------------------------------------------------------------------
+-- Helpers
 
+rootUnitId :: Id Unit
+rootUnitId = Id 0
+
+rootPersonId :: Id Person
+rootPersonId = Id 0

@@ -78,7 +78,7 @@ CREATE TYPE reply_status AS enum (
 CREATE TABLE replies_member
   ( id serial PRIMARY KEY
   , rtype reply_type NOT NULL
-  , mtype reply_message_type NOT NULL
+  , mtype message_type NOT NULL
   , rstatus reply_status NOT NULL
   , reply text NOT NULL
   , message integer NOT NULL REFERENCES messages_member(id)
@@ -87,7 +87,7 @@ CREATE TABLE replies_member
 CREATE TABLE replies_subpart
   ( id serial PRIMARY KEY
   , rtype reply_type NOT NULL
-  , mtype reply_message_type NOT NULL
+  , mtype message_type NOT NULL
   , rstatus reply_status NOT NULL
   , reply text NOT NULL
   , message integer NOT NULL REFERENCES messages_subpart(id)

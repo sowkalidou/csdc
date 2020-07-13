@@ -18,6 +18,7 @@ import CSDC.Prelude
 import qualified CSDC.Auth as Auth
 import qualified CSDC.Auth.Admin as Admin
 import qualified CSDC.Auth.ORCID as ORCID
+import qualified CSDC.DAO as DAO
 import qualified CSDC.SQL as SQL
 
 import Data.Aeson (decodeFileStrict)
@@ -93,7 +94,7 @@ data Context = Context
   { context_port :: Int
   , context_path :: FilePath
   , context_auth :: Auth.Config
-  , context_sql :: SQL.Context
+  , context_dao :: DAO.Context
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Context
 
@@ -114,5 +115,7 @@ activate config secret = do
                 Text.Encoding.encodeUtf8 (secret_token secret)
             }
         }
-    , context_sql = sql
+    , context_dao = DAO.Context
+        { DAO.context_sql = sql
+        }
     }

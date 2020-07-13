@@ -74,6 +74,10 @@ idMapAny : (b -> Bool) -> IdMap a b -> Bool
 idMapAny pred (IdMap b) =
   List.any pred (Dict.values b)
 
+idMapFind : (b -> Bool) -> IdMap a b -> Maybe b
+idMapFind pred (IdMap b) =
+  List.head <| List.filter pred (Dict.values b)
+
 --------------------------------------------------------------------------------
 -- User
 
@@ -136,8 +140,8 @@ decodePersonInfo =
 personInfoChair : PersonInfo -> List (Id Unit, Unit)
 personInfoChair info =
   let
-    f (id, unit) =
-      if unit.value.chair == id
+    f (_, unit) =
+      if unit.value.chair == info.id
       then Just (unit.id, unit.value)
       else Nothing
   in
@@ -149,7 +153,7 @@ personInfoChair info =
 type alias Unit =
   { name : String
   , description : String
-  , chair : Id Member
+  , chair : Id Person
   }
 
 encodeUnit : Unit -> Value

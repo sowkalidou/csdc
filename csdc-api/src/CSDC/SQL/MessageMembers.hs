@@ -38,7 +38,7 @@ sendMessage = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "INSERT INTO messages_member (mtype, mstatus, message, person, unit)"
-      , "VALUES ($1, $2, $3, $4, $5)"
+      , "VALUES ($1 :: message_type, $2 :: message_status, $3, $4, $5)"
       , "RETURNING id"
       ]
 
@@ -56,7 +56,7 @@ sendReply = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "INSERT INTO replies_member (rtype, mtype, rstatus, reply, message)"
-      , "VALUES ($1, $2, $3, $4, $5)"
+      , "VALUES ($1 :: reply_type, $2 :: message_type, $3 :: reply_status, $4, $5)"
       , "RETURNING id"
       ]
 
@@ -78,7 +78,7 @@ select :: Statement Filter [WithId (Message Member)]
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, mtype, mstatus, message, person, unit"
+      [ "SELECT id, mtype, message, mstatus, person, unit"
       , "FROM messages_member"
       , "WHERE"
       , "  COALESCE (person = $1, TRUE)"
@@ -106,7 +106,7 @@ messageReplies :: Statement [Id (Message Member)] [WithId (Reply Member)]
 messageReplies = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, rtype, mtype, rstatus, reply, message"
+      [ "SELECT id, rtype, mtype, reply, rstatus, message"
       , "FROM replies_member"
       , "WHERE message = ANY($1)"
       ]

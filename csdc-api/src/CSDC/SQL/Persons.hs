@@ -3,6 +3,7 @@
 module CSDC.SQL.Persons
   ( select
   , insert
+  , insertAt
   , update
   , delete
   , selectORCID
@@ -65,6 +66,22 @@ insert = Statement sql encoder decoder True
       (contramap person_orcid Encoder.orcidId)
 
     decoder = Decoder.singleRow Decoder.id
+
+insertAt :: Statement (Id Person, Person) ()
+insertAt = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "INSERT INTO persons (id, name, description, orcid)"
+      , "VALUES ($1, $2, $3, $4)"
+      ]
+
+    encoder =
+      (contramap fst Encoder.id) <>
+      (contramap (person_name . snd) Encoder.text) <>
+      (contramap (person_description . snd) Encoder.text) <>
+      (contramap (person_orcid . snd) Encoder.orcidId)
+
+    decoder = Decoder.noResult
 
 update :: Statement (Id Person, Person) ()
 update = Statement sql encoder decoder True
