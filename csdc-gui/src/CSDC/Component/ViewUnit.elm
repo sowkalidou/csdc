@@ -1,6 +1,7 @@
 module CSDC.Component.ViewUnit exposing
   ( Model
   , initial
+  , setup
   , Msg (..)
   , update
   , view
@@ -79,7 +80,7 @@ canEdit mid model =
             Nothing -> False
             Just member -> pinfo.id == member.id
 
-isMember : Maybe (User PersonInfo) -> Model -> Maybe (Id Person)
+isMember : Maybe (User PersonInfo) -> Model -> Maybe (WithId Person)
 isMember mid model =
   case mid of
     Just (User pinfo) ->
@@ -88,7 +89,7 @@ isMember mid model =
         Just info ->
           if idMapAny (\user -> user.id == pinfo.id) info.members
           then Nothing
-          else Just pinfo.id
+          else Just { id = pinfo.id, value = pinfo.person }
     _ ->
       Nothing
 
@@ -113,7 +114,7 @@ type Msg
   | EditName EditableMsg
   | EditDescription EditableMsg
   | View ViewSelected
-  | SendSubmission (Id Person)
+  | WriteMessage (WithId Person) (WithId Unit) MessageType
   | ViewAdmin (Id Unit)
   | SelectInvitation (Id Unit)
   | Invite
@@ -217,22 +218,10 @@ update msg model =
           , Cmd.map APIMsg <| API.getUnitInfo id
           )
 
-    SendSubmission personId ->
-      case model.info of
-        Nothing -> (model, Cmd.none)
-        Just info ->
-          let
-            submission =
-              Message
-                { mtype = Submission
-                , text = "I want to be part of the unit."
-                , status = Waiting
-                , value = makeMember personId info.id
-                }
-          in
-            ( model
-            , Cmd.map APIMsg <| API.sendMessageMember submission
-            )
+    WriteMessage pid uid mtype ->
+      ( model
+      , Cmd.none
+      )
 
     ViewAdmin _ ->
       ( model
@@ -319,19 +308,6 @@ update msg model =
               , Cmd.none
               )
 
-        API.SendMessageMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok _ ->
-              ( model
-              , case model.info of
-                  Nothing -> Cmd.none
-                  Just info -> Cmd.map APIMsg <| API.unitInbox info.id
-              )
-
         API.SendMessageSubpart result ->
           case result of
             Err err ->
@@ -390,19 +366,23 @@ view mid model =
       , row [] <|
           case isMember mid model of
             Nothing -> []
-            Just id ->
+            Just wid ->
               if isMemberPending mid model
               then [ text "Your submission was sent." ]
-              else [ button (SendSubmission id) "Become a member" ]
+              else
+                let
+                  msg = WriteMessage wid { id = info.id, value = info.unit } Submission
+                in
+                  [ button msg "Become a member" ]
       , row [] <|
           case mid of
             Just (User pinfo) ->
               let
                 units = personInfoChair pinfo
               in
-               if List.isEmpty units
-               then []
-               else invitation model.invited units SelectInvitation Invite
+                if List.isEmpty units
+                then []
+                else invitation model.invited units SelectInvitation Invite
             _ ->
               []
       , row

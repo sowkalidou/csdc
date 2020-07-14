@@ -31,6 +31,7 @@ type Model
   | ViewUnit
   | Admin
   | ViewUnitAdmin
+  | MessageMember (WithId Person) (WithId Unit) MessageType
 
 initial : Model
 initial = Studio

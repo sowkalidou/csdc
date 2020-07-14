@@ -190,7 +190,7 @@ instance HasDAO Action where
     let
       predMessageMember m =
         message_status m == Waiting &&
-        message_type m == Invitation
+        message_type m == Submission
 
       messageMember =
         IdMap.filter predMessageMember $
@@ -198,7 +198,7 @@ instance HasDAO Action where
 
       predReplyMember r =
         reply_status r == NotSeen &&
-        reply_mtype r == Submission
+        reply_mtype r == Invitation
 
       replyMember =
         IdMap.filter predReplyMember $

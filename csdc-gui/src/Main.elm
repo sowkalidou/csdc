@@ -4,6 +4,7 @@ import CSDC.API as API
 import CSDC.Component.Admin as Admin
 import CSDC.Component.Explorer as Explorer
 import CSDC.Component.Menu as Menu
+import CSDC.Component.MessageMember as MessageMember
 import CSDC.Component.Studio as Studio
 import CSDC.Component.ViewPerson as ViewPerson
 import CSDC.Component.ViewUnit as ViewUnit
@@ -46,6 +47,7 @@ type alias Model =
   , viewPerson : ViewPerson.Model
   , viewUnit : ViewUnit.Model
   , viewUnitAdmin : ViewUnitAdmin.Model
+  , messageMember : MessageMember.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
   , notification : Notification
@@ -64,6 +66,7 @@ init _ =
       , viewPerson = ViewPerson.initial
       , viewUnit = ViewUnit.initial
       , viewUnitAdmin = ViewUnitAdmin.initial
+      , messageMember = MessageMember.initial
       , notification = Notification.Empty
       }
     , Cmd.batch
@@ -82,6 +85,7 @@ type Msg
   | ViewPersonMsg ViewPerson.Msg
   | ViewUnitMsg ViewUnit.Msg
   | ViewUnitAdminMsg ViewUnitAdmin.Msg
+  | MessageMemberMsg MessageMember.Param MessageMember.Msg
   | StudioMsg Studio.Msg
   | APIMsg API.Msg
 
@@ -108,7 +112,7 @@ update msg model =
       case m of
         Explorer.ViewUnit uid ->
             ( { model | menu = Menu.ViewUnit }
-            , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) (API.getUnitInfo uid)
+            , Cmd.map ViewUnitMsg <| ViewUnit.setup uid
             )
         _ ->
           let
@@ -176,6 +180,10 @@ update msg model =
             , Cmd.map (ViewUnitAdminMsg << ViewUnitAdmin.APIMsg) <|
               API.unitInbox id
             )
+          ViewUnit.WriteMessage pid uid mtype ->
+            ( { model | menu = Menu.MessageMember pid uid mtype }
+            , Cmd.none
+            )
           _ ->
             ( { model | viewUnit = viewUnit }
             , Cmd.map ViewUnitMsg cmd
@@ -188,6 +196,23 @@ update msg model =
         ( { model | viewUnitAdmin = viewUnitAdmin }
         , Cmd.map ViewUnitAdminMsg cmd
         )
+
+    MessageMemberMsg p m ->
+      case m of
+        MessageMember.Reset ->
+          ( { model
+            | messageMember = MessageMember.initial
+            , menu = Menu.ViewUnit
+            }
+          , Cmd.map ViewUnitMsg (ViewUnit.setup p.unit.id)
+          )
+        _ ->
+          let
+            (messageMember, cmd) = MessageMember.update m p model.messageMember
+          in
+            ( { model | messageMember = messageMember }
+            , Cmd.map (MessageMemberMsg p) cmd
+            )
 
     APIMsg m ->
       case m of
@@ -274,6 +299,14 @@ mainPanel model =
       Menu.ViewUnitAdmin ->
         List.map (Element.map ViewUnitAdminMsg) <|
         ViewUnitAdmin.view model.info model.viewUnitAdmin
+
+      Menu.MessageMember pid uid mtype ->
+        let
+          param = {person = pid, unit = uid, messageType = mtype}
+          toMsg = MessageMemberMsg param
+        in
+          List.map (Element.map toMsg) <|
+          [ MessageMember.view param model.messageMember ]
 
       Menu.Admin ->
         List.map (Element.map AdminMsg) <|
