@@ -24,8 +24,8 @@ import String
 -- Model
 
 type alias Param =
-  { personInfo : PersonInfo
-  , unit : WithId Unit
+  { person : PersonInfo
+  , unit : UnitInfo
   , messageType : MessageType
   }
 
@@ -103,6 +103,17 @@ update msg param model =
               , Notification.reset Reset
               )
 
+        API.SendMessageSubpart result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+            Ok _ ->
+              ( { initial | notification = Notification.Success }
+              , Notification.reset Reset
+              )
+
         _ ->
           (model, Cmd.none)
 
@@ -121,12 +132,14 @@ view param model =
         [ Font.bold, Font.size 30 ]
         [ case param.messageType of
             Submission ->
-              text <| "Submission for " ++ param.unit.value.name
+              text <| "Submission for " ++ param.unit.unit.name
             Invitation ->
-              text <| "Invitation of " ++ param.unit.value.name
+              text <| "Invitation of " ++ param.unit.unit.name
         ]
     , let
-        units = personInfoChair param.personInfo
+        units =
+          List.filter (eligible param.messageType param.unit) <|
+          personInfoChair param.person
       in
         if List.isEmpty units
         then text "You must be the chair of a unit to send messages to units."
@@ -143,13 +156,13 @@ view param model =
     ] ++ Notification.view model.notification
 
 invitation :
-  Maybe (Id a) ->
-  List (Id a, { a | name : String }) ->
-  (Id a -> msg) ->
+  Maybe (Id Unit) ->
+  List (WithId Unit) ->
+  (Id Unit -> msg) ->
   Element msg
 invitation selected units makeEvent =
   let
-    makeOption (id, unit) = Input.option id (text unit.name)
+    makeOption unit = Input.option unit.id (text unit.value.name)
   in
     Input.radioRow
       [ padding 10
@@ -157,6 +170,17 @@ invitation selected units makeEvent =
       ]
       { onChange = makeEvent
       , selected = selected
-      , label = Input.labelAbove [] (text "Invite this unit.")
+      , label = Input.labelAbove [] (text "Relevant unit.")
       , options = List.map makeOption units
       }
+
+--------------------------------------------------------------------------------
+-- Helper
+
+eligible : MessageType -> UnitInfo -> WithId Unit -> Bool
+eligible mtype info unit =
+  case mtype of
+    Invitation ->
+      not <| idMapAny (\p -> p.id == unit.id) info.parents
+    Submission ->
+      not <| idMapAny (\p -> p.id == unit.id) info.children

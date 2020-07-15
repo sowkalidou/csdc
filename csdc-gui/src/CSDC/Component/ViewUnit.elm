@@ -114,7 +114,8 @@ type Msg
   | EditName EditableMsg
   | EditDescription EditableMsg
   | View ViewSelected
-  | WriteMessage (WithId Person) (WithId Unit) MessageType
+  | MessageMember (WithId Person) (WithId Unit) MessageType
+  | MessageSubpart PersonInfo UnitInfo MessageType
   | ViewAdmin (Id Unit)
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -216,7 +217,12 @@ update msg model =
           , Cmd.map APIMsg <| API.getUnitInfo id
           )
 
-    WriteMessage pid uid mtype ->
+    MessageMember pid uid mtype ->
+      ( model
+      , Cmd.none
+      )
+
+    MessageSubpart pinfo uid mtype ->
       ( model
       , Cmd.none
       )
@@ -344,9 +350,27 @@ view mid model =
               then [ text "Your submission was sent." ]
               else
                 let
-                  msg = WriteMessage wid { id = info.id, value = info.unit } Submission
+                  msg = MessageMember wid { id = info.id, value = info.unit } Submission
                 in
                   [ button msg "Become a member" ]
+      , row [] <|
+          case mid of
+            Just (User pinfo) ->
+              let
+                msg = MessageSubpart pinfo info Invitation
+              in
+               [ button msg "Invite this unit to your unit" ]
+            _ ->
+               []
+      , row [] <|
+          case mid of
+            Just (User pinfo) ->
+              let
+                msg = MessageSubpart pinfo info Submission
+              in
+               [ button msg "Make your unit a part of this unit" ]
+            _ ->
+               []
       , row
           [ height <| fillPortion 1
           , width fill

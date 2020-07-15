@@ -192,10 +192,15 @@ update msg model =
             , Cmd.map (ViewUnitAdminMsg << ViewUnitAdmin.APIMsg) <|
               API.unitInbox id
             )
-          ViewUnit.WriteMessage pid uid mtype ->
+          ViewUnit.MessageMember pid uid mtype ->
             ( { model | menu = Menu.MessageMember pid uid mtype }
             , Cmd.none
             )
+          ViewUnit.MessageSubpart pid uid mtype ->
+            ( { model | menu = Menu.MessageSubpart pid uid mtype }
+            , Cmd.none
+            )
+
           _ ->
             ( { model | viewUnit = viewUnit }
             , Cmd.map ViewUnitMsg cmd
@@ -379,9 +384,9 @@ mainPanel model =
           List.map (Element.map toMsg) <|
           [ ReplyMember.view param model.replyMember ]
 
-      Menu.MessageSubpart pinfo uid mtype ->
+      Menu.MessageSubpart pinfo uinfo mtype ->
         let
-          param = {personInfo = pinfo, unit = uid, messageType = mtype}
+          param = {person = pinfo, unit = uinfo, messageType = mtype}
           toMsg = MessageSubpartMsg param
         in
           List.map (Element.map toMsg) <|

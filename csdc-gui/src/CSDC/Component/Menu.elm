@@ -33,7 +33,7 @@ type Model
   | ViewUnitAdmin
   | MessageMember (WithId Person) (WithId Unit) MessageType
   | ReplyMember (Id Person) (Id (Message Member)) MessageType
-  | MessageSubpart PersonInfo (WithId Unit) MessageType
+  | MessageSubpart PersonInfo UnitInfo MessageType
   | ReplySubpart (Id Person) (Id (Message Subpart)) MessageType
 
 initial : Model

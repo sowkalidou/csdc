@@ -137,12 +137,12 @@ decodePersonInfo =
     (Decoder.field "members" (decodeIdMap (decodeWithId decodeUnit)))
 
 -- List units of which the person is chair.
-personInfoChair : PersonInfo -> List (Id Unit, Unit)
+personInfoChair : PersonInfo -> List (WithId Unit)
 personInfoChair info =
   let
     f (_, unit) =
       if unit.value.chair == info.id
-      then Just (unit.id, unit.value)
+      then Just { id = unit.id, value = unit.value }
       else Nothing
   in
     List.filterMap f <| idMapToList info.members
