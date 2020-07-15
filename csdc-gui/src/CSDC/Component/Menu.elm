@@ -33,6 +33,7 @@ type Model
   | ViewUnitAdmin
   | MessageMember (WithId Person) (WithId Unit) MessageType
   | ReplyMember (Id Person) (Id (Message Member)) MessageType
+  | MessageSubpart PersonInfo (WithId Unit) MessageType
 
 initial : Model
 initial = Studio

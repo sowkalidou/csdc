@@ -6,6 +6,7 @@ import CSDC.Component.Explorer as Explorer
 import CSDC.Component.Menu as Menu
 import CSDC.Component.MessageMember as MessageMember
 import CSDC.Component.ReplyMember as ReplyMember
+import CSDC.Component.MessageSubpart as MessageSubpart
 import CSDC.Component.Studio as Studio
 import CSDC.Component.ViewPerson as ViewPerson
 import CSDC.Component.ViewUnit as ViewUnit
@@ -50,6 +51,7 @@ type alias Model =
   , viewUnitAdmin : ViewUnitAdmin.Model
   , messageMember : MessageMember.Model
   , replyMember : ReplyMember.Model
+  , messageSubpart : MessageSubpart.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
   , notification : Notification
@@ -70,6 +72,7 @@ init _ =
       , viewUnitAdmin = ViewUnitAdmin.initial
       , messageMember = MessageMember.initial
       , replyMember = ReplyMember.initial
+      , messageSubpart = MessageSubpart.initial
       , notification = Notification.Empty
       }
     , Cmd.batch
@@ -90,6 +93,7 @@ type Msg
   | ViewUnitAdminMsg ViewUnitAdmin.Msg
   | MessageMemberMsg MessageMember.Param MessageMember.Msg
   | ReplyMemberMsg ReplyMember.Param ReplyMember.Msg
+  | MessageSubpartMsg MessageSubpart.Param MessageSubpart.Msg
   | StudioMsg Studio.Msg
   | APIMsg API.Msg
 
@@ -235,6 +239,23 @@ update msg model =
             , Cmd.map (ReplyMemberMsg p) cmd
             )
 
+    MessageSubpartMsg p m ->
+      case m of
+        MessageSubpart.Reset ->
+          ( { model
+            | messageSubpart = MessageSubpart.initial
+            , menu = Menu.ViewUnit
+            }
+          , Cmd.map ViewUnitMsg (ViewUnit.setup p.unit.id)
+          )
+        _ ->
+          let
+            (messageSubpart, cmd) = MessageSubpart.update m p model.messageSubpart
+          in
+            ( { model | messageSubpart = messageSubpart }
+            , Cmd.map (MessageSubpartMsg p) cmd
+            )
+
     APIMsg m ->
       case m of
         API.RootPerson result ->
@@ -336,6 +357,14 @@ mainPanel model =
         in
           List.map (Element.map toMsg) <|
           [ ReplyMember.view param model.replyMember ]
+
+      Menu.MessageSubpart pinfo uid mtype ->
+        let
+          param = {personInfo = pinfo, unit = uid, messageType = mtype}
+          toMsg = MessageSubpartMsg param
+        in
+          List.map (Element.map toMsg) <|
+          [ MessageSubpart.view param model.messageSubpart ]
 
       Menu.Admin ->
         List.map (Element.map AdminMsg) <|
