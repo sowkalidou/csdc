@@ -34,6 +34,7 @@ type Model
   | MessageMember (WithId Person) (WithId Unit) MessageType
   | ReplyMember (Id Person) (Id (Message Member)) MessageType
   | MessageSubpart PersonInfo (WithId Unit) MessageType
+  | ReplySubpart (Id Person) (Id (Message Subpart)) MessageType
 
 initial : Model
 initial = Studio
