@@ -96,7 +96,7 @@ isMember mid model =
 isMemberPending : Maybe (User PersonInfo) -> Model -> Bool
 isMemberPending mid model =
   let
-    getMessagePerson (Message m) = getMemberPerson m.value
+    getMessagePerson (MessageInfo m) = getMemberPerson m.value
   in
   case mid of
     Just (User info) ->

@@ -98,12 +98,52 @@ instance HasRelation Subpart Action where
 
 instance HasMessage Member Action where
   sendMessage m = runSQL $ SQL.query SQL.MessageMembers.sendMessage m
-  sendReply r = runSQL $ SQL.query SQL.MessageMembers.sendReply r
+
+  sendReply r = do
+    rid <- runSQL $ SQL.query SQL.MessageMembers.sendReply r
+    let
+      status = case reply_type r of
+        Accept -> Accepted
+        Reject -> Rejected
+      uid = reply_id r
+    runSQL $ SQL.query SQL.MessageMembers.updateMessage (uid, status)
+    case reply_type r of
+      Accept ->
+        runSQL (SQL.query SQL.MessageMembers.selectMember uid) >>= \case
+          Nothing ->
+            pure ()
+          Just val -> do
+            _ <- insertRelation val
+            pure ()
+      _ ->
+        pure ()
+    pure rid
+
   viewReply i = runSQL $ SQL.query SQL.MessageMembers.viewReply i
 
 instance HasMessage Subpart Action where
   sendMessage m = runSQL $ SQL.query SQL.MessageSubparts.sendMessage m
-  sendReply r = runSQL $ SQL.query SQL.MessageSubparts.sendReply r
+
+  sendReply r = do
+    rid <- runSQL $ SQL.query SQL.MessageSubparts.sendReply r
+    let
+      status = case reply_type r of
+        Accept -> Accepted
+        Reject -> Rejected
+      uid = reply_id r
+    runSQL $ SQL.query SQL.MessageSubparts.updateMessage (uid, status)
+    case reply_type r of
+      Accept ->
+        runSQL (SQL.query SQL.MessageSubparts.selectSubpart uid) >>= \case
+          Nothing ->
+            pure ()
+          Just val -> do
+            _ <- insertRelation val
+            pure ()
+      _ ->
+        pure ()
+    pure rid
+
   viewReply i = runSQL $ SQL.query SQL.MessageSubparts.viewReply i
 
 instance HasDAO Action where
@@ -129,25 +169,25 @@ instance HasDAO Action where
     messagesAll <- runSQL $
       SQL.query SQL.MessageMembers.select $
       SQL.MessageMembers.Filter (Just pid) Nothing
-    let mids = fmap withId_id messagesAll
+    let mids = fmap fst messagesAll
     repliesAll <- runSQL $
       SQL.query SQL.MessageMembers.messageReplies mids
     let
       predMessage m =
-        message_status m == Waiting &&
-        message_type m == Invitation
+        messageInfo_status m == Waiting &&
+        messageInfo_type m == Invitation
 
       messageMember =
         IdMap.filter predMessage $
-        IdMap.fromWithIds messagesAll
+        IdMap.fromList messagesAll
 
       predReply r =
-        reply_status r == NotSeen &&
-        reply_mtype r == Submission
+        replyInfo_status r == NotSeen &&
+        replyInfo_mtype r == Submission
 
       replyMember =
         IdMap.filter predReply $
-        IdMap.fromWithIds repliesAll
+        IdMap.fromList repliesAll
 
     pure Inbox
       { inbox_messageMember = messageMember
@@ -158,26 +198,26 @@ instance HasDAO Action where
 
   inboxUnit uid = do
     messagesSubpartAll <- runSQL $
-      SQL.query SQL.MessageSubparts.unitMessages uid
+      SQL.query SQL.MessageSubparts.select uid
 
     repliesSubpartAll <- runSQL $
-      SQL.query SQL.MessageSubparts.unitReplies $
-      fmap withId_id messagesSubpartAll
+      SQL.query SQL.MessageSubparts.messageReplies $
+      fmap fst messagesSubpartAll
 
     let
       predMessageSubpart m =
-        message_status m == Waiting
+        messageInfo_status m == Waiting
 
       messagesSubpart =
         IdMap.filter predMessageSubpart $
-        IdMap.fromWithIds messagesSubpartAll
+        IdMap.fromList messagesSubpartAll
 
       predReplySubpart r =
-        reply_status r == NotSeen
+        replyInfo_status r == NotSeen
 
       repliesSubpart =
         IdMap.filter predReplySubpart $
-        IdMap.fromWithIds repliesSubpartAll
+        IdMap.fromList repliesSubpartAll
 
     messagesMemberAll <- runSQL $
       SQL.query SQL.MessageMembers.select $
@@ -185,25 +225,24 @@ instance HasDAO Action where
 
     repliesMemberAll <- runSQL $
       SQL.query SQL.MessageMembers.messageReplies $
-      fmap withId_id messagesMemberAll
+      fmap fst messagesMemberAll
 
     let
       predMessageMember m =
-        message_status m == Waiting &&
-        message_type m == Submission
+        messageInfo_status m == Waiting &&
+        messageInfo_type m == Submission
 
       messageMember =
         IdMap.filter predMessageMember $
-        IdMap.fromWithIds messagesMemberAll
+        IdMap.fromList messagesMemberAll
 
       predReplyMember r =
-        reply_status r == NotSeen &&
-        reply_mtype r == Invitation
+        replyInfo_status r == NotSeen &&
+        replyInfo_mtype r == Invitation
 
       replyMember =
         IdMap.filter predReplyMember $
-        IdMap.fromWithIds repliesMemberAll
-
+        IdMap.fromList repliesMemberAll
 
     pure Inbox
       { inbox_messageMember = messageMember

@@ -21,9 +21,11 @@ import CSDC.DAO.Types
   , Member (..)
   , Subpart (..)
   , Message (..)
+  , MessageInfo (..)
   , MessageStatus (..)
   , MessageType (..)
   , Reply (..)
+  , ReplyInfo (..)
   , ReplyStatus (..)
   , ReplyType (..)
   , Inbox (..)
@@ -133,9 +135,13 @@ instance MonadIO m => HasDAO (Mock m) where
         reply_status r == NotSeen &&
         reply_mtype r == Submission
 
-      messageMember = IdMap.filter predMessageWaiting messageMemberAll
+    messageMember <-
+      traverse toMessageInfoMember $
+      IdMap.filter predMessageWaiting messageMemberAll
 
-    replyMember <- IdMap.filter predReply <$> use store_replyMember
+    replyMember <-
+      fmap (IdMap.filter predReply) (use store_replyMember) >>=
+      traverse toReplyInfoMember
 
     pure Inbox
       { inbox_messageMember = messageMember
@@ -159,9 +165,13 @@ instance MonadIO m => HasDAO (Mock m) where
         reply_id r `elem` IdMap.keys messageMemberAll &&
         reply_status r == NotSeen
 
-      messageMember = IdMap.filter predMessageWaiting messageMemberAll
+    messageMember <-
+      traverse toMessageInfoMember $
+      IdMap.filter predMessageWaiting messageMemberAll
 
-    replyMember <- IdMap.filter predReply <$> use store_replyMember
+    replyMember <-
+      fmap (IdMap.filter predReply) (use store_replyMember) >>=
+      traverse toReplyInfoMember
 
     pure Inbox
       { inbox_messageMember = messageMember
@@ -291,3 +301,62 @@ markMessage s m = m { message_status = s }
 
 markReply :: ReplyStatus -> Reply a -> Reply a
 markReply s r = r { reply_status = s }
+
+toMessageInfoMember ::
+  MonadState Store m => Message Member -> m (MessageInfo Member)
+toMessageInfoMember msg = do
+  let m = message_value msg
+  p <- IdMap.get (member_person m) <$> use store_person
+  u <- IdMap.get (member_unit m) <$> use store_unit
+  pure MessageInfo
+    { messageInfo_type = message_type msg
+    , messageInfo_status = message_status msg
+    , messageInfo_text = message_text msg
+    , messageInfo_value = message_value msg
+    , messageInfo_left = person_name p
+    , messageInfo_right = unit_name u
+    }
+
+toMessageInfoSubpart ::
+  MonadState Store m => Message Subpart -> m (MessageInfo Subpart)
+toMessageInfoSubpart msg = do
+  let m = message_value msg
+  c <- IdMap.get (subpart_child m) <$> use store_unit
+  p <- IdMap.get (subpart_parent m) <$> use store_unit
+  pure MessageInfo
+    { messageInfo_type = message_type msg
+    , messageInfo_status = message_status msg
+    , messageInfo_text = message_text msg
+    , messageInfo_value = message_value msg
+    , messageInfo_left = unit_name c
+    , messageInfo_right = unit_name p
+    }
+
+toReplyInfoMember ::
+  MonadState Store m => Reply Member -> m (ReplyInfo Member)
+toReplyInfoMember rep = do
+  m <-
+    fmap (IdMap.get (reply_id rep)) (use store_messageMember) >>=
+    toMessageInfoMember
+  pure ReplyInfo
+    { replyInfo_type = reply_type rep
+    , replyInfo_mtype = reply_mtype rep
+    , replyInfo_status = reply_status rep
+    , replyInfo_text = reply_text rep
+    , replyInfo_message = m
+    }
+
+toReplyInfoSubpart ::
+  MonadState Store m => Reply Subpart -> m (ReplyInfo Subpart)
+toReplyInfoSubpart rep = do
+  m <-
+    fmap (IdMap.get (reply_id rep)) (use store_messageSubpart) >>=
+    toMessageInfoSubpart
+  pure ReplyInfo
+    { replyInfo_type = reply_type rep
+    , replyInfo_mtype = reply_mtype rep
+    , replyInfo_status = reply_status rep
+    , replyInfo_text = reply_text rep
+    , replyInfo_message = m
+    }
+

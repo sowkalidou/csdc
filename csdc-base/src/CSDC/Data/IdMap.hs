@@ -3,6 +3,7 @@ module CSDC.Data.IdMap
   , IdMap'
   , empty
   , lookup
+  , get
   , find
   , insert
   , insertNew
@@ -39,6 +40,9 @@ empty = IdMap (IntMap.empty)
 
 lookup :: Id a -> IdMap a b -> Maybe b
 lookup (Id uid) (IdMap m) = IntMap.lookup uid m
+
+get :: Id a -> IdMap a b -> b
+get (Id uid) (IdMap m) = m IntMap.! uid
 
 find :: (b -> Bool) -> IdMap a b -> Maybe (Id a, b)
 find p (IdMap m) =
