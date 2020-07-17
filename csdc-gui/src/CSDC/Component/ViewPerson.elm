@@ -1,6 +1,7 @@
 module CSDC.Component.ViewPerson exposing
   ( Model
   , initial
+  , setup
   , Msg (..)
   , update
   , view
@@ -22,24 +23,25 @@ import Tuple exposing (pair)
 --------------------------------------------------------------------------------
 -- Model
 
+type alias Param =
+  { user : User PersonInfo
+  }
+
 type alias Model =
-  { id : Maybe (Id Person)
-  , person : Maybe Person
-  , member : IdMap Member Member
-  , units : IdMap Member Unit
+  { person : Maybe PersonInfo
   , panelUnits : Panel.Model (Id Member)
   , notification : Notification
   }
 
 initial : Model
 initial =
-  { id = Nothing
-  , person = Nothing
-  , member = idMapEmpty
-  , units = idMapEmpty
+  { person = Nothing
   , panelUnits = Panel.initial "Units"
   , notification = Notification.Empty
   }
+
+setup : Id Person -> Cmd Msg
+setup id = Cmd.map APIMsg <| API.getPersonInfo id
 
 --------------------------------------------------------------------------------
 -- Update
@@ -48,6 +50,7 @@ type Msg
   = APIMsg API.Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | ViewSelected (Id Unit)
+  | MessageMember PersonInfo
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -57,51 +60,26 @@ update msg model =
       , Cmd.none
       )
 
-    ViewSelected _ -> (model, Cmd.none)
+    ViewSelected _ ->
+      ( model
+      , Cmd.none
+      )
+
+    MessageMember pid ->
+      ( model
+      , Cmd.none
+      )
 
     APIMsg apimsg ->
       case apimsg of
-        API.SelectPerson id result ->
+        API.GetPersonInfo result ->
           case result of
             Err err ->
               ( { model | notification = Notification.HttpError err }
               , Cmd.none
               )
             Ok person ->
-              ( { model | id = Just id, person = Just person }
-              , Cmd.map (APIMsg) <|
-                Cmd.batch
-                  [ API.selectMemberPerson id
-                  , API.unitsPerson id
-                  ]
-              )
-
-        API.SelectMemberPerson result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok member ->
-              ( { model | member = member }
-              , Cmd.none
-              )
-
-        API.UnitsPerson result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok units ->
-              let
-                pairs =
-                  idMapToList units |>
-                  List.map (\(uid,unit) -> (uid,unit.name))
-
-                panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
-              in
-              ( { model | panelUnits = panelUnits, units = units }
+              ( { model | person = Just person }
               , Cmd.none
               )
 
@@ -124,14 +102,19 @@ view model =
           [ Font.bold, Font.size 30 ]
           [ text "View Person" ]
       , row []
-          [ text person.name ]
+          [ text person.person.name ]
       , row []
           [ el [ Font.bold ] (text "ORCID ID: ")
           , newTabLink []
-              { url = "https://orcid.org/" ++ person.orcid
-              , label = text person.orcid
+              { url = "https://orcid.org/" ++ person.person.orcid
+              , label = text person.person.orcid
               }
           ]
+
+      , row []
+          [ button (MessageMember person) "Invite this person to your unit"
+          ]
+
       , row
           [ height <| fillPortion 1
           , width fill
@@ -139,7 +122,7 @@ view model =
           ]
           [ column
               [ width <| fillPortion 1 ]
-              [ text person.description ]
+              [ text person.person.description ]
           , map UnitsMsg <| Panel.view model.panelUnits
           ]
       , case Panel.getSelected model.panelUnits of
@@ -150,14 +133,10 @@ view model =
               [ height <| fillPortion 1
               , width fill
               ] <|
-              case
-                Maybe.map2 pair
-                  (idMapLookup id model.member)
-                  (idMapLookup id model.units)
-                of
+              case idMapLookup id person.members of
                 Nothing ->
                   [ text "Error." ]
-                Just (Member member, unit) ->
-                  PreviewUnit.view unit (ViewSelected member.unit)
+                Just unit ->
+                  PreviewUnit.view unit.value (ViewSelected unit.id)
       ] ++
       Notification.view model.notification

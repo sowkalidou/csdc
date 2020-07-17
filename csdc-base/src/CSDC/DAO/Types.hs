@@ -18,11 +18,13 @@ module CSDC.DAO.Types
   , PersonInfo (..)
   , UnitInfo (..)
   , Inbox (..)
+  , MessageInfo (..)
+  , ReplyInfo (..)
   ) where
 
 import CSDC.Aeson (JSON (..))
 import CSDC.Data.Id (Id, WithId)
-import CSDC.Data.IdMap (IdMap, IdMap')
+import CSDC.Data.IdMap (IdMap)
 
 import qualified CSDC.Auth.ORCID as ORCID
 
@@ -117,10 +119,29 @@ data UnitInfo = UnitInfo
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON UnitInfo
 
+data MessageInfo a = MessageInfo
+  { messageInfo_type :: MessageType
+  , messageInfo_status :: MessageStatus
+  , messageInfo_text :: Text
+  , messageInfo_value :: a
+  , messageInfo_left :: Text
+  , messageInfo_right :: Text
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON (MessageInfo a)
+
+data ReplyInfo a = ReplyInfo
+  { replyInfo_type :: ReplyType
+  , replyInfo_mtype :: MessageType
+  , replyInfo_text :: Text
+  , replyInfo_status :: ReplyStatus
+  , replyInfo_message :: MessageInfo a
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON (ReplyInfo a)
+
 data Inbox = Inbox
-  { inbox_messageMember :: IdMap' (Message Member)
-  , inbox_replyMember :: IdMap' (Reply Member)
-  , inbox_messageSubpart :: IdMap' (Message Subpart)
-  , inbox_replySubpart :: IdMap' (Reply Subpart)
+  { inbox_messageMember :: IdMap (Message Member) (MessageInfo Member)
+  , inbox_replyMember :: IdMap (Reply Member) (ReplyInfo Member)
+  , inbox_messageSubpart :: IdMap (Message Subpart) (MessageInfo Subpart)
+  , inbox_replySubpart :: IdMap (Reply Subpart) (ReplyInfo Subpart)
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Inbox

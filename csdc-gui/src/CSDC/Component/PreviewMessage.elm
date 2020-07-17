@@ -10,8 +10,8 @@ import Element.Font as Font
 import Element.Background as Background
 import Element.Border as Border
 
-view : Message a -> (MessageType -> ReplyType -> msg) -> List (Element msg)
-view (Message msg) event =
+view : MessageInfo a -> (MessageType -> ReplyType -> msg) -> List (Element msg)
+view (MessageInfo msg) event =
   [ column
      [ height fill
      , width fill
@@ -30,8 +30,8 @@ view (Message msg) event =
         [ column
             [ Font.size 24 ]
             [ case msg.mtype of
-                Invitation -> text "Invitation"
-                Submission -> text "Submission"
+                Invitation -> text <| "Invitation from " ++ msg.right
+                Submission -> text <| "Submission from " ++ msg.left
             ]
         , column
             [ alignRight ]

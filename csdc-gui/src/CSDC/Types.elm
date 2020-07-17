@@ -137,12 +137,12 @@ decodePersonInfo =
     (Decoder.field "members" (decodeIdMap (decodeWithId decodeUnit)))
 
 -- List units of which the person is chair.
-personInfoChair : PersonInfo -> List (Id Unit, Unit)
+personInfoChair : PersonInfo -> List (WithId Unit)
 personInfoChair info =
   let
     f (_, unit) =
       if unit.value.chair == info.id
-      then Just (unit.id, unit.value)
+      then Just { id = unit.id, value = unit.value }
       else Nothing
   in
     List.filterMap f <| idMapToList info.members
@@ -319,6 +319,48 @@ decodeMessage decode =
     (Decoder.field "status" decodeMessageStatus)
     (Decoder.field "value" decode)
 
+type MessageInfo a = MessageInfo
+  { mtype : MessageType
+  , text : String
+  , status : MessageStatus
+  , value : a
+  , left : String
+  , right : String
+  }
+
+makeMessageInfo :
+  MessageType -> String -> MessageStatus -> a -> String -> String -> MessageInfo a
+makeMessageInfo mtype text status value left right =
+  MessageInfo
+    { mtype = mtype
+    , text = text
+    , status = status
+    , value = value
+    , left = left
+    , right = right
+    }
+
+encodeMessageInfo : (a -> Value) -> MessageInfo a -> Value
+encodeMessageInfo encode (MessageInfo m) =
+  Encoder.object
+    [ ("type", encodeMessageType m.mtype)
+    , ("text", Encoder.string m.text)
+    , ("status", encodeMessageStatus m.status)
+    , ("value", encode m.value)
+    , ("left", Encoder.string m.left)
+    , ("right", Encoder.string m.right)
+    ]
+
+decodeMessageInfo : Decoder a -> Decoder (MessageInfo a)
+decodeMessageInfo decode =
+  Decoder.map6 makeMessageInfo
+    (Decoder.field "type" decodeMessageType)
+    (Decoder.field "text" Decoder.string)
+    (Decoder.field "status" decodeMessageStatus)
+    (Decoder.field "value" decode)
+    (Decoder.field "left" Decoder.string)
+    (Decoder.field "right" Decoder.string)
+
 --------------------------------------------------------------------------------
 -- Reply
 
@@ -397,14 +439,52 @@ decodeReply =
     (Decoder.field "status" decodeReplyStatus)
     (Decoder.field "id" decodeId)
 
+type ReplyInfo a = ReplyInfo
+  { rtype : ReplyType
+  , mtype : MessageType
+  , text : String
+  , status : ReplyStatus
+  , message : MessageInfo a
+  }
+
+makeReplyInfo :
+  ReplyType -> MessageType -> String -> ReplyStatus -> MessageInfo a -> ReplyInfo a
+makeReplyInfo rtype mtype text status message =
+  ReplyInfo
+    { rtype = rtype
+    , mtype = mtype
+    , text = text
+    , status = status
+    , message = message
+    }
+
+encodeReplyInfo : (a -> Value) -> ReplyInfo a -> Value
+encodeReplyInfo encode (ReplyInfo m) =
+  Encoder.object
+    [ ("type", encodeReplyType m.rtype)
+    , ("mtype", encodeMessageType m.mtype)
+    , ("text", Encoder.string m.text)
+    , ("status", encodeReplyStatus m.status)
+    , ("message", encodeMessageInfo encode m.message)
+    ]
+
+decodeReplyInfo : Decoder a -> Decoder (ReplyInfo a)
+decodeReplyInfo decode =
+  Decoder.map5 makeReplyInfo
+    (Decoder.field "type" decodeReplyType)
+    (Decoder.field "mtype" decodeMessageType)
+    (Decoder.field "text" Decoder.string)
+    (Decoder.field "status" decodeReplyStatus)
+    (Decoder.field "message" (decodeMessageInfo decode))
+
 --------------------------------------------------------------------------------
 -- Inbox
 
 type alias Inbox =
-  { messageMember : IdMap (Message Member) (Message Member)
-  , replyMember : IdMap (Reply Member) (Reply Member)
-  , messageSubpart : IdMap (Message Subpart) (Message Subpart)
-  , replySubpart : IdMap (Reply Subpart) (Reply Subpart)
+  { messageMember : IdMap (Message Member) (MessageInfo Member)
+  , replyMember : IdMap (Reply Member) (ReplyInfo Member)
+  , messageSubpart : IdMap (Message Subpart) (MessageInfo Subpart)
+  , replySubpart : IdMap (Reply Subpart) (ReplyInfo Subpart)
   }
 
 emptyInbox : Inbox
@@ -418,19 +498,19 @@ emptyInbox =
 encodeInbox : Inbox -> Value
 encodeInbox inbox =
   Encoder.object
-    [ ("messageMember", encodeIdMap (encodeMessage encodeMember) inbox.messageMember)
-    , ("replyMember", encodeIdMap encodeReply inbox.replyMember)
-    , ("messageSubpart", encodeIdMap (encodeMessage encodeSubpart) inbox.messageSubpart)
-    , ("replySubpart", encodeIdMap encodeReply inbox.replySubpart)
+    [ ("messageMember", encodeIdMap (encodeMessageInfo encodeMember) inbox.messageMember)
+    , ("replyMember", encodeIdMap (encodeReplyInfo encodeMember) inbox.replyMember)
+    , ("messageSubpart", encodeIdMap (encodeMessageInfo encodeSubpart) inbox.messageSubpart)
+    , ("replySubpart", encodeIdMap (encodeReplyInfo encodeSubpart) inbox.replySubpart)
     ]
 
 decodeInbox : Decoder Inbox
 decodeInbox =
   Decoder.map4 Inbox
-    (Decoder.field "messageMember" (decodeIdMap <| decodeMessage decodeMember))
-    (Decoder.field "replyMember" (decodeIdMap decodeReply))
-    (Decoder.field "messageSubpart" (decodeIdMap <| decodeMessage decodeSubpart))
-    (Decoder.field "replySubpart" (decodeIdMap decodeReply))
+    (Decoder.field "messageMember" (decodeIdMap <| decodeMessageInfo decodeMember))
+    (Decoder.field "replyMember" (decodeIdMap <| decodeReplyInfo decodeMember))
+    (Decoder.field "messageSubpart" (decodeIdMap <| decodeMessageInfo decodeSubpart))
+    (Decoder.field "replySubpart" (decodeIdMap <| decodeReplyInfo decodeSubpart))
 
 --------------------------------------------------------------------------------
 -- Helpers

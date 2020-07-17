@@ -10,8 +10,8 @@ import Element.Font as Font
 import Element.Background as Background
 import Element.Border as Border
 
-view : Reply a -> msg -> List (Element msg)
-view (Reply msg) event =
+view : ReplyInfo a -> msg -> List (Element msg)
+view (ReplyInfo msg) event =
   [ column
      [ height fill
      , width fill

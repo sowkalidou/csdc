@@ -301,10 +301,10 @@ type InboxId
 inboxToPairs : Inbox -> List (InboxId, String)
 inboxToPairs inbox =
   let
-    fmm (id, Message m) = (MessageMemberId id, m.text)
-    frm (id, Reply r) = (ReplyMemberId id, r.text)
-    fms (id, Message m) = (MessageSubpartId id, m.text)
-    frs (id, Reply r) = (ReplySubpartId id, r.text)
+    fmm (id, MessageInfo m) = (MessageMemberId id, m.text)
+    frm (id, ReplyInfo r) = (ReplyMemberId id, r.text)
+    fms (id, MessageInfo m) = (MessageSubpartId id, m.text)
+    frs (id, ReplyInfo r) = (ReplySubpartId id, r.text)
   in
     List.map fmm (idMapToList inbox.messageMember) ++
     List.map frm (idMapToList inbox.replyMember) ++
