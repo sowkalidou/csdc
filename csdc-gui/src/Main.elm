@@ -5,6 +5,7 @@ import CSDC.Component.Admin as Admin
 import CSDC.Component.Explorer as Explorer
 import CSDC.Component.Menu as Menu
 import CSDC.Component.MessageMember as MessageMember
+import CSDC.Component.InvitationMember as InvitationMember
 import CSDC.Component.ReplyMember as ReplyMember
 import CSDC.Component.MessageSubpart as MessageSubpart
 import CSDC.Component.ReplySubpart as ReplySubpart
@@ -51,6 +52,7 @@ type alias Model =
   , viewUnit : ViewUnit.Model
   , viewUnitAdmin : ViewUnitAdmin.Model
   , messageMember : MessageMember.Model
+  , invitationMember : InvitationMember.Model
   , replyMember : ReplyMember.Model
   , messageSubpart : MessageSubpart.Model
   , replySubpart : ReplySubpart.Model
@@ -73,6 +75,7 @@ init _ =
       , viewUnit = ViewUnit.initial
       , viewUnitAdmin = ViewUnitAdmin.initial
       , messageMember = MessageMember.initial
+      , invitationMember = InvitationMember.initial
       , replyMember = ReplyMember.initial
       , messageSubpart = MessageSubpart.initial
       , replySubpart = ReplySubpart.initial
@@ -95,6 +98,7 @@ type Msg
   | ViewUnitMsg ViewUnit.Msg
   | ViewUnitAdminMsg ViewUnitAdmin.Msg
   | MessageMemberMsg MessageMember.Param MessageMember.Msg
+  | InvitationMemberMsg InvitationMember.Param InvitationMember.Msg
   | ReplyMemberMsg ReplyMember.Param ReplyMember.Msg
   | MessageSubpartMsg MessageSubpart.Param MessageSubpart.Msg
   | ReplySubpartMsg ReplySubpart.Param ReplySubpart.Msg
@@ -172,6 +176,19 @@ update msg model =
             , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) <|
               API.getUnitInfo id
             )
+          ViewPerson.MessageMember pid ->
+            case model.info of
+              Just (User user) ->
+                ( { model
+                  | menu = Menu.InvitationMember pid user
+                  }
+                , Cmd.none
+                )
+              _ ->
+                ( model
+                , Cmd.none
+                )
+
           _ ->
             ( { model | viewPerson = viewPerson }
             , Cmd.map ViewPersonMsg cmd
@@ -184,8 +201,8 @@ update msg model =
         case m of
           ViewUnit.View (ViewUnit.ViewSelectedPerson id) ->
             ( { model | menu = Menu.ViewPerson }
-            , Cmd.map (ViewPersonMsg << ViewPerson.APIMsg) <|
-              API.selectPerson id
+            , Cmd.map ViewPersonMsg <|
+              ViewPerson.setup id
             )
           ViewUnit.ViewAdmin id ->
             ( { model | menu = Menu.ViewUnitAdmin }
@@ -229,6 +246,23 @@ update msg model =
           in
             ( { model | messageMember = messageMember }
             , Cmd.map (MessageMemberMsg p) cmd
+            )
+
+    InvitationMemberMsg p m ->
+      case m of
+        InvitationMember.Reset ->
+          ( { model
+            | invitationMember = InvitationMember.initial
+            , menu = Menu.ViewPerson
+            }
+          , Cmd.none
+          )
+        _ ->
+          let
+            (invitationMember, cmd) = InvitationMember.update m p model.invitationMember
+          in
+            ( { model | invitationMember = invitationMember }
+            , Cmd.map (InvitationMemberMsg p) cmd
             )
 
     ReplyMemberMsg p m ->
@@ -375,6 +409,14 @@ mainPanel model =
         in
           List.map (Element.map toMsg) <|
           [ MessageMember.view param model.messageMember ]
+
+      Menu.InvitationMember pid user ->
+        let
+          param = {person = pid, user = user}
+          toMsg = InvitationMemberMsg param
+        in
+          List.map (Element.map toMsg) <|
+          [ InvitationMember.view param model.invitationMember ]
 
       Menu.ReplyMember pid mid mtype ->
         let
