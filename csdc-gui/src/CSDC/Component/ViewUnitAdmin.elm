@@ -69,7 +69,8 @@ type Msg
   | PanelSubpartMsg (Panel.Msg SubpartId)
   | PreviewMessageMemberMsg (PreviewMessage.Msg Member)
   | PreviewMessageSubpartMsg (PreviewMessage.Msg Subpart)
-  | Dummy
+  | PreviewReplyMemberMsg (PreviewReply.Msg Member)
+  | PreviewReplySubpartMsg (PreviewReply.Msg Subpart)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -112,8 +113,17 @@ update msg model =
 
     PreviewMessageSubpartMsg _ -> (model, Cmd.none)
 
-    Dummy ->
-      ( model, Cmd.none )
+    PreviewReplyMemberMsg (PreviewReply.MarkAsSeen id) ->
+      ( { model | selected = SelectedNothing }
+      , Cmd.map APIMsg <|
+        API.viewReplyMember id
+      )
+
+    PreviewReplySubpartMsg (PreviewReply.MarkAsSeen id) ->
+      ( { model | selected = SelectedNothing }
+      , Cmd.map APIMsg <|
+        API.viewReplySubpart id
+      )
 
     APIMsg apimsg ->
       case apimsg of
@@ -157,6 +167,18 @@ update msg model =
                   }
                 , Cmd.none
                 )
+
+        API.ViewReplyMember result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+
+            Ok _ ->
+              ( model -- XXX: RELOAD
+              , Cmd.none
+              )
 
         _ ->
           (model, Cmd.none)
@@ -207,8 +229,8 @@ view mid model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewReply.view msg <|
-                      Dummy
+                      List.map (map PreviewReplyMemberMsg) <|
+                      PreviewReply.view rid msg
 
           SelectedSubpart subpartId ->
             row
@@ -229,8 +251,8 @@ view mid model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewReply.view msg <|
-                      Dummy
+                      List.map (map PreviewReplySubpartMsg) <|
+                      PreviewReply.view rid msg
 
       ] ++
       Notification.view model.notification

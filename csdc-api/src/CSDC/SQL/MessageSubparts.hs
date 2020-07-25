@@ -34,7 +34,7 @@ viewReply = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "UPDATE replies_subpart"
-      , "SET status = 'Seen' :: reply_status"
+      , "SET rstatus = 'Seen' :: reply_status"
       , "WHERE id = $1"
       ]
 

@@ -139,8 +139,9 @@ view model =
     [ row
         [ Font.bold, Font.size 30 ]
         [ text "New Reply" ]
-    , selectReplyType model
     , selectReplyStatus model
+    , selectMessageType model
+    , selectReplyType model
     , Input.text
         { onChange = InputMessage
         , field = model.message
