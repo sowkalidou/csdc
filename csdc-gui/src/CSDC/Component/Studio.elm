@@ -305,8 +305,6 @@ view model =
                     Just msg ->
                       List.map (map PreviewReplyMemberMsg) <|
                       PreviewReply.view id msg
-                      -- XXX: Accept does not make sense
-                      -- View (ViewSelectedInbox inboxId Invitation Accept)
 
                 MessageSubpartId id ->
                   case idMapLookup id model.inbox.messageSubpart of
@@ -323,8 +321,6 @@ view model =
                     Just msg ->
                       List.map (map PreviewReplySubpartMsg) <|
                       PreviewReply.view id msg
-                      -- XXX: Accept does not make sense
-                      -- View (ViewSelectedInbox inboxId Invitation Accept)
 
       ] ++
       Notification.view model.notification

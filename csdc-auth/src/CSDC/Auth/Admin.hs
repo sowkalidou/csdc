@@ -55,7 +55,6 @@ instance ToJSON user => AuthProvider (Token user) where
       Just (Just token') ->
         if token == token'
         then
-          -- XXX: Encode User
           onSuccess $ toStrict $ encode (Admin :: User user)
         else
           onFailure status403 "Token incorrect, access denied."
