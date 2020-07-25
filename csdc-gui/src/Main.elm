@@ -3,11 +3,12 @@ module Main exposing (..)
 import CSDC.API as API
 import CSDC.Component.Admin as Admin
 import CSDC.Component.Explorer as Explorer
+import CSDC.Component.InvitationMember as InvitationMember
 import CSDC.Component.Menu as Menu
 import CSDC.Component.MessageMember as MessageMember
-import CSDC.Component.InvitationMember as InvitationMember
-import CSDC.Component.ReplyMember as ReplyMember
 import CSDC.Component.MessageSubpart as MessageSubpart
+import CSDC.Component.PreviewMessage as PreviewMessage
+import CSDC.Component.ReplyMember as ReplyMember
 import CSDC.Component.ReplySubpart as ReplySubpart
 import CSDC.Component.Studio as Studio
 import CSDC.Component.ViewPerson as ViewPerson
@@ -152,6 +153,20 @@ update msg model =
             , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) (API.getUnitInfo uid)
             )
 
+          Studio.PreviewMessageMemberMsg (PreviewMessage.Reply r) ->
+            ( { newModel
+              | menu = Menu.ReplyMember r.message r.messageType
+              }
+            , Cmd.none
+            )
+
+          Studio.PreviewMessageSubpartMsg (PreviewMessage.Reply r) ->
+            ( { newModel
+              | menu = Menu.ReplySubpart r.message r.messageType
+              }
+            , Cmd.none
+            )
+
           Studio.APIMsg (API.CreateUnit result) ->
             case result of
               Err err ->
@@ -224,12 +239,27 @@ update msg model =
             )
 
     ViewUnitAdminMsg m ->
-      let
-        (viewUnitAdmin, cmd) = ViewUnitAdmin.update m model.viewUnitAdmin
-      in
-        ( { model | viewUnitAdmin = viewUnitAdmin }
-        , Cmd.map ViewUnitAdminMsg cmd
-        )
+      case m of
+        ViewUnitAdmin.PreviewMessageMemberMsg (PreviewMessage.Reply r) ->
+          ( { model
+            | menu = Menu.ReplyMember r.message r.messageType
+            }
+          , Cmd.none
+          )
+
+        ViewUnitAdmin.PreviewMessageSubpartMsg (PreviewMessage.Reply r) ->
+          ( { model
+            | menu = Menu.ReplySubpart r.message r.messageType
+            }
+          , Cmd.none
+          )
+        _ ->
+          let
+            (viewUnitAdmin, cmd) = ViewUnitAdmin.update m model.viewUnitAdmin
+          in
+            ( { model | viewUnitAdmin = viewUnitAdmin }
+            , Cmd.map ViewUnitAdminMsg cmd
+            )
 
     MessageMemberMsg p m ->
       case m of
@@ -272,7 +302,11 @@ update msg model =
             | replyMember = ReplyMember.initial
             , menu = Menu.Studio
             }
-          , Cmd.map StudioMsg (Studio.setup p.person)
+          , case model.info of
+              Just (User pinfo) ->
+                Cmd.map StudioMsg <| Studio.setup pinfo.id
+              _ ->
+                Cmd.none
           )
         _ ->
           let
@@ -306,7 +340,11 @@ update msg model =
             | replySubpart = ReplySubpart.initial
             , menu = Menu.Studio
             }
-          , Cmd.map StudioMsg (Studio.setup p.person)
+          , case model.info of
+              Just (User pinfo) ->
+                Cmd.map StudioMsg <| Studio.setup pinfo.id
+              _ ->
+                Cmd.none
           )
         _ ->
           let
@@ -418,9 +456,9 @@ mainPanel model =
           List.map (Element.map toMsg) <|
           [ InvitationMember.view param model.invitationMember ]
 
-      Menu.ReplyMember pid mid mtype ->
+      Menu.ReplyMember mid mtype ->
         let
-          param = {person = pid, message = mid, messageType = mtype}
+          param = {message = mid, messageType = mtype}
           toMsg = ReplyMemberMsg param
         in
           List.map (Element.map toMsg) <|
@@ -434,9 +472,9 @@ mainPanel model =
           List.map (Element.map toMsg) <|
           [ MessageSubpart.view param model.messageSubpart ]
 
-      Menu.ReplySubpart pid mid mtype ->
+      Menu.ReplySubpart mid mtype ->
         let
-          param = {person = pid, message = mid, messageType = mtype}
+          param = {message = mid, messageType = mtype}
           toMsg = ReplySubpartMsg param
         in
           List.map (Element.map toMsg) <|

@@ -25,8 +25,7 @@ import String
 -- Model
 
 type alias Param =
-  { person : Id Person
-  , message : Id (Message Member)
+  { message : Id (Message Member)
   , messageType : MessageType
   }
 

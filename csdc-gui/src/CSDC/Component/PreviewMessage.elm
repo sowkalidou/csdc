@@ -1,5 +1,6 @@
 module CSDC.Component.PreviewMessage exposing
-  ( view
+  ( Msg (..)
+  , view
   )
 
 import CSDC.Types exposing (..)
@@ -10,8 +11,14 @@ import Element.Font as Font
 import Element.Background as Background
 import Element.Border as Border
 
-view : MessageInfo a -> (MessageType -> ReplyType -> msg) -> List (Element msg)
-view (MessageInfo msg) event =
+type Msg a
+  = Reply
+      { message : Id (Message a)
+      , messageType : MessageType
+      }
+
+view : Id (Message a) -> MessageInfo a -> List (Element (Msg a))
+view id (MessageInfo msg) =
   [ column
      [ height fill
      , width fill
@@ -35,10 +42,14 @@ view (MessageInfo msg) event =
             ]
         , column
             [ alignRight ]
-            [ button (event msg.mtype Accept) "Accept" ]
-        , column
-            [ alignRight ]
-            [ button (event msg.mtype Reject) "Reject" ]
+            [ let
+                event = Reply
+                  { message = id
+                  , messageType = msg.mtype
+                  }
+              in
+                button event "Reply"
+            ]
         ]
      , row
         [ height fill

@@ -70,6 +70,8 @@ type Msg
   = APIMsg API.Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | MessagesMsg (Panel.Msg InboxId)
+  | PreviewMessageMemberMsg (PreviewMessage.Msg Member)
+  | PreviewMessageSubpartMsg (PreviewMessage.Msg Subpart)
   | CreateUnit
   | View ViewSelected
 
@@ -136,6 +138,10 @@ update msg model =
           Nothing -> Cmd.none
           Just info -> Cmd.map APIMsg <| API.createUnit info.id
       )
+
+    PreviewMessageMemberMsg _ -> (model, Cmd.none)
+
+    PreviewMessageSubpartMsg _ -> (model, Cmd.none)
 
     APIMsg apimsg ->
       case apimsg of
@@ -257,8 +263,8 @@ view model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewMessage.view msg <|
-                      (\mtype rtype -> View <| ViewSelectedInbox inboxId mtype rtype)
+                      List.map (map PreviewMessageMemberMsg) <|
+                      PreviewMessage.view id msg
 
                 ReplyMemberId id ->
                   case idMapLookup id model.inbox.replyMember of
@@ -274,8 +280,8 @@ view model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewMessage.view msg <|
-                      (\mtype rtype -> View <| ViewSelectedInbox inboxId mtype rtype)
+                      List.map (map PreviewMessageSubpartMsg) <|
+                      PreviewMessage.view id msg
 
                 ReplySubpartId id ->
                   case idMapLookup id model.inbox.replySubpart of

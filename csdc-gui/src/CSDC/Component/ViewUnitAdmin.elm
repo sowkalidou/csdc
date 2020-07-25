@@ -67,6 +67,8 @@ type Msg
   = APIMsg API.Msg
   | PanelMemberMsg (Panel.Msg MemberId)
   | PanelSubpartMsg (Panel.Msg SubpartId)
+  | PreviewMessageMemberMsg (PreviewMessage.Msg Member)
+  | PreviewMessageSubpartMsg (PreviewMessage.Msg Subpart)
   | Dummy
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -105,6 +107,10 @@ update msg model =
             }
           , Cmd.none
           )
+
+    PreviewMessageMemberMsg _ -> (model, Cmd.none)
+
+    PreviewMessageSubpartMsg _ -> (model, Cmd.none)
 
     Dummy ->
       ( model, Cmd.none )
@@ -193,8 +199,8 @@ view mid model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewMessage.view msg <|
-                      (\mtype rtype -> Dummy)
+                      List.map (map PreviewMessageMemberMsg) <|
+                      PreviewMessage.view rid msg
 
                 MemberReply rid ->
                   case idMapLookup rid model.inbox.replyMember of
@@ -215,8 +221,8 @@ view mid model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewMessage.view msg <|
-                      (\mtype rtype -> Dummy)
+                      List.map (map PreviewMessageSubpartMsg) <|
+                      PreviewMessage.view rid msg
 
                 SubpartReply rid ->
                   case idMapLookup rid model.inbox.replySubpart of
