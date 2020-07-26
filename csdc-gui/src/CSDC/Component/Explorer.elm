@@ -122,7 +122,6 @@ update msg model =
       , Cmd.none
       )
 
-    -- XXX: use component
     APIMsg component m ->
       case m of
         API.RootUnit res ->

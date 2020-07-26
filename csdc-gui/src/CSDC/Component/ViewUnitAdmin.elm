@@ -1,5 +1,6 @@
 module CSDC.Component.ViewUnitAdmin exposing
   ( Model
+  , setup
   , initial
   , Msg (..)
   , update
@@ -60,6 +61,9 @@ initial =
   , notification = Notification.Empty
   }
 
+setup : Id Unit -> Cmd Msg
+setup id = Cmd.map APIMsg <| API.unitInbox id
+
 --------------------------------------------------------------------------------
 -- Update
 
@@ -67,7 +71,10 @@ type Msg
   = APIMsg API.Msg
   | PanelMemberMsg (Panel.Msg MemberId)
   | PanelSubpartMsg (Panel.Msg SubpartId)
-  | Dummy
+  | PreviewMessageMemberMsg (PreviewMessage.Msg Member)
+  | PreviewMessageSubpartMsg (PreviewMessage.Msg Subpart)
+  | PreviewReplyMemberMsg (PreviewReply.Msg Member)
+  | PreviewReplySubpartMsg (PreviewReply.Msg Subpart)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -106,8 +113,21 @@ update msg model =
           , Cmd.none
           )
 
-    Dummy ->
-      ( model, Cmd.none )
+    PreviewMessageMemberMsg _ -> (model, Cmd.none)
+
+    PreviewMessageSubpartMsg _ -> (model, Cmd.none)
+
+    PreviewReplyMemberMsg (PreviewReply.MarkAsSeen id) ->
+      ( { model | selected = SelectedNothing }
+      , Cmd.map APIMsg <|
+        API.viewReplyMember id
+      )
+
+    PreviewReplySubpartMsg (PreviewReply.MarkAsSeen id) ->
+      ( { model | selected = SelectedNothing }
+      , Cmd.map APIMsg <|
+        API.viewReplySubpart id
+      )
 
     APIMsg apimsg ->
       case apimsg of
@@ -152,6 +172,18 @@ update msg model =
                 , Cmd.none
                 )
 
+        API.ViewReplyMember result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+
+            Ok _ ->
+              case model.id of
+                Nothing -> (model, Cmd.none)
+                Just id -> (model, setup id)
+
         _ ->
           (model, Cmd.none)
 
@@ -193,16 +225,16 @@ view mid model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewMessage.view msg <|
-                      (\mtype rtype -> Dummy)
+                      List.map (map PreviewMessageMemberMsg) <|
+                      PreviewMessage.view rid msg
 
                 MemberReply rid ->
                   case idMapLookup rid model.inbox.replyMember of
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewReply.view msg <|
-                      Dummy
+                      List.map (map PreviewReplyMemberMsg) <|
+                      PreviewReply.view rid msg
 
           SelectedSubpart subpartId ->
             row
@@ -215,16 +247,16 @@ view mid model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewMessage.view msg <|
-                      (\mtype rtype -> Dummy)
+                      List.map (map PreviewMessageSubpartMsg) <|
+                      PreviewMessage.view rid msg
 
                 SubpartReply rid ->
                   case idMapLookup rid model.inbox.replySubpart of
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewReply.view msg <|
-                      Dummy
+                      List.map (map PreviewReplySubpartMsg) <|
+                      PreviewReply.view rid msg
 
       ] ++
       Notification.view model.notification

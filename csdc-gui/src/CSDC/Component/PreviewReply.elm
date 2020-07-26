@@ -1,5 +1,6 @@
 module CSDC.Component.PreviewReply exposing
-  ( view
+  ( Msg (..)
+  , view
   )
 
 import CSDC.Types exposing (..)
@@ -10,8 +11,10 @@ import Element.Font as Font
 import Element.Background as Background
 import Element.Border as Border
 
-view : ReplyInfo a -> msg -> List (Element msg)
-view (ReplyInfo msg) event =
+type Msg a = MarkAsSeen (Id (Reply a))
+
+view : Id (Reply a) -> ReplyInfo a -> List (Element (Msg a))
+view id (ReplyInfo msg) =
   [ column
      [ height fill
      , width fill
@@ -35,7 +38,7 @@ view (ReplyInfo msg) event =
             ]
         , column
             [ alignRight ]
-            [ button event "TODO" ]
+            [ button (MarkAsSeen id) "Mark as seen" ]
         ]
      , row
         [ height fill

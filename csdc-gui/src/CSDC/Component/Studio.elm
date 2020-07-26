@@ -70,6 +70,10 @@ type Msg
   = APIMsg API.Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | MessagesMsg (Panel.Msg InboxId)
+  | PreviewMessageMemberMsg (PreviewMessage.Msg Member)
+  | PreviewMessageSubpartMsg (PreviewMessage.Msg Subpart)
+  | PreviewReplyMemberMsg (PreviewReply.Msg Member)
+  | PreviewReplySubpartMsg (PreviewReply.Msg Subpart)
   | CreateUnit
   | View ViewSelected
 
@@ -137,6 +141,22 @@ update msg model =
           Just info -> Cmd.map APIMsg <| API.createUnit info.id
       )
 
+    PreviewMessageMemberMsg _ -> (model, Cmd.none)
+
+    PreviewMessageSubpartMsg _ -> (model, Cmd.none)
+
+    PreviewReplyMemberMsg (PreviewReply.MarkAsSeen id) ->
+      ( { model | selected = SelectedNothing }
+      , Cmd.map APIMsg <|
+        API.viewReplyMember id
+      )
+
+    PreviewReplySubpartMsg (PreviewReply.MarkAsSeen id) ->
+      ( { model | selected = SelectedNothing }
+      , Cmd.map APIMsg <|
+        API.viewReplySubpart id
+      )
+
     APIMsg apimsg ->
       case apimsg of
         API.GetPersonInfo result ->
@@ -174,6 +194,24 @@ update msg model =
                 )
 
         API.SendReplyMember result ->
+          case result of
+            Err err ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+
+            Ok _ ->
+              case model.info of
+                Nothing ->
+                  ( model
+                  , Cmd.none
+                  )
+                Just info ->
+                  ( model
+                  , setup info.id
+                  )
+
+        API.ViewReplyMember result ->
           case result of
             Err err ->
               ( { model | notification = Notification.HttpError err }
@@ -257,34 +295,32 @@ view model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewMessage.view msg <|
-                      (\mtype rtype -> View <| ViewSelectedInbox inboxId mtype rtype)
+                      List.map (map PreviewMessageMemberMsg) <|
+                      PreviewMessage.view id msg
 
                 ReplyMemberId id ->
                   case idMapLookup id model.inbox.replyMember of
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewReply.view msg <|
-                      -- XXX: Accept does not make sense
-                      View (ViewSelectedInbox inboxId Invitation Accept)
+                      List.map (map PreviewReplyMemberMsg) <|
+                      PreviewReply.view id msg
 
                 MessageSubpartId id ->
                   case idMapLookup id model.inbox.messageSubpart of
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewMessage.view msg <|
-                      (\mtype rtype -> View <| ViewSelectedInbox inboxId mtype rtype)
+                      List.map (map PreviewMessageSubpartMsg) <|
+                      PreviewMessage.view id msg
 
                 ReplySubpartId id ->
                   case idMapLookup id model.inbox.replySubpart of
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      PreviewReply.view msg <|
-                      -- XXX: Accept does not make sense
-                      View (ViewSelectedInbox inboxId Invitation Accept)
+                      List.map (map PreviewReplySubpartMsg) <|
+                      PreviewReply.view id msg
 
       ] ++
       Notification.view model.notification
