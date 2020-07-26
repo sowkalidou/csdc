@@ -222,8 +222,8 @@ update msg model =
             )
           ViewUnit.ViewAdmin id ->
             ( { model | menu = Menu.ViewUnitAdmin }
-            , Cmd.map (ViewUnitAdminMsg << ViewUnitAdmin.APIMsg) <|
-              API.unitInbox id
+            , Cmd.map ViewUnitAdminMsg <|
+              ViewUnitAdmin.setup id
             )
           ViewUnit.MessageMember pid uid mtype ->
             ( { model | menu = Menu.MessageMember pid uid mtype }

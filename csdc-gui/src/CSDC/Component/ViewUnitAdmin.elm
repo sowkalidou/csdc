@@ -1,5 +1,6 @@
 module CSDC.Component.ViewUnitAdmin exposing
   ( Model
+  , setup
   , initial
   , Msg (..)
   , update
@@ -59,6 +60,9 @@ initial =
   , selected = SelectedNothing
   , notification = Notification.Empty
   }
+
+setup : Id Unit -> Cmd Msg
+setup id = Cmd.map APIMsg <| API.unitInbox id
 
 --------------------------------------------------------------------------------
 -- Update
@@ -176,9 +180,9 @@ update msg model =
               )
 
             Ok _ ->
-              ( model -- XXX: RELOAD
-              , Cmd.none
-              )
+              case model.id of
+                Nothing -> (model, Cmd.none)
+                Just id -> (model, setup id)
 
         _ ->
           (model, Cmd.none)
