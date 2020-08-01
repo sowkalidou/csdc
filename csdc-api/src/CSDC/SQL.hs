@@ -2,6 +2,7 @@ module CSDC.SQL
   ( -- * Config and Secret
     Config (..)
   , Secret (..)
+  , parseURL
     -- * Context
   , Context
   , activate
@@ -11,11 +12,14 @@ module CSDC.SQL
   , Action (..)
   , run
   , query
+    -- * Migration
+  , migrate
   ) where
 
 import CSDC.Prelude
 
 import Control.Exception (Exception, finally, throwIO, try)
+import Control.Monad (forM_)
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (ReaderT (..), MonadReader (..))
 import Data.Aeson (FromJSON (..), ToJSON (..))
@@ -23,10 +27,15 @@ import Data.Text (Text)
 import Hasql.Connection (Connection, ConnectionError)
 import Hasql.Session (QueryError)
 import Hasql.Statement (Statement)
+import Network.URI (URI (..), URIAuth (..), parseURI)
+import Text.Read (readMaybe)
 
+import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text.Encoding
 import qualified Hasql.Connection as Connection
 import qualified Hasql.Session as Session
+import qualified Hasql.Migration as Migration
+import qualified Hasql.Transaction.Sessions as Transaction
 
 --------------------------------------------------------------------------------
 -- Config and Secret
@@ -45,6 +54,25 @@ data Secret = Secret
   { secret_password :: Text
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Secret
+
+parseURL :: String -> Maybe (Config, Secret)
+parseURL txt = do
+  uri <- parseURI txt
+  auth <- uriAuthority uri
+  port <- readMaybe $ tail $ uriPort auth
+  let (user, pwd) = span (/= ':') $ uriUserInfo auth
+      password = init $ tail pwd
+  pure
+    ( Config
+        { config_host = Text.pack $ uriRegName auth
+        , config_port = port
+        , config_user = Text.pack $ user
+        , config_database = Text.pack $ tail $ uriPath uri
+        }
+    , Secret
+        { secret_password = Text.pack $ password
+        }
+    )
 
 --------------------------------------------------------------------------------
 -- Context
@@ -68,6 +96,7 @@ activate config secret = pure $ Context config secret
 data Error
   = ErrorConnection ConnectionError
   | ErrorQuery QueryError
+  | ErrorMigration Migration.MigrationError
     deriving (Show, Eq)
 
 instance Exception Error
@@ -107,3 +136,24 @@ query stm a = Action $ do
       liftIO $ throwIO $ ErrorQuery err
     Right res ->
       pure res
+
+--------------------------------------------------------------------------------
+-- Migration
+
+migrate :: FilePath -> Action ()
+migrate path = Action $ do
+  commands <- liftIO $ Migration.loadMigrationsFromDirectory path
+  let
+    transactions =
+      fmap Migration.runMigration $
+      Migration.MigrationInitialization : commands
+    toSession =
+      Transaction.transaction Transaction.ReadCommitted Transaction.Write
+    sessions = fmap toSession transactions
+  conn <- ask
+  liftIO $ forM_ sessions $ \session -> do
+    res <- Session.run session conn
+    case res of
+      Left e -> liftIO $ throwIO $ ErrorQuery e
+      Right (Just e) -> liftIO $ throwIO $ ErrorMigration e
+      Right Nothing -> pure ()

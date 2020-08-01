@@ -34,7 +34,6 @@ let
             # Database
             docker-compose
             postgresql
-            localHaskellPackages.postgresql-simple-migration
             # Deployment
             heroku
           ];

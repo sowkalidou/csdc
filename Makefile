@@ -65,14 +65,6 @@ psql: ## Launch psql with the correct arguments.
 
 .PHONY: psql
 
-migrate: ## Run SQL migrations.
-	CON="host=localhost port=5432 dbname=csdc user=csdc password=csdc"
-	migrate init "$$CON"
-	migrate migrate "$$CON" database/migrations
-
-.ONESHELL: migrate
-.PHONY: migrate
-
 ################################################################################
 # Docker
 
