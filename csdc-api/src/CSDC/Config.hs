@@ -32,13 +32,41 @@ import qualified Data.Text.Encoding as Text.Encoding
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 
 --------------------------------------------------------------------------------
+-- SQL Config
+
+data SQLConfig = SQLConfig SQL.Config | SQLConfigEnv
+    deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON SQLConfig
+
+data SQLSecret = SQLSecret SQL.Secret | SQLSecretEnv SQL.Config SQL.Secret
+    deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON SQLSecret
+
+getSQLSecret :: IO (Maybe SQLSecret)
+getSQLSecret =
+  env "DATABASE_URL" >>= \case
+    Nothing -> pure Nothing
+    Just str -> pure $ do
+      (config, secret) <- SQL.parseURL $ Text.unpack str
+      pure $ SQLSecretEnv config secret
+
+toSQLContext :: SQLConfig -> SQLSecret -> IO SQL.Context
+toSQLContext (SQLConfig config) (SQLSecret secret) =
+  SQL.activate config secret
+toSQLContext SQLConfigEnv (SQLSecretEnv config secret) =
+  SQL.activate config secret
+toSQLContext _ _ =
+  error "SQL badly configured."
+
+--------------------------------------------------------------------------------
 -- Config
 
 data Config = Config
   { config_port :: Int
   , config_path :: FilePath
   , config_orcidEndpoint :: ORCID.Endpoint
-  , config_sql :: SQL.Config
+  , config_sql :: SQLConfig
+  , config_migration :: FilePath
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Config
 
@@ -70,7 +98,7 @@ data Secret = Secret
   { secret_token :: Text
   , secret_orcidId :: Text
   , secret_orcidSecret :: Text
-  , secret_sql :: SQL.Secret
+  , secret_sql :: SQLSecret
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Secret
 
@@ -78,13 +106,10 @@ data Secret = Secret
 readSecret :: MonadIO m => Maybe FilePath -> m (Maybe Secret)
 readSecret (Just path) = liftIO $ decodeFileStrict path
 readSecret Nothing = liftIO $ do
-  let env var = fmap Text.pack <$> lookupEnv var
   mToken <- env "SECRET_TOKEN"
   mOrcidId <- env "SECRET_ORCID_ID"
   mOrcidSecret <- env "SECRET_ORCID_SECRET"
-  mSql <- do
-    str <- env "SECRET_POSTGRESQL"
-    pure $ SQL.Secret <$> str
+  mSql <- getSQLSecret
   pure $ Secret <$> mToken <*> mOrcidId <*> mOrcidSecret <*> mSql
 
 --------------------------------------------------------------------------------
@@ -95,12 +120,13 @@ data Context = Context
   , context_path :: FilePath
   , context_auth :: Auth.Config
   , context_dao :: DAO.Context
+  , context_migration :: FilePath
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Context
 
 activate :: Config -> Secret -> IO Context
 activate config secret = do
-  sql <- SQL.activate (config_sql config) (secret_sql secret)
+  sql <- toSQLContext (config_sql config) (secret_sql secret)
   pure Context
     { context_port = config_port config
     , context_path = config_path config
@@ -118,4 +144,11 @@ activate config secret = do
     , context_dao = DAO.Context
         { DAO.context_sql = sql
         }
+    , context_migration = config_migration config
     }
+
+--------------------------------------------------------------------------------
+-- Helper
+
+env :: String -> IO (Maybe Text)
+env var = fmap Text.pack <$> lookupEnv var

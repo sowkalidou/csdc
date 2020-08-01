@@ -7,6 +7,7 @@ import CSDC.Config (Context (..), readConfig, readSecret, showConfig, activate)
 
 import qualified CSDC.Auth as Auth
 import qualified CSDC.DAO as DAO
+import qualified CSDC.SQL as SQL
 
 import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (runSettings, setPort, setLogger, defaultSettings)
@@ -41,6 +42,8 @@ main = do
           showConfig config
           putStrLn ""
           context <- activate config secret
+          putStrLn "Applying migrations..."
+          migrate context
           DAO.run (context_dao context) DAO.check
           mainWith context
 
@@ -68,3 +71,8 @@ application path context = \request response ->
     server = hoistServer proxy (DAO.run context) (serveAPI path)
   in do
     serve proxy server request response
+
+migrate :: Context -> IO ()
+migrate context = do
+  let path = context_migration context
+  DAO.run (context_dao context) $ DAO.runSQL $ SQL.migrate path

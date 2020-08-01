@@ -11,10 +11,16 @@ let
   writeJson = name: tree:
     writeText name (builtins.toJSON tree);
 
+  migrations = ../database/migrations;
+
   config = writeJson "csdc-dao-config" {
     port = 8080;
     path = gui;
     orcidEndpoint = "production";
+    sql = {
+      tag = "SQLConfigEnv";
+    };
+    migration = migrations;
   };
 in
   # We are using buildImage instead of buildLayeredImage because of the
@@ -27,6 +33,7 @@ in
     contents = [
       server
       busybox
+      bashInteractive
     ];
     config = {
       Cmd = [
@@ -39,5 +46,8 @@ in
     runAsRoot = ''
       mkdir -p /etc/ssl/certs
       ln -s ${cacert}/etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
+      chmod 777 /bin/bash
+      rm /bin/sh
+      ln -s /bin/bash /bin/sh
     '';
   }
