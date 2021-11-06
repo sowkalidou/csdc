@@ -20,6 +20,7 @@ import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
 
 import Browser
+import Browser.Navigation as Nav
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -30,24 +31,29 @@ import List
 import Maybe
 import Maybe exposing (withDefault)
 import String
+import Url
 
 --------------------------------------------------------------------------------
 -- Main
 
 main : Program () Model Msg
 main =
-  Browser.element
+  Browser.application
     { init = init
     , update = update
     , subscriptions = subscriptions
     , view = view
+    , onUrlChange = UrlChanged
+    , onUrlRequest = LinkClicked
     }
 
 --------------------------------------------------------------------------------
 -- Model
 
 type alias Model =
-  { info : Maybe (User PersonInfo)
+  { key: Nav.Key
+  , url: Url.Url
+  , info : Maybe (User PersonInfo)
   , menu : Menu.Model
   , admin : Admin.Model
   , viewPerson : ViewPerson.Model
@@ -63,14 +69,16 @@ type alias Model =
   , notification : Notification
   }
 
-init : () -> (Model, Cmd Msg)
-init _ =
+init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
+init _ url key =
   let
-    (explorer, explorerCmd) = Explorer.initial ()
+    (menu, cmd) = route key url
   in
-    ( { info = Nothing
-      , menu = Menu.initial
-      , explorer = explorer
+    ( { key = key
+      , url = url
+      , info = Nothing
+      , menu = menu
+      , explorer = Explorer.initial
       , admin = Admin.initial
       , studio = Studio.initial
       , viewPerson = ViewPerson.initial
@@ -83,17 +91,16 @@ init _ =
       , replySubpart = ReplySubpart.initial
       , notification = Notification.Empty
       }
-    , Cmd.batch
-        [ Cmd.map ExplorerMsg explorerCmd
-        , Cmd.map APIMsg API.rootPerson
-        ]
+    , cmd
     )
 
 --------------------------------------------------------------------------------
 -- Update
 
 type Msg
-  = AdminMsg Admin.Msg
+  = UrlChanged Url.Url
+  | LinkClicked Browser.UrlRequest
+  | AdminMsg Admin.Msg
   | MenuMsg Menu.Msg
   | ExplorerMsg Explorer.Msg
   | ViewPersonMsg ViewPerson.Msg
@@ -107,9 +114,58 @@ type Msg
   | StudioMsg Studio.Msg
   | APIMsg API.Msg
 
+routeCmd : Bool -> Nav.Key -> Url.Url -> Menu.Model -> Cmd Msg
+routeCmd pushUrl key url menu =
+  let
+    newUrl =
+      { url
+      | fragment = Just <| String.join "/" ("" :: Menu.toFragments menu)
+      }
+
+    cmd =
+      case menu of
+        Menu.Studio -> Cmd.map APIMsg API.rootPerson
+        Menu.Explorer -> Cmd.map ExplorerMsg Explorer.setup
+        _ -> Cmd.none
+  in
+    if pushUrl
+    then
+      Cmd.batch
+        [ Nav.pushUrl key (Url.toString newUrl)
+        , cmd
+        ]
+    else
+      cmd
+
+route : Nav.Key -> Url.Url -> (Menu.Model, Cmd Msg)
+route key url =
+  case url.fragment of
+    Nothing ->
+      ( Menu.Studio, routeCmd True key url Menu.Studio )
+    Just fragment ->
+      let
+        menu =
+          Menu.fromFragments <| List.drop 1 (String.split "/" fragment)
+      in
+        (menu, routeCmd False key url menu)
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    LinkClicked urlRequest ->
+      case urlRequest of
+        Browser.Internal url ->
+          ( model, Nav.pushUrl model.key (Url.toString url) )
+
+        Browser.External href ->
+          ( model, Nav.load href )
+
+    UrlChanged url ->
+      let
+        (menu, cmd) = route model.key url
+      in
+        ( { model | menu = menu }, cmd )
+
     AdminMsg m ->
       let
         (admin, cmd) = Admin.update m model.admin
@@ -123,7 +179,7 @@ update msg model =
         menu = Menu.update m model.menu
       in
         ( { model | menu = menu }
-        , Cmd.none
+        , routeCmd True model.key model.url menu
         )
 
     ExplorerMsg m ->
@@ -400,13 +456,17 @@ subscriptions model = Sub.none
 --------------------------------------------------------------------------------
 -- View
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-  layout [] <|
-    row [ height fill, width fill ]
-        [ menuPanel model
-        , mainPanel model
-        ]
+  { title = "CSDC DAO"
+  , body =
+      [ layout [] <|
+        row [ height fill, width fill ]
+            [ menuPanel model
+            , mainPanel model
+            ]
+      ]
+  }
 
 menuPanel : Model -> Element Msg
 menuPanel model =

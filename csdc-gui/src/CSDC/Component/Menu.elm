@@ -1,6 +1,8 @@
 module CSDC.Component.Menu exposing
   ( Model (..)
   , initial
+  , toFragments
+  , fromFragments
   , Msg (..)
   , update
   , view
@@ -39,6 +41,34 @@ type Model
 
 initial : Model
 initial = Studio
+
+toFragments : Model -> List String
+toFragments model =
+  case model of
+    Explorer -> ["explorer"]
+    Studio -> ["studio"]
+    ViewPerson -> ["view-person"]
+    ViewUnit -> ["view-unit"]
+    Admin -> ["admin"]
+    ViewUnitAdmin -> ["view-unit-admin"]
+    _ -> [""]
+--    MessageMember (WithId Person) (WithId Unit) MessageType
+--    InvitationMember PersonInfo PersonInfo
+--    ReplyMember (Id (Message Member)) MessageType
+--    MessageSubpart PersonInfo UnitInfo MessageType
+--    ReplySubpart (Id (Message Subpart)) MessageType
+
+fromFragments : List String -> Model
+fromFragments l =
+  case l of
+    [] -> Studio
+    ["studio"] -> Studio
+    ["explorer"] -> Explorer
+    ["view-person"] -> ViewPerson
+    ["view-unit"] -> ViewUnit
+    ["admin"] -> Admin
+    ["view-unit-admin"] -> ViewUnitAdmin
+    _ -> Studio
 
 --------------------------------------------------------------------------------
 -- Update

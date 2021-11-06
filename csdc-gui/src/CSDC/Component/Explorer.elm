@@ -1,6 +1,7 @@
 module CSDC.Component.Explorer exposing
   ( Model
   , initial
+  , setup
   , Msg (..)
   , update
   , view
@@ -28,16 +29,17 @@ type alias Model =
   , preview : Maybe (WithId Unit)
   }
 
-initial : () -> (Model, Cmd Msg)
-initial _ =
-  ( { left = Panel.initial "Parents"
-    , center = Panel.initial "Units"
-    , right = Panel.initial "Children"
-    , notification = Notification.Empty
-    , preview = Nothing
-    }
-  , Cmd.map (APIMsg Root) <| API.rootUnit
-  )
+initial : Model
+initial =
+  { left = Panel.initial "Parents"
+  , center = Panel.initial "Units"
+  , right = Panel.initial "Children"
+  , notification = Notification.Empty
+  , preview = Nothing
+  }
+
+setup : Cmd Msg
+setup = Cmd.map (APIMsg Root) API.rootUnit
 
 --------------------------------------------------------------------------------
 -- Update

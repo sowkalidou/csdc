@@ -38,13 +38,15 @@ main = do
         Nothing ->
           error "Could not parse the secrets file."
         Just secret -> do
-          putStrLn "Running the server with the following configuration:\n"
+          putStrLn "Starting the server with the following configuration:\n"
           showConfig config
           putStrLn ""
           context <- activate config secret
           putStrLn "Applying migrations..."
           migrate context
+          putStrLn "Doing startup checks..."
           DAO.run (context_dao context) DAO.check
+          putStrLn "Server ready."
           mainWith context
 
 mainWith :: Context -> IO ()
