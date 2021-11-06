@@ -1,13 +1,29 @@
 <!DOCTYPE HTML>
-<html>
+<html class="has-navbar-fixed-top">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CS-DC DAO</title>
   <script src="app.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+  <style>
+    html {
+      height: 100%;
+    }
+    body {
+      min-height: 100%;
+    }
+    .option-box {
+      transition: box-shadow .3s;
+      box-shadow: 0 0 1px rgba(33,33,33,.2) !important;
+    }
+    .option-box:hover {
+      box-shadow: 0 0 11px rgba(33,33,33,.2) !important;
+    }
+  </style>
 </head>
 
-<body>
-  <div id="app"></div>
+<body id="app">
   <script>
   var app = Elm.Main.init({
     node: document.getElementById('app')

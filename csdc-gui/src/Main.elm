@@ -5,6 +5,7 @@ import CSDC.Component.Admin as Admin
 import CSDC.Component.Explorer as Explorer
 import CSDC.Component.InvitationMember as InvitationMember
 import CSDC.Component.Menu as Menu
+import CSDC.Component.Navbar as Navbar
 import CSDC.Component.MessageMember as MessageMember
 import CSDC.Component.MessageSubpart as MessageSubpart
 import CSDC.Component.PreviewMessage as PreviewMessage
@@ -29,6 +30,7 @@ import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Input as Input
 import Html exposing (Html)
+import Html.Attributes
 import List
 import Maybe
 import Maybe exposing (withDefault)
@@ -320,17 +322,33 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "CSDC DAO"
   , body =
-      [ layout [] <|
-        row [ height fill, width fill ]
-            [ menuPanel model
-            , mainPanel model
-            ]
+      [ Navbar.view
+      , Html.div
+          [ Html.Attributes.class "columns"
+          , Html.Attributes.attribute "style" "padding:10px; height: calc(100vh - 70px)"
+          ]
+          [ Html.div
+              [ Html.Attributes.class "column is-one-fifth"
+              ]
+              [ menuPanel model
+              ]
+          , Html.div
+              [ Html.Attributes.class "column is-four-fifths"
+              ]
+              [ Html.div
+                  [ Html.Attributes.class "contents"
+                  , Html.Attributes.style "height" "100%"
+                  ]
+                  [ layout [] (mainPanel model)
+                  ]
+              ]
+          ]
       ]
   }
 
-menuPanel : Model -> Element Msg
+menuPanel : Model -> Html Msg
 menuPanel model =
-  Element.map MenuMsg <| Menu.view (Menu.fromPage model.page)
+  Html.map MenuMsg <| Menu.view (Menu.fromPage model.page)
 
 mainPanel : Model -> Element Msg
 mainPanel model =

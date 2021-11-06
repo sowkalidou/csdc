@@ -12,13 +12,10 @@ import CSDC.API as API
 import CSDC.Page as Page
 
 import Browser
-import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events exposing (..)
-import Element.Font as Font
-import Element.Input as Input
 import Html exposing (Html)
+import Html.Attributes
+import Html.Events
+import Json.Decode as Json
 import Maybe
 import Maybe exposing (withDefault)
 import String
@@ -57,48 +54,52 @@ type Msg = SetItem Model
 --------------------------------------------------------------------------------
 -- View
 
-item : Maybe Model -> String -> Model -> Element Msg
+-- the target makes the link not redirect to /
+item : Maybe Model -> String -> Model -> Html Msg
 item model name this =
-  row
-    [ if model == Just this then
-        Background.color <| rgb255 142 151 164
+  Html.a
+    ( if model == Just this
+      then
+        [ Html.Events.onClick (SetItem this)
+        , Html.Attributes.class "is-active"
+        , Html.Attributes.target "_self"
+        ]
       else
-        Background.color <| rgb255 92 99 118
-    , if model == Just this then
-        Font.bold
-      else
-        Font.regular
-    , width fill
-    , onClick <| SetItem this
-    , padding 10
-    ]
-    [ el [ centerX ] (text name)
+        [ Html.Events.onClick (SetItem this)
+        , Html.Attributes.target "_self"
+        ]
+    )
+    [ Html.text name
     ]
 
-title : Element msg
-title =
-  row
-    [ Background.color <| rgb255 42 44 52
-    , Font.bold
-    , Font.size 20
-    , Font.color <| rgb255 243 243 244
-    , width fill
-    , padding 20
+title : String -> Html msg
+title txt =
+  Html.p
+    [ Html.Attributes.class "menu-label"
     ]
-    [ el [ centerX ] (text "CS-DC DAO")
+    [ Html.text txt
     ]
 
-view : Maybe Model -> Element Msg
+list : List (Html msg) -> Html msg
+list items =
+  Html.ul
+    [ Html.Attributes.class "menu-list"
+    ]
+    (List.map (\a -> Html.li [] [a]) items)
+
+view : Maybe Model -> Html Msg
 view model =
-  column
-    [ height fill
-    , width <| fillPortion 1
-    , Background.color <| rgb255 92 99 118
-    , Font.color <| rgb255 255 255 255
+  Html.div
+    [ Html.Attributes.class "menu"
     ]
-    [ title
-    , item model "Studio" Studio
-    , item model "Explorer" Explorer
-    , item model "Admin" Admin
+    [ title "General"
+    , list
+        [ item model "Studio" Studio
+        , item model "Explorer" Explorer
+        ]
+    , title "Administration"
+    , list
+        [ item model "Admin" Admin
+        ]
     ]
 
