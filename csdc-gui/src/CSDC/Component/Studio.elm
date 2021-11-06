@@ -17,6 +17,7 @@ import CSDC.Component.PreviewUnit as PreviewUnit
 import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
+import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
 import Element exposing (..)
@@ -76,10 +77,13 @@ type Msg
   | PreviewReplySubpartMsg (PreviewReply.Msg Subpart)
   | CreateUnit
   | View ViewSelected
+  | Reset
 
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
+update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
+update pageInfo msg model =
   case msg of
+    Reset ->
+      ({ model | notification = Notification.Empty }, Cmd.none)
     UnitsMsg m ->
       case m of
         Panel.SetSelected (Just id) ->
@@ -113,7 +117,9 @@ update msg model =
     View selected ->
       case selected of
         ViewSelectedUnit id ->
-          (model, Cmd.none)
+          ( model
+          , Page.goTo pageInfo (Page.ViewUnit id)
+          )
 
         ViewSelectedInbox inboxId mtype rtype ->
           case inboxId of
@@ -141,9 +147,15 @@ update msg model =
           Just info -> Cmd.map APIMsg <| API.createUnit info.id
       )
 
-    PreviewMessageMemberMsg _ -> (model, Cmd.none)
+    PreviewMessageMemberMsg (PreviewMessage.Reply { message, messageType }) ->
+      ( model
+      , Page.goTo pageInfo (Page.ReplyMember message messageType)
+      )
 
-    PreviewMessageSubpartMsg _ -> (model, Cmd.none)
+    PreviewMessageSubpartMsg (PreviewMessage.Reply { message, messageType }) ->
+      ( model
+      , Page.goTo pageInfo (Page.ReplySubpart message messageType)
+      )
 
     PreviewReplyMemberMsg (PreviewReply.MarkAsSeen id) ->
       ( { model | selected = SelectedNothing }
@@ -158,76 +170,60 @@ update msg model =
       )
 
     APIMsg apimsg ->
+      let
+        onSuccess = Notification.withResponse Reset model
+      in
       case apimsg of
-        API.GetPersonInfo result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
+        API.GetPersonInfo result -> onSuccess result <| \info ->
+            let
+              pairs =
+                idMapToList info.members |>
+                List.map (\(uid,unit) -> (uid,unit.value.name))
+
+              panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
+            in
+              ( { model | info = Just info, panelUnits = panelUnits }
               , Cmd.none
               )
-            Ok info ->
-              let
-                pairs =
-                  idMapToList info.members |>
-                  List.map (\(uid,unit) -> (uid,unit.value.name))
 
-                panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
-              in
-                ( { model | info = Just info, panelUnits = panelUnits }
+        API.PersonInbox result -> onSuccess result <| \inbox ->
+            let
+              panelMessages =
+                Panel.update (Panel.SetItems <| inboxToPairs inbox) model.panelMessages
+            in
+              ( { model | inbox = inbox, panelMessages = panelMessages }
+              , Cmd.none
+              )
+
+        API.SendReplyMember result -> onSuccess result <| \_ ->
+            case model.info of
+              Nothing ->
+                ( model
                 , Cmd.none
                 )
-
-        API.PersonInbox result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-
-            Ok inbox ->
-              let
-                panelMessages =
-                  Panel.update (Panel.SetItems <| inboxToPairs inbox) model.panelMessages
-              in
-                ( { model | inbox = inbox, panelMessages = panelMessages }
-                , Cmd.none
+              Just info ->
+                ( model
+                , setup info.id
                 )
 
-        API.SendReplyMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
+        API.ViewReplyMember result -> onSuccess result <| \_ ->
+            case model.info of
+              Nothing ->
+                ( model
+                , Cmd.none
+                )
+              Just info ->
+                ( model
+                , setup info.id
+                )
+
+        API.CreateUnit result -> onSuccess result <| \member ->
+            let
+              uid = getMemberUnit member.value
+            in
+              ( model
+              , Page.goTo pageInfo (Page.ViewUnit uid)
               )
-
-            Ok _ ->
-              case model.info of
-                Nothing ->
-                  ( model
-                  , Cmd.none
-                  )
-                Just info ->
-                  ( model
-                  , setup info.id
-                  )
-
-        API.ViewReplyMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-
-            Ok _ ->
-              case model.info of
-                Nothing ->
-                  ( model
-                  , Cmd.none
-                  )
-                Just info ->
-                  ( model
-                  , setup info.id
-                  )
 
         _ ->
           (model, Cmd.none)

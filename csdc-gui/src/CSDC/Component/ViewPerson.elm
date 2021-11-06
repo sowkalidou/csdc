@@ -13,6 +13,7 @@ import CSDC.Component.PreviewUnit as PreviewUnit
 import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
+import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
 import Element exposing (..)
@@ -22,10 +23,6 @@ import Tuple exposing (pair)
 
 --------------------------------------------------------------------------------
 -- Model
-
-type alias Param =
-  { user : User PersonInfo
-  }
 
 type alias Model =
   { person : Maybe PersonInfo
@@ -50,24 +47,24 @@ type Msg
   = APIMsg API.Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | ViewSelected (Id Unit)
-  | MessageMember PersonInfo
+  | MessageMember (Id Person)
 
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
+update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
+update pageInfo msg model =
   case msg of
     UnitsMsg m ->
       ( { model | panelUnits = Panel.update m model.panelUnits }
       , Cmd.none
       )
 
-    ViewSelected _ ->
+    ViewSelected uid ->
       ( model
-      , Cmd.none
+      , Page.goTo pageInfo (Page.ViewUnit uid)
       )
 
     MessageMember pid ->
       ( model
-      , Cmd.none
+      , Page.goTo pageInfo (Page.InvitationMember pid)
       )
 
     APIMsg apimsg ->
@@ -112,7 +109,7 @@ view model =
           ]
 
       , row []
-          [ button (MessageMember person) "Invite this person to your unit"
+          [ button (MessageMember person.id) "Invite this person to your unit"
           ]
 
       , row

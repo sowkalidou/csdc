@@ -11,6 +11,7 @@ import CSDC.API as API
 import CSDC.Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
+import CSDC.Page as Page
 import CSDC.Types exposing (..)
 import Field exposing (Field)
 import Validation exposing (Validation)
@@ -24,7 +25,7 @@ import String
 -- Model
 
 type alias Param =
-  { person : PersonInfo
+  { person : Id Person
   , user : PersonInfo
   }
 
@@ -32,6 +33,7 @@ type alias Model =
   { text : String
   , unit : Maybe (Id Unit)
   , notification : Notification
+  , person : Maybe PersonInfo
   }
 
 initial : Model
@@ -39,6 +41,7 @@ initial =
   { text = ""
   , unit = Nothing
   , notification = Notification.Empty
+  , person = Nothing
   }
 
 --------------------------------------------------------------------------------
@@ -51,8 +54,8 @@ type Msg
   | Submit
   | Reset
 
-update : Msg -> Param -> Model -> (Model, Cmd Msg)
-update msg param model =
+update : Page.Info -> Msg -> Param -> Model -> (Model, Cmd Msg)
+update pageInfo msg param model =
   case msg of
     InputText text ->
       ( { model | text = text }
@@ -77,7 +80,7 @@ update msg param model =
              { mtype = Invitation
              , text = model.text
              , status = Waiting
-             , value = makeMember param.person.id unit
+             , value = makeMember param.person unit
              }
           in
             ( { model | notification = Notification.Processing }
@@ -85,17 +88,19 @@ update msg param model =
             )
 
     APIMsg apimsg ->
+      let
+        onSuccess = Notification.withResponse Reset model
+      in
       case apimsg of
-        API.SendMessageMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok _ ->
-              ( { initial | notification = Notification.Success }
-              , Notification.reset Reset
-              )
+        API.SendMessageMember result -> onSuccess result <| \_ ->
+          ( { initial | notification = Notification.Success }
+          , Cmd.batch
+              [ Notification.reset Reset
+              , case model.unit of
+                  Nothing -> Cmd.none
+                  Just unit -> Page.goTo pageInfo (Page.ViewUnit unit)
+              ]
+          )
 
         _ ->
           (model, Cmd.none)
@@ -110,27 +115,30 @@ update msg param model =
 
 view : Param -> Model -> Element Msg
 view param model =
-  column [ width <| fillPortion 2, padding 10, spacing 10 ] <|
-    [ row
-        [ Font.bold, Font.size 30 ]
-        [ text <| "Invitation for " ++ param.person.person.name ]
-    , let
-        units =
-          List.filter (eligible param.person) <|
-          personInfoChair param.user
-      in
-        if List.isEmpty units
-        then text "You must be the chair of a unit to send messages to units."
-        else invitation model.unit units SelectInvitation
-    , Input.multiline []
-        { label = Input.labelAbove [] (text "Your message.")
-        , onChange = InputText
-        , placeholder = Nothing
-        , text = model.text
-        , spellcheck = True
-        }
-    , CSDC.Input.button Submit "Submit"
-    ] ++ Notification.view model.notification
+  case model.person of
+    Nothing -> column [] []
+    Just person ->
+      column [ width <| fillPortion 2, padding 10, spacing 10 ] <|
+        [ row
+            [ Font.bold, Font.size 30 ]
+            [ text <| "Invitation for " ++ person.person.name ]
+        , let
+            units =
+              List.filter (eligible person) <|
+              personInfoChair param.user
+          in
+            if List.isEmpty units
+            then text "You must be the chair of a unit to send messages to units."
+            else invitation model.unit units SelectInvitation
+        , Input.multiline []
+            { label = Input.labelAbove [] (text "Your message.")
+            , onChange = InputText
+            , placeholder = Nothing
+            , text = model.text
+            , spellcheck = True
+            }
+        , CSDC.Input.button Submit "Submit"
+        ] ++ Notification.view model.notification
 
 invitation :
   Maybe (Id Unit) ->

@@ -2,6 +2,7 @@ module CSDC.Notification exposing
   ( Notification (..)
   , view
   , reset
+  , withResponse
   )
 
 import Delay
@@ -49,3 +50,20 @@ view notification =
 
 reset : msg -> Cmd msg
 reset = Delay.after 2 Delay.Second
+
+type alias Has model = { model | notification : Notification }
+
+withResponse :
+  msg ->
+  Has model ->
+  Result Http.Error a ->
+  (a -> (Has model, Cmd msg)) ->
+  (Has model, Cmd msg)
+withResponse resetMsg model result onSuccess =
+  case result of
+    Err err ->
+      ( { model | notification = HttpError err }
+      , reset resetMsg
+      )
+    Ok a ->
+      onSuccess a

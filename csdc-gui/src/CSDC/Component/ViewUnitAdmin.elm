@@ -16,6 +16,7 @@ import CSDC.Component.PreviewUnit as PreviewUnit
 import CSDC.Input exposing (..)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
+import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
 import Element exposing (..)
@@ -41,8 +42,7 @@ type Selected
   | SelectedSubpart SubpartId
 
 type alias Model =
-  { id : Maybe (Id Unit)
-  , unit : Maybe Unit
+  { unit : Maybe UnitInfo
   , inbox : Inbox
   , panelMember : Panel.Model MemberId
   , panelSubpart : Panel.Model SubpartId
@@ -52,8 +52,7 @@ type alias Model =
 
 initial : Model
 initial =
-  { id = Nothing
-  , unit = Nothing
+  { unit = Nothing
   , inbox = emptyInbox
   , panelMember = Panel.initial "Member Messages"
   , panelSubpart = Panel.initial "Subpart Messages"
@@ -62,7 +61,10 @@ initial =
   }
 
 setup : Id Unit -> Cmd Msg
-setup id = Cmd.map APIMsg <| API.unitInbox id
+setup id = Cmd.batch
+  [ Cmd.map APIMsg <| API.getUnitInfo id
+  , Cmd.map APIMsg <| API.unitInbox id
+  ]
 
 --------------------------------------------------------------------------------
 -- Update
@@ -75,9 +77,10 @@ type Msg
   | PreviewMessageSubpartMsg (PreviewMessage.Msg Subpart)
   | PreviewReplyMemberMsg (PreviewReply.Msg Member)
   | PreviewReplySubpartMsg (PreviewReply.Msg Subpart)
+  | Reset
 
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
+update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
+update pageInfo msg model =
   case msg of
     PanelMemberMsg m ->
       case m of
@@ -113,9 +116,16 @@ update msg model =
           , Cmd.none
           )
 
-    PreviewMessageMemberMsg _ -> (model, Cmd.none)
+    PreviewMessageMemberMsg (PreviewMessage.Reply r) ->
+          ( model
+          , Page.goTo pageInfo (Page.ReplyMember r.message r.messageType)
+          )
 
-    PreviewMessageSubpartMsg _ -> (model, Cmd.none)
+    PreviewMessageSubpartMsg (PreviewMessage.Reply r) ->
+          ( model
+          , Page.goTo pageInfo (Page.ReplySubpart r.message r.messageType)
+          )
+
 
     PreviewReplyMemberMsg (PreviewReply.MarkAsSeen id) ->
       ( { model | selected = SelectedNothing }
@@ -129,60 +139,58 @@ update msg model =
         API.viewReplySubpart id
       )
 
+    Reset ->
+      ( { model | notification = Notification.Empty }
+      , Cmd.none
+      )
+
     APIMsg apimsg ->
+      let
+        onSuccess = Notification.withResponse Reset model
+      in
       case apimsg of
-        API.UnitInbox uid result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-
-            Ok inbox ->
+        API.UnitInbox uid result -> onSuccess result <| \inbox ->
+          let
+            memberPairs =
               let
-                memberPairs =
-                  let
-                    fmm (id, MessageInfo m) = (MemberMessage id, m.text)
-                    frm (id, ReplyInfo r) = (MemberReply id, r.text)
-                  in
-                    List.map fmm (idMapToList inbox.messageMember) ++
-                    List.map frm (idMapToList inbox.replyMember)
-
-                subpartPairs =
-                  let
-                    fms (id, MessageInfo m) = (SubpartMessage id, m.text)
-                    frs (id, ReplyInfo r) = (SubpartReply id, r.text)
-                  in
-                    List.map fms (idMapToList inbox.messageSubpart) ++
-                    List.map frs (idMapToList inbox.replySubpart)
-
-                panelMember =
-                  Panel.update (Panel.SetItems memberPairs) model.panelMember
-
-                panelSubpart =
-                  Panel.update (Panel.SetItems subpartPairs) model.panelSubpart
-
+                fmm (id, MessageInfo m) = (MemberMessage id, m.text)
+                frm (id, ReplyInfo r) = (MemberReply id, r.text)
               in
-                ( { model
-                  | id = Just uid
-                  , panelMember = panelMember
-                  , panelSubpart = panelSubpart
-                  , inbox = inbox
-                  }
-                , Cmd.none
-                )
+                List.map fmm (idMapToList inbox.messageMember) ++
+                List.map frm (idMapToList inbox.replyMember)
 
-        API.ViewReplyMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
+            subpartPairs =
+              let
+                fms (id, MessageInfo m) = (SubpartMessage id, m.text)
+                frs (id, ReplyInfo r) = (SubpartReply id, r.text)
+              in
+                List.map fms (idMapToList inbox.messageSubpart) ++
+                List.map frs (idMapToList inbox.replySubpart)
 
-            Ok _ ->
-              case model.id of
-                Nothing -> (model, Cmd.none)
-                Just id -> (model, setup id)
+            panelMember =
+              Panel.update (Panel.SetItems memberPairs) model.panelMember
+
+            panelSubpart =
+              Panel.update (Panel.SetItems subpartPairs) model.panelSubpart
+
+          in
+            ( { model
+              | panelMember = panelMember
+              , panelSubpart = panelSubpart
+              , inbox = inbox
+              }
+            , Cmd.none
+            )
+
+        API.ViewReplyMember result -> onSuccess result <| \_ ->
+          case model.unit of
+            Nothing -> (model, Cmd.none)
+            Just unit -> (model, setup unit.id)
+
+        API.GetUnitInfo result -> onSuccess result <| \info ->
+          ( { model | unit = Just info }
+          , Cmd.none
+          )
 
         _ ->
           (model, Cmd.none)
@@ -190,15 +198,27 @@ update msg model =
 --------------------------------------------------------------------------------
 -- View
 
+canEdit : Maybe (User PersonInfo) -> UnitInfo -> Bool
+canEdit muser unitInfo =
+  case muser of
+    Nothing -> False
+    Just Admin -> True
+    Just (User person) -> person.id == unitInfo.unit.chair
+
 view : Maybe (User PersonInfo) -> Model -> List (Element Msg)
 view mid model =
-  case model.id of
+  case model.unit of
     Nothing ->
       [ text "Loading..."
       ] ++
       Notification.view model.notification
 
-    Just id ->
+    Just unit ->
+      if not (canEdit mid unit)
+        then
+          [ text "You cannot edit this unit."
+          ]
+        else
       [ row
           [ Font.bold, Font.size 30 ]
           [ text "Unit Admin" ]

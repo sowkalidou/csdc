@@ -15,6 +15,7 @@ import CSDC.Component.PreviewUnit as PreviewUnit
 import CSDC.Input exposing (..)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
+import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
 import Element exposing (..)
@@ -114,12 +115,12 @@ type Msg
   | EditName EditableMsg
   | EditDescription EditableMsg
   | View ViewSelected
-  | MessageMember (WithId Person) (WithId Unit) MessageType
-  | MessageSubpart PersonInfo UnitInfo MessageType
+  | MessageMember (Id Person) (Id Unit) MessageType
+  | MessageSubpart (Id Person) (Id Unit) MessageType
   | ViewAdmin (Id Unit)
 
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
+update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
+update pageInfo msg model =
   case msg of
     SubpartsMsg m ->
       case m of
@@ -209,28 +210,31 @@ update msg model =
       case selected of
         ViewSelectedPerson id ->
           ( model
-          , Cmd.none
+          , Page.goTo pageInfo (Page.ViewPerson id)
           )
 
         ViewSelectedUnit id ->
           ( model
-          , Cmd.map APIMsg <| API.getUnitInfo id
+          , Page.goTo pageInfo (Page.ViewUnit id)
           )
 
     MessageMember pid uid mtype ->
       ( model
-      , Cmd.none
+      , Page.goTo pageInfo (Page.MessageMember pid uid mtype)
       )
 
-    MessageSubpart pinfo uid mtype ->
+    MessageSubpart pid uid mtype ->
       ( model
-      , Cmd.none
+      , Page.goTo pageInfo (Page.MessageSubpart pid uid mtype)
       )
 
     ViewAdmin _ ->
-      ( model
-      , Cmd.none
-      )
+      case model.info of
+        Nothing -> (model, Cmd.none)
+        Just unit ->
+          ( model
+          , Page.goTo pageInfo (Page.ViewUnitAdmin unit.id)
+          )
 
     APIMsg apimsg ->
       case apimsg of
@@ -350,14 +354,14 @@ view mid model =
               then [ text "Your submission was sent." ]
               else
                 let
-                  msg = MessageMember wid { id = info.id, value = info.unit } Submission
+                  msg = MessageMember wid.id info.id Submission
                 in
                   [ button msg "Become a member" ]
       , row [] <|
           case mid of
             Just (User pinfo) ->
               let
-                msg = MessageSubpart pinfo info Invitation
+                msg = MessageSubpart pinfo.id info.id Invitation
               in
                [ button msg "Invite this unit to your unit" ]
             _ ->
@@ -366,7 +370,7 @@ view mid model =
           case mid of
             Just (User pinfo) ->
               let
-                msg = MessageSubpart pinfo info Submission
+                msg = MessageSubpart pinfo.id info.id Submission
               in
                [ button msg "Make your unit a part of this unit" ]
             _ ->

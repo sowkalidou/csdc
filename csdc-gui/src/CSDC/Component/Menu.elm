@@ -1,15 +1,15 @@
 module CSDC.Component.Menu exposing
   ( Model (..)
   , initial
-  , toFragments
-  , fromFragments
+  , toPage
+  , fromPage
   , Msg (..)
-  , update
   , view
   )
 
 import CSDC.Types exposing (..)
 import CSDC.API as API
+import CSDC.Page as Page
 
 import Browser
 import Element exposing (..)
@@ -29,71 +29,47 @@ import String
 type Model
   = Explorer
   | Studio
-  | ViewPerson
-  | ViewUnit
   | Admin
-  | ViewUnitAdmin
-  | MessageMember (WithId Person) (WithId Unit) MessageType
-  | InvitationMember PersonInfo PersonInfo
-  | ReplyMember (Id (Message Member)) MessageType
-  | MessageSubpart PersonInfo UnitInfo MessageType
-  | ReplySubpart (Id (Message Subpart)) MessageType
 
 initial : Model
 initial = Studio
 
-toFragments : Model -> List String
-toFragments model =
+toPage : Model -> Page.Page
+toPage model =
   case model of
-    Explorer -> ["explorer"]
-    Studio -> ["studio"]
-    ViewPerson -> ["view-person"]
-    ViewUnit -> ["view-unit"]
-    Admin -> ["admin"]
-    ViewUnitAdmin -> ["view-unit-admin"]
-    _ -> [""]
---    MessageMember (WithId Person) (WithId Unit) MessageType
---    InvitationMember PersonInfo PersonInfo
---    ReplyMember (Id (Message Member)) MessageType
---    MessageSubpart PersonInfo UnitInfo MessageType
---    ReplySubpart (Id (Message Subpart)) MessageType
+    Explorer -> Page.Explorer
+    Studio -> Page.Studio
+    Admin -> Page.Admin
 
-fromFragments : List String -> Model
-fromFragments l =
-  case l of
-    [] -> Studio
-    ["studio"] -> Studio
-    ["explorer"] -> Explorer
-    ["view-person"] -> ViewPerson
-    ["view-unit"] -> ViewUnit
-    ["admin"] -> Admin
-    ["view-unit-admin"] -> ViewUnitAdmin
-    _ -> Studio
+fromPage : Page.Page -> Maybe Model
+fromPage page =
+  case page of
+    Page.Explorer -> Just Explorer
+    Page.Studio -> Just Studio
+    Page.Admin -> Just Admin
+    _ -> Nothing
 
 --------------------------------------------------------------------------------
 -- Update
 
-type Msg = SetModel Model
-
-update : Msg -> Model -> Model
-update (SetModel model) _ = model
+type Msg = SetItem Model
 
 --------------------------------------------------------------------------------
 -- View
 
-item : Model -> String -> Model -> Element Msg
+item : Maybe Model -> String -> Model -> Element Msg
 item model name this =
   row
-    [ if model == this then
+    [ if model == Just this then
         Background.color <| rgb255 142 151 164
       else
         Background.color <| rgb255 92 99 118
-    , if model == this then
+    , if model == Just this then
         Font.bold
       else
         Font.regular
     , width fill
-    , onClick <| SetModel this
+    , onClick <| SetItem this
     , padding 10
     ]
     [ el [ centerX ] (text name)
@@ -112,7 +88,7 @@ title =
     [ el [ centerX ] (text "CS-DC DAO")
     ]
 
-view : Model -> Element Msg
+view : Maybe Model -> Element Msg
 view model =
   column
     [ height fill
@@ -123,8 +99,6 @@ view model =
     [ title
     , item model "Studio" Studio
     , item model "Explorer" Explorer
-    , item model "View Person" ViewPerson
-    , item model "View Unit" ViewUnit
     , item model "Admin" Admin
     ]
 

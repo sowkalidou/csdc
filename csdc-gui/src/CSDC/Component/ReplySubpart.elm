@@ -11,6 +11,7 @@ import CSDC.API as API
 import CSDC.Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
+import CSDC.Page as Page
 import CSDC.Types exposing (..)
 import Field exposing (Field)
 import Input
@@ -65,8 +66,8 @@ type Msg
   | Submit
   | Reset
 
-update : Msg -> Param -> Model -> (Model, Cmd Msg)
-update msg param model =
+update : Page.Info -> Msg -> Param -> Model -> (Model, Cmd Msg)
+update pageInfo msg param model =
   case msg of
     InputText str ->
       ( { model | text = str }
@@ -90,28 +91,25 @@ update msg param model =
       )
 
     APIMsg apimsg ->
+      let
+        onSuccess = Notification.withResponse Reset model
+      in
       case apimsg of
-        API.InsertMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok _ ->
-              ( { initial | notification = Notification.Success }
-              , Notification.reset Reset
-              )
+        API.InsertMember result -> onSuccess result <| \_ ->
+          ( { initial | notification = Notification.Success }
+          , Cmd.batch
+              [ Notification.reset Reset
+              , Page.goTo pageInfo Page.Studio
+              ]
+          )
 
-        API.SendReplyMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok _ ->
-              ( { initial | notification = Notification.Success }
-              , Notification.reset Reset
-              )
+        API.SendReplyMember result -> onSuccess result <| \_ ->
+          ( { initial | notification = Notification.Success }
+          , Cmd.batch
+              [ Notification.reset Reset
+              , Page.goTo pageInfo Page.Studio
+              ]
+          )
 
         _ ->
           (model, Cmd.none)

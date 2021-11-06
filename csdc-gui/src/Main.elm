@@ -17,6 +17,8 @@ import CSDC.Component.ViewUnit as ViewUnit
 import CSDC.Component.ViewUnitAdmin as ViewUnitAdmin
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
+import CSDC.Page as Page
+import CSDC.Page exposing (Page)
 import CSDC.Types exposing (..)
 
 import Browser
@@ -53,8 +55,8 @@ main =
 type alias Model =
   { key: Nav.Key
   , url: Url.Url
+  , page : Page
   , info : Maybe (User PersonInfo)
-  , menu : Menu.Model
   , admin : Admin.Model
   , viewPerson : ViewPerson.Model
   , viewUnit : ViewUnit.Model
@@ -72,12 +74,12 @@ type alias Model =
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
   let
-    (menu, cmd) = route key url
+    (page, cmd) = route { key = key, url = url }
   in
     ( { key = key
       , url = url
+      , page = page
       , info = Nothing
-      , menu = menu
       , explorer = Explorer.initial
       , admin = Admin.initial
       , studio = Studio.initial
@@ -91,7 +93,9 @@ init _ url key =
       , replySubpart = ReplySubpart.initial
       , notification = Notification.Empty
       }
-    , cmd
+    , case page of
+        Page.Studio -> cmd
+        _ -> Cmd.batch [ routeCmd Page.Studio, cmd ]
     )
 
 --------------------------------------------------------------------------------
@@ -114,43 +118,48 @@ type Msg
   | StudioMsg Studio.Msg
   | APIMsg API.Msg
 
-routeCmd : Bool -> Nav.Key -> Url.Url -> Menu.Model -> Cmd Msg
-routeCmd pushUrl key url menu =
-  let
-    newUrl =
-      { url
-      | fragment = Just <| String.join "/" ("" :: Menu.toFragments menu)
-      }
+routeCmd : Page -> Cmd Msg
+routeCmd page =
+  case page of
+    Page.Studio ->
+      Cmd.map APIMsg API.rootPerson
+    Page.Explorer ->
+      Cmd.map ExplorerMsg Explorer.setup
+    Page.ViewUnit uid ->
+      Cmd.map ViewUnitMsg (ViewUnit.setup uid)
+    Page.ViewUnitAdmin uid ->
+      Cmd.map ViewUnitAdminMsg (ViewUnitAdmin.setup uid)
+    Page.ViewPerson uid ->
+      Cmd.map ViewPersonMsg (ViewPerson.setup uid)
+    Page.InvitationMember pid ->
+      Cmd.none
+    Page.MessageMember pid uid mtype ->
+      Cmd.map (MessageMemberMsg { messageType = mtype }) (MessageMember.setup pid uid)
+    Page.ReplyMember _ _ ->
+      Cmd.none
+    Page.MessageSubpart pid uid mtype ->
+      Cmd.map (MessageSubpartMsg { messageType = mtype }) (MessageSubpart.setup pid uid)
+    Page.ReplySubpart _ _ ->
+      Cmd.none
+    Page.Admin ->
+      Cmd.none
 
-    cmd =
-      case menu of
-        Menu.Studio -> Cmd.map APIMsg API.rootPerson
-        Menu.Explorer -> Cmd.map ExplorerMsg Explorer.setup
-        _ -> Cmd.none
-  in
-    if pushUrl
-    then
-      Cmd.batch
-        [ Nav.pushUrl key (Url.toString newUrl)
-        , cmd
-        ]
-    else
-      cmd
-
-route : Nav.Key -> Url.Url -> (Menu.Model, Cmd Msg)
-route key url =
-  case url.fragment of
+route : Page.Info -> (Page, Cmd Msg)
+route info =
+  case info.url.fragment of
     Nothing ->
-      ( Menu.Studio, routeCmd True key url Menu.Studio )
+      (Page.Studio, Page.goTo info Page.Studio)
     Just fragment ->
       let
-        menu =
-          Menu.fromFragments <| List.drop 1 (String.split "/" fragment)
+        page = Page.fromFragment fragment
       in
-        (menu, routeCmd False key url menu)
+        (page, routeCmd page)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
+  let
+    pageInfo = { key = model.key, url = model.url }
+  in
   case msg of
     LinkClicked urlRequest ->
       case urlRequest of
@@ -162,9 +171,9 @@ update msg model =
 
     UrlChanged url ->
       let
-        (menu, cmd) = route model.key url
+        (page, cmd) = route { key = model.key, url = url }
       in
-        ( { model | menu = menu }, cmd )
+        ( { model | page = page, url = url }, cmd )
 
     AdminMsg m ->
       let
@@ -174,242 +183,93 @@ update msg model =
         , Cmd.map AdminMsg cmd
         )
 
-    MenuMsg m ->
+    MenuMsg (Menu.SetItem menu) ->
       let
-        menu = Menu.update m model.menu
+        page = Menu.toPage menu
       in
-        ( { model | menu = menu }
-        , routeCmd True model.key model.url menu
+        ( { model | page = page }
+        , Page.goTo pageInfo page
         )
 
     ExplorerMsg m ->
-      case m of
-        Explorer.ViewUnit uid ->
-            ( { model | menu = Menu.ViewUnit }
-            , Cmd.map ViewUnitMsg <| ViewUnit.setup uid
-            )
-        _ ->
-          let
-            (explorer, cmd) = Explorer.update m model.explorer
-          in
-            ( { model | explorer = explorer }
-            , Cmd.map ExplorerMsg cmd
-            )
+      let
+        (explorer, cmd) = Explorer.update pageInfo m model.explorer
+      in
+        ( { model | explorer = explorer }
+        , Cmd.map ExplorerMsg cmd
+        )
 
     StudioMsg m ->
       let
-        (studio, cmd) = Studio.update m model.studio
-        (newModel, newCmd) =
-          ( { model | studio = studio }
-          , Cmd.map StudioMsg cmd
-          )
+        (studio, cmd) = Studio.update pageInfo m model.studio
       in
-        case m of
-          Studio.View (Studio.ViewSelectedUnit uid) ->
-            ( { newModel | menu = Menu.ViewUnit }
-            , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) (API.getUnitInfo uid)
-            )
-
-          Studio.PreviewMessageMemberMsg (PreviewMessage.Reply r) ->
-            ( { newModel
-              | menu = Menu.ReplyMember r.message r.messageType
-              }
-            , Cmd.none
-            )
-
-          Studio.PreviewMessageSubpartMsg (PreviewMessage.Reply r) ->
-            ( { newModel
-              | menu = Menu.ReplySubpart r.message r.messageType
-              }
-            , Cmd.none
-            )
-
-          Studio.APIMsg (API.CreateUnit result) ->
-            case result of
-              Err err ->
-                ( { model | notification = Notification.HttpError err }
-                , Cmd.none
-                )
-              Ok member ->
-                ( { newModel | menu = Menu.ViewUnit }
-                , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg)
-                    <| API.getUnitInfo (getMemberUnit member.value)
-                )
-
-          _ -> (newModel, newCmd)
+        ( { model | studio = studio }
+        , Cmd.map StudioMsg cmd
+        )
 
     ViewPersonMsg m ->
       let
-        (viewPerson, cmd) = ViewPerson.update m model.viewPerson
+        (viewPerson, cmd) = ViewPerson.update pageInfo m model.viewPerson
       in
-        case m of
-          ViewPerson.ViewSelected id ->
-            ( { model | menu = Menu.ViewUnit }
-            , Cmd.map (ViewUnitMsg << ViewUnit.APIMsg) <|
-              API.getUnitInfo id
-            )
-          ViewPerson.MessageMember pid ->
-            case model.info of
-              Just (User user) ->
-                ( { model
-                  | menu = Menu.InvitationMember pid user
-                  }
-                , Cmd.none
-                )
-              _ ->
-                ( model
-                , Cmd.none
-                )
-
-          _ ->
-            ( { model | viewPerson = viewPerson }
-            , Cmd.map ViewPersonMsg cmd
-            )
+        ( { model | viewPerson = viewPerson }
+        , Cmd.map ViewPersonMsg cmd
+        )
 
     ViewUnitMsg m ->
       let
-        (viewUnit, cmd) = ViewUnit.update m model.viewUnit
+        (viewUnit, cmd) = ViewUnit.update pageInfo m model.viewUnit
       in
-        case m of
-          ViewUnit.View (ViewUnit.ViewSelectedPerson id) ->
-            ( { model | menu = Menu.ViewPerson }
-            , Cmd.map ViewPersonMsg <|
-              ViewPerson.setup id
-            )
-          ViewUnit.ViewAdmin id ->
-            ( { model | menu = Menu.ViewUnitAdmin }
-            , Cmd.map ViewUnitAdminMsg <|
-              ViewUnitAdmin.setup id
-            )
-          ViewUnit.MessageMember pid uid mtype ->
-            ( { model | menu = Menu.MessageMember pid uid mtype }
-            , Cmd.none
-            )
-          ViewUnit.MessageSubpart pid uid mtype ->
-            ( { model | menu = Menu.MessageSubpart pid uid mtype }
-            , Cmd.none
-            )
-
-          _ ->
-            ( { model | viewUnit = viewUnit }
-            , Cmd.map ViewUnitMsg cmd
-            )
+        ( { model | viewUnit = viewUnit }
+        , Cmd.map ViewUnitMsg cmd
+        )
 
     ViewUnitAdminMsg m ->
-      case m of
-        ViewUnitAdmin.PreviewMessageMemberMsg (PreviewMessage.Reply r) ->
-          ( { model
-            | menu = Menu.ReplyMember r.message r.messageType
-            }
-          , Cmd.none
-          )
-
-        ViewUnitAdmin.PreviewMessageSubpartMsg (PreviewMessage.Reply r) ->
-          ( { model
-            | menu = Menu.ReplySubpart r.message r.messageType
-            }
-          , Cmd.none
-          )
-        _ ->
-          let
-            (viewUnitAdmin, cmd) = ViewUnitAdmin.update m model.viewUnitAdmin
-          in
-            ( { model | viewUnitAdmin = viewUnitAdmin }
-            , Cmd.map ViewUnitAdminMsg cmd
-            )
+      let
+        (viewUnitAdmin, cmd) = ViewUnitAdmin.update pageInfo m model.viewUnitAdmin
+      in
+        ( { model | viewUnitAdmin = viewUnitAdmin }
+        , Cmd.map ViewUnitAdminMsg cmd
+        )
 
     MessageMemberMsg p m ->
-      case m of
-        MessageMember.Reset ->
-          ( { model
-            | messageMember = MessageMember.initial
-            , menu = Menu.ViewUnit
-            }
-          , Cmd.map ViewUnitMsg (ViewUnit.setup p.unit.id)
-          )
-        _ ->
-          let
-            (messageMember, cmd) = MessageMember.update m p model.messageMember
-          in
-            ( { model | messageMember = messageMember }
-            , Cmd.map (MessageMemberMsg p) cmd
-            )
+      let
+        (messageMember, cmd) = MessageMember.update pageInfo m p model.messageMember
+      in
+        ( { model | messageMember = messageMember }
+        , Cmd.map (MessageMemberMsg p) cmd
+        )
 
     InvitationMemberMsg p m ->
-      case m of
-        InvitationMember.Reset ->
-          ( { model
-            | invitationMember = InvitationMember.initial
-            , menu = Menu.ViewPerson
-            }
-          , Cmd.none
-          )
-        _ ->
-          let
-            (invitationMember, cmd) = InvitationMember.update m p model.invitationMember
-          in
-            ( { model | invitationMember = invitationMember }
-            , Cmd.map (InvitationMemberMsg p) cmd
-            )
+      let
+        (invitationMember, cmd) = InvitationMember.update pageInfo m p model.invitationMember
+      in
+        ( { model | invitationMember = invitationMember }
+        , Cmd.map (InvitationMemberMsg p) cmd
+        )
 
     ReplyMemberMsg p m ->
-      case m of
-        ReplyMember.Reset ->
-          ( { model
-            | replyMember = ReplyMember.initial
-            , menu = Menu.Studio
-            }
-          , case model.info of
-              Just (User pinfo) ->
-                Cmd.map StudioMsg <| Studio.setup pinfo.id
-              _ ->
-                Cmd.none
-          )
-        _ ->
-          let
-            (replyMember, cmd) = ReplyMember.update m p model.replyMember
-          in
-            ( { model | replyMember = replyMember }
-            , Cmd.map (ReplyMemberMsg p) cmd
-            )
+      let
+        (replyMember, cmd) = ReplyMember.update pageInfo m p model.replyMember
+      in
+        ( { model | replyMember = replyMember }
+        , Cmd.map (ReplyMemberMsg p) cmd
+        )
 
     MessageSubpartMsg p m ->
-      case m of
-        MessageSubpart.Reset ->
-          ( { model
-            | messageSubpart = MessageSubpart.initial
-            , menu = Menu.ViewUnit
-            }
-          , Cmd.map ViewUnitMsg (ViewUnit.setup p.unit.id)
-          )
-        _ ->
-          let
-            (messageSubpart, cmd) = MessageSubpart.update m p model.messageSubpart
-          in
-            ( { model | messageSubpart = messageSubpart }
-            , Cmd.map (MessageSubpartMsg p) cmd
-            )
+      let
+        (messageSubpart, cmd) = MessageSubpart.update pageInfo m p model.messageSubpart
+      in
+        ( { model | messageSubpart = messageSubpart }
+        , Cmd.map (MessageSubpartMsg p) cmd
+        )
 
     ReplySubpartMsg p m ->
-      case m of
-        ReplySubpart.Reset ->
-          ( { model
-            | replySubpart = ReplySubpart.initial
-            , menu = Menu.Studio
-            }
-          , case model.info of
-              Just (User pinfo) ->
-                Cmd.map StudioMsg <| Studio.setup pinfo.id
-              _ ->
-                Cmd.none
-          )
-        _ ->
-          let
-            (replySubpart, cmd) = ReplySubpart.update m p model.replySubpart
-          in
-            ( { model | replySubpart = replySubpart }
-            , Cmd.map (ReplySubpartMsg p) cmd
-            )
+      let
+        (replySubpart, cmd) = ReplySubpart.update pageInfo m p model.replySubpart
+      in
+        ( { model | replySubpart = replySubpart }
+        , Cmd.map (ReplySubpartMsg p) cmd
+        )
 
     APIMsg m ->
       case m of
@@ -470,7 +330,7 @@ view model =
 
 menuPanel : Model -> Element Msg
 menuPanel model =
-  Element.map MenuMsg <| Menu.view model.menu
+  Element.map MenuMsg <| Menu.view (Menu.fromPage model.page)
 
 mainPanel : Model -> Element Msg
 mainPanel model =
@@ -480,67 +340,70 @@ mainPanel model =
     , spacing 10
     , padding 10
     ] <|
-    case model.menu of
-      Menu.Studio ->
+    case model.page of
+      Page.Studio ->
         List.map (Element.map StudioMsg) <|
         Studio.view model.studio
 
-      Menu.Explorer ->
+      Page.Explorer ->
         List.map (Element.map ExplorerMsg) <|
         Explorer.view model.explorer
 
-      Menu.ViewPerson ->
+      Page.ViewPerson _ ->
         List.map (Element.map ViewPersonMsg) <|
         ViewPerson.view model.viewPerson
 
-      Menu.ViewUnit ->
+      Page.ViewUnit _ ->
         List.map (Element.map ViewUnitMsg) <|
         ViewUnit.view model.info model.viewUnit
 
-      Menu.ViewUnitAdmin ->
+      Page.ViewUnitAdmin _ ->
         List.map (Element.map ViewUnitAdminMsg) <|
         ViewUnitAdmin.view model.info model.viewUnitAdmin
 
-      Menu.MessageMember pid uid mtype ->
+      Page.Admin ->
+        List.map (Element.map AdminMsg) <|
+        Admin.view model.admin
+
+      Page.InvitationMember pid ->
+        case model.info of
+          Just (User person) ->
+            let
+              param = {person = pid, user = person}
+              toMsg = InvitationMemberMsg param
+            in
+              List.map (Element.map toMsg) <|
+              [ InvitationMember.view param model.invitationMember ]
+          _ -> []
+
+      Page.MessageMember _ _ mtype ->
         let
-          param = {person = pid, unit = uid, messageType = mtype}
+          param = { messageType = mtype }
           toMsg = MessageMemberMsg param
         in
           List.map (Element.map toMsg) <|
           [ MessageMember.view param model.messageMember ]
 
-      Menu.InvitationMember pid user ->
+      Page.ReplyMember mid mtype ->
         let
-          param = {person = pid, user = user}
-          toMsg = InvitationMemberMsg param
-        in
-          List.map (Element.map toMsg) <|
-          [ InvitationMember.view param model.invitationMember ]
-
-      Menu.ReplyMember mid mtype ->
-        let
-          param = {message = mid, messageType = mtype}
+          param = { message = mid, messageType = mtype }
           toMsg = ReplyMemberMsg param
         in
           List.map (Element.map toMsg) <|
           [ ReplyMember.view param model.replyMember ]
 
-      Menu.MessageSubpart pinfo uinfo mtype ->
+      Page.MessageSubpart _ _ mtype ->
         let
-          param = {person = pinfo, unit = uinfo, messageType = mtype}
+          param = { messageType = mtype }
           toMsg = MessageSubpartMsg param
         in
           List.map (Element.map toMsg) <|
           [ MessageSubpart.view param model.messageSubpart ]
 
-      Menu.ReplySubpart mid mtype ->
+      Page.ReplySubpart mid mtype ->
         let
           param = {message = mid, messageType = mtype}
           toMsg = ReplySubpartMsg param
         in
           List.map (Element.map toMsg) <|
           [ ReplySubpart.view param model.replySubpart ]
-
-      Menu.Admin ->
-        List.map (Element.map AdminMsg) <|
-        Admin.view model.admin

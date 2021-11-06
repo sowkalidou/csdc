@@ -2,6 +2,7 @@ module CSDC.Component.MessageMember exposing
   ( Param
   , Model
   , initial
+  , setup
   , Msg (..)
   , update
   , view
@@ -11,6 +12,7 @@ import CSDC.API as API
 import CSDC.Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
+import CSDC.Page as Page
 import CSDC.Types exposing (..)
 import Field exposing (Field)
 import Validation exposing (Validation)
@@ -24,21 +26,29 @@ import String
 -- Model
 
 type alias Param =
-  { person : WithId Person
-  , unit : WithId Unit
-  , messageType : MessageType
+  { messageType : MessageType
   }
 
 type alias Model =
-  { text : String
+  { person : Maybe PersonInfo
+  , unit : Maybe UnitInfo
+  , text : String
   , notification : Notification
   }
 
 initial : Model
 initial =
-  { text = ""
+  { person = Nothing
+  , unit = Nothing
+  , text = ""
   , notification = Notification.Empty
   }
+
+setup : Id Person -> Id Unit -> Cmd Msg
+setup pid uid = Cmd.batch
+  [ Cmd.map APIMsg <| API.getPersonInfo pid
+  , Cmd.map APIMsg <| API.getUnitInfo uid
+  ]
 
 --------------------------------------------------------------------------------
 -- Update
@@ -49,8 +59,8 @@ type Msg
   | Submit
   | Reset
 
-update : Msg -> Param -> Model -> (Model, Cmd Msg)
-update msg param model =
+update : Page.Info -> Msg -> Param -> Model -> (Model, Cmd Msg)
+update pageInfo msg param model =
   case msg of
     InputText text ->
       ( { model | text = text }
@@ -58,30 +68,49 @@ update msg param model =
       )
 
     Submit ->
-      let
-        message = Message
-         { mtype = param.messageType
-         , text = model.text
-         , status = Waiting
-         , value = makeMember param.person.id param.unit.id
-         }
-      in
-        ( { model | notification = Notification.Processing }
-        , Cmd.map APIMsg <| API.sendMessageMember message
-        )
+      case (model.person, model.unit) of
+        (Just personInfo, Just unitInfo) ->
+          let
+            message = Message
+             { mtype = param.messageType
+             , text = model.text
+             , status = Waiting
+             , value = makeMember personInfo.id unitInfo.id
+             }
+          in
+            ( { model | notification = Notification.Processing }
+            , Cmd.map APIMsg <| API.sendMessageMember message
+            )
+        _ ->
+          (model, Cmd.none)
 
     APIMsg apimsg ->
+      let
+        onSuccess = Notification.withResponse Reset model
+      in
       case apimsg of
-        API.SendMessageMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok _ ->
+        API.GetPersonInfo result -> onSuccess result <| \person ->
+          ( { model | person = Just person }
+          , Cmd.none
+          )
+
+        API.GetUnitInfo result -> onSuccess result <| \unit ->
+          ( { model | unit = Just unit }
+          , Cmd.none
+          )
+
+        API.SendMessageMember result -> onSuccess result <| \_ ->
+          case model.unit of
+            Just unitInfo ->
               ( { initial | notification = Notification.Success }
-              , Notification.reset Reset
+              , Cmd.batch
+                  [ Notification.reset Reset
+                  , Page.goTo pageInfo (Page.ViewUnit unitInfo.id)
+                  ]
               )
+
+            Nothing ->
+              (model, Cmd.none)
 
         _ ->
           (model, Cmd.none)
@@ -94,16 +123,22 @@ update msg param model =
 --------------------------------------------------------------------------------
 -- View
 
+whenLoaded : Model -> (PersonInfo -> UnitInfo -> Element msg) -> Element msg
+whenLoaded model makeView =
+  case (model.person, model.unit) of
+    (Just person, Just unit) -> makeView person unit
+    _ -> text "Loading..."
+
 view : Param -> Model -> Element Msg
-view param model =
+view param model = whenLoaded model <| \personInfo unitInfo ->
   column [ width <| fillPortion 2, padding 10, spacing 10 ] <|
     [ row
         [ Font.bold, Font.size 30 ]
         [ case param.messageType of
             Submission ->
-              text <| "Submission for " ++ param.unit.value.name
+              text <| "Submission for " ++ unitInfo.unit.name
             Invitation ->
-              text <| "Invitation for " ++ param.person.value.name
+              text <| "Invitation for " ++ personInfo.person.name
         ]
     , Input.multiline []
         { label = Input.labelAbove [] (text "Your message.")

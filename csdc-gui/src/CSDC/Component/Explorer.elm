@@ -12,6 +12,7 @@ import CSDC.Component.Panel as Panel
 import CSDC.Component.PreviewUnit as PreviewUnit
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
+import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
 import Dict
@@ -57,8 +58,8 @@ type Msg
   | APIMsg Component API.Msg
   | ViewUnit (Id Unit)
 
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
+update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
+update pageInfo msg model =
   case msg of
     CenterMsg m ->
       ( { model | center = Panel.update m model.center }
@@ -121,7 +122,7 @@ update msg model =
 
     ViewUnit m ->
       ( model
-      , Cmd.none
+      , Page.goTo pageInfo (Page.ViewUnit m)
       )
 
     APIMsg component m ->
