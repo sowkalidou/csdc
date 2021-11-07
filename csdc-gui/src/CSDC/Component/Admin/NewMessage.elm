@@ -153,7 +153,7 @@ view model =
         , field = model.unit
         }
     , CSDC.Input.button Submit "Submit"
-    ] ++ Notification.view model.notification
+    ] ++ List.map html (Notification.view model.notification)
 
 selectMessageType : Model -> Element Msg
 selectMessageType model =

@@ -153,16 +153,32 @@ update pageInfo msg model =
           let
             memberPairs =
               let
-                fmm (id, MessageInfo m) = (MemberMessage id, m.text)
-                frm (id, ReplyInfo r) = (MemberReply id, r.text)
+                fmm (id, MessageInfo m) =
+                  { index = MemberMessage id
+                  , title = ""
+                  , description = m.text
+                  }
+                frm (id, ReplyInfo r) =
+                  { index = MemberReply id
+                  , title = ""
+                  , description = r.text
+                  }
               in
                 List.map fmm (idMapToList inbox.messageMember) ++
                 List.map frm (idMapToList inbox.replyMember)
 
             subpartPairs =
               let
-                fms (id, MessageInfo m) = (SubpartMessage id, m.text)
-                frs (id, ReplyInfo r) = (SubpartReply id, r.text)
+                fms (id, MessageInfo m) =
+                  { index = SubpartMessage id
+                  , title = ""
+                  , description = m.text
+                  }
+                frs (id, ReplyInfo r) =
+                  { index = SubpartReply id
+                  , title = ""
+                  , description = r.text
+                  }
               in
                 List.map fms (idMapToList inbox.messageSubpart) ++
                 List.map frs (idMapToList inbox.replySubpart)
@@ -211,7 +227,7 @@ view mid model =
     Nothing ->
       [ text "Loading..."
       ] ++
-      Notification.view model.notification
+      List.map html (Notification.view model.notification)
 
     Just unit ->
       if not (canEdit mid unit)
@@ -227,8 +243,8 @@ view mid model =
           , width fill
           , spacing 10
           ]
-          [ map PanelMemberMsg <| Panel.view model.panelMember
-          , map PanelSubpartMsg <| Panel.view model.panelSubpart
+          [ map PanelMemberMsg <| Element.html (Panel.view model.panelMember)
+          , map PanelSubpartMsg <| Element.html (Panel.view model.panelSubpart)
           ]
       , case model.selected of
           SelectedNothing ->
@@ -279,4 +295,4 @@ view mid model =
                       PreviewReply.view rid msg
 
       ] ++
-      Notification.view model.notification
+      List.map html (Notification.view model.notification)

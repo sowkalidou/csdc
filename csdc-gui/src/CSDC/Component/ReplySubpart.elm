@@ -142,7 +142,7 @@ view param model =
         , spellcheck = True
         }
     , CSDC.Input.button Submit "Submit"
-    ] ++ Notification.view model.notification
+    ] ++ List.map html (Notification.view model.notification)
 
 selectReplyType : Model -> Element Msg
 selectReplyType model =

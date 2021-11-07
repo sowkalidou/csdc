@@ -325,7 +325,7 @@ view model =
       [ Navbar.view
       , Html.div
           [ Html.Attributes.class "columns"
-          , Html.Attributes.attribute "style" "padding:10px; height: calc(100vh - 70px)"
+          , Html.Attributes.attribute "style" "padding:10px; height: calc(100vh - 80px)"
           ]
           [ Html.div
               [ Html.Attributes.class "column is-one-fifth"
@@ -336,11 +336,10 @@ view model =
               [ Html.Attributes.class "column is-four-fifths"
               ]
               [ Html.div
-                  [ Html.Attributes.class "contents"
+                  [ Html.Attributes.class "content"
                   , Html.Attributes.style "height" "100%"
                   ]
-                  [ layout [] (mainPanel model)
-                  ]
+                  (mainPanel model)
               ]
           ]
       ]
@@ -350,40 +349,49 @@ menuPanel : Model -> Html Msg
 menuPanel model =
   Html.map MenuMsg <| Menu.view (Menu.fromPage model.page)
 
-mainPanel : Model -> Element Msg
+mainPanel : Model -> List (Html Msg)
 mainPanel model =
-  column
-    [ height fill
-    , width <| fillPortion 5
-    , spacing 10
-    , padding 10
-    ] <|
+  let
+    wrapElements elements =
+      [ layout [] <|
+        column
+          [ height fill
+          , width <| fillPortion 5
+          , spacing 10
+          , padding 10
+          ]
+          elements
+      ]
+  in
     case model.page of
       Page.Studio ->
-        List.map (Element.map StudioMsg) <|
+        List.map (Html.map StudioMsg) <|
         Studio.view model.studio
 
       Page.Explorer ->
-        List.map (Element.map ExplorerMsg) <|
+        List.map (Html.map ExplorerMsg) <|
         Explorer.view model.explorer
 
       Page.ViewPerson _ ->
-        List.map (Element.map ViewPersonMsg) <|
+        List.map (Html.map ViewPersonMsg) <|
         ViewPerson.view model.viewPerson
 
       Page.ViewUnit _ ->
-        List.map (Element.map ViewUnitMsg) <|
+        List.map (Html.map ViewUnitMsg) <|
         ViewUnit.view model.info model.viewUnit
 
       Page.ViewUnitAdmin _ ->
+        wrapElements <|
         List.map (Element.map ViewUnitAdminMsg) <|
         ViewUnitAdmin.view model.info model.viewUnitAdmin
 
       Page.Admin ->
+        wrapElements <|
         List.map (Element.map AdminMsg) <|
         Admin.view model.admin
 
       Page.InvitationMember pid ->
+        wrapElements <|
         case model.info of
           Just (User person) ->
             let
@@ -395,6 +403,7 @@ mainPanel model =
           _ -> []
 
       Page.MessageMember _ _ mtype ->
+        wrapElements <|
         let
           param = { messageType = mtype }
           toMsg = MessageMemberMsg param
@@ -403,6 +412,7 @@ mainPanel model =
           [ MessageMember.view param model.messageMember ]
 
       Page.ReplyMember mid mtype ->
+        wrapElements <|
         let
           param = { message = mid, messageType = mtype }
           toMsg = ReplyMemberMsg param
@@ -411,6 +421,7 @@ mainPanel model =
           [ ReplyMember.view param model.replyMember ]
 
       Page.MessageSubpart _ _ mtype ->
+        wrapElements <|
         let
           param = { messageType = mtype }
           toMsg = MessageSubpartMsg param
@@ -419,6 +430,7 @@ mainPanel model =
           [ MessageSubpart.view param model.messageSubpart ]
 
       Page.ReplySubpart mid mtype ->
+        wrapElements <|
         let
           param = {message = mid, messageType = mtype}
           toMsg = ReplySubpartMsg param

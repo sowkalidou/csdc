@@ -10,18 +10,21 @@ module CSDC.Component.Studio exposing
   )
 
 import CSDC.API as API
+import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
 import CSDC.Component.PreviewMessage as PreviewMessage
 import CSDC.Component.PreviewReply as PreviewReply
 import CSDC.Component.PreviewUnit as PreviewUnit
+import CSDC.Component.Progress as Progress
 import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
-import Element exposing (..)
-import Element.Font as Font
+import Html exposing (Html)
+import Html.Attributes
+import Html.Events
 import String
 import Tuple exposing (pair)
 
@@ -77,6 +80,7 @@ type Msg
   | PreviewReplySubpartMsg (PreviewReply.Msg Subpart)
   | CreateUnit
   | View ViewSelected
+  | CloseModal
   | Reset
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
@@ -117,7 +121,7 @@ update pageInfo msg model =
     View selected ->
       case selected of
         ViewSelectedUnit id ->
-          ( model
+          ( { model | selected = SelectedNothing }
           , Page.goTo pageInfo (Page.ViewUnit id)
           )
 
@@ -169,6 +173,11 @@ update pageInfo msg model =
         API.viewReplySubpart id
       )
 
+    CloseModal ->
+      ( { model | selected = SelectedNothing }
+      , Cmd.none
+      )
+
     APIMsg apimsg ->
       let
         onSuccess = Notification.withResponse Reset model
@@ -178,7 +187,12 @@ update pageInfo msg model =
             let
               pairs =
                 idMapToList info.members |>
-                List.map (\(uid,unit) -> (uid,unit.value.name))
+                List.map (\(uid,unit) ->
+                  { index = uid
+                  , title = unit.value.name
+                  , description = unit.value.description
+                  }
+                )
 
               panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
             in
@@ -189,7 +203,7 @@ update pageInfo msg model =
         API.PersonInbox result -> onSuccess result <| \inbox ->
             let
               panelMessages =
-                Panel.update (Panel.SetItems <| inboxToPairs inbox) model.panelMessages
+                Panel.update (Panel.SetItems <| inboxToItems inbox) model.panelMessages
             in
               ( { model | inbox = inbox, panelMessages = panelMessages }
               , Cmd.none
@@ -231,95 +245,116 @@ update pageInfo msg model =
 --------------------------------------------------------------------------------
 -- View
 
-view : Model -> List (Element Msg)
+view : Model -> List (Html Msg)
 view model =
   case model.info of
     Nothing ->
-      [ text "Loading..."
-      ] ++
-      Notification.view model.notification
+      [ Progress.view
+      ] ++ Notification.view model.notification
 
     Just info ->
-      [ row
-          [ Font.bold, Font.size 30 ]
-          [ text "Studio" ]
-      , row []
-          [ text info.person.name ]
-      , row []
-          [ el [ Font.bold ] (text "ORCID ID: ")
-          , newTabLink []
-              { url = "https://orcid.org/" ++ info.person.orcid
-              , label = text info.person.orcid
-              }
+      [ Html.h1
+          [ Html.Attributes.class "title" ]
+          [ Html.text "Studio" ]
+      , Html.div
+          [ Html.Attributes.class "columns"
+          , Html.Attributes.style "height" "100%"
           ]
-      , row []
-          [ text info.person.description ]
-      , row []
-          [ button CreateUnit "Create New Unit" ]
-      , row
-          [ height <| fillPortion 1
-          , width fill
-          , spacing 10
+          [ Html.div
+              [ Html.Attributes.class "column" ]
+              [ Html.div
+                  []
+                  [ Html.text info.person.name ]
+              , Html.div
+                  []
+                  [ Html.strong [] [ Html.text "ORCID ID: " ]
+                  , Html.a
+                      [ Html.Attributes.href ("https://orcid.org/" ++ info.person.orcid)
+                      , Html.Attributes.target "_blank"
+                      ]
+                      [ Html.text info.person.orcid ]
+                  ]
+              , Html.div
+                  []
+                  [ Html.text info.person.description ]
+              , Html.div
+                  []
+                  [ Html.button
+                      [ Html.Attributes.class "button is-primary is-pulled-right"
+                      , Html.Events.onClick CreateUnit
+                      ]
+                      [ Html.text "Create New Unit"
+                      ]
+                  ]
+              ]
+          , Html.div
+              [ Html.Attributes.class "column" ]
+              [ Html.map UnitsMsg <| Panel.view model.panelUnits ]
+          , Html.div
+              [ Html.Attributes.class "column" ]
+              [ Html.map MessagesMsg <| Panel.view model.panelMessages ]
           ]
-          [ map UnitsMsg <| Panel.view model.panelUnits
-          , map MessagesMsg <| Panel.view model.panelMessages
-          ]
-      , case model.selected of
-          SelectedNothing ->
-            row [] []
 
-          SelectedUnit id ->
-            row
-              [ height <| fillPortion 1
-              , width fill
-              ] <|
-              case idMapLookup id info.members of
-                Nothing ->
-                  [ text "Error." ]
-                Just unit ->
-                  PreviewUnit.view unit.value <|
-                  View (ViewSelectedUnit unit.id)
+      , let
+          isActive = case model.selected of
+            SelectedNothing -> False
+            _ -> True
+        in
+          Modal.view isActive CloseModal <| List.singleton <|
+            case model.selected of
+              SelectedNothing ->
+                Html.div [] []
 
-          SelectedInbox inboxId ->
-            row
-              [ height <| fillPortion 1
-              , width fill
-              ] <|
-              case inboxId of
-                MessageMemberId id ->
-                  case idMapLookup id model.inbox.messageMember of
-                    Nothing ->
-                      [ text "Error." ]
-                    Just msg ->
-                      List.map (map PreviewMessageMemberMsg) <|
-                      PreviewMessage.view id msg
+              SelectedUnit id ->
+                case idMapLookup id info.members of
+                  Nothing ->
+                    Html.text "Error."
+                  Just unit ->
+                    PreviewUnit.view unit.value <|
+                    View (ViewSelectedUnit unit.id)
 
-                ReplyMemberId id ->
-                  case idMapLookup id model.inbox.replyMember of
-                    Nothing ->
-                      [ text "Error." ]
-                    Just msg ->
-                      List.map (map PreviewReplyMemberMsg) <|
-                      PreviewReply.view id msg
+{-
+              SelectedInbox inboxId ->
+                row
+                  [ height <| fillPortion 1
+                  , width fill
+                  ] <|
+                  case inboxId of
+                    MessageMemberId id ->
+                      case idMapLookup id model.inbox.messageMember of
+                        Nothing ->
+                          [ text "Error." ]
+                        Just msg ->
+                          List.map (map PreviewMessageMemberMsg) <|
+                          PreviewMessage.view id msg
 
-                MessageSubpartId id ->
-                  case idMapLookup id model.inbox.messageSubpart of
-                    Nothing ->
-                      [ text "Error." ]
-                    Just msg ->
-                      List.map (map PreviewMessageSubpartMsg) <|
-                      PreviewMessage.view id msg
+                    ReplyMemberId id ->
+                      case idMapLookup id model.inbox.replyMember of
+                        Nothing ->
+                          [ text "Error." ]
+                        Just msg ->
+                          List.map (map PreviewReplyMemberMsg) <|
+                          PreviewReply.view id msg
 
-                ReplySubpartId id ->
-                  case idMapLookup id model.inbox.replySubpart of
-                    Nothing ->
-                      [ text "Error." ]
-                    Just msg ->
-                      List.map (map PreviewReplySubpartMsg) <|
-                      PreviewReply.view id msg
+                    MessageSubpartId id ->
+                      case idMapLookup id model.inbox.messageSubpart of
+                        Nothing ->
+                          [ text "Error." ]
+                        Just msg ->
+                          List.map (map PreviewMessageSubpartMsg) <|
+                          PreviewMessage.view id msg
 
-      ] ++
-      Notification.view model.notification
+                    ReplySubpartId id ->
+                      case idMapLookup id model.inbox.replySubpart of
+                        Nothing ->
+                          [ text "Error." ]
+                        Just msg ->
+                          List.map (map PreviewReplySubpartMsg) <|
+                          PreviewReply.view id msg
+-}
+              _ -> Html.div [] []
+
+      ] ++ Notification.view model.notification
 
 --------------------------------------------------------------------------------
 -- Helpers
@@ -330,13 +365,29 @@ type InboxId
   | MessageSubpartId (Id (Message Subpart))
   | ReplySubpartId (Id (Reply Subpart))
 
-inboxToPairs : Inbox -> List (InboxId, String)
-inboxToPairs inbox =
+inboxToItems : Inbox -> List (Panel.Item InboxId)
+inboxToItems inbox =
   let
-    fmm (id, MessageInfo m) = (MessageMemberId id, m.text)
-    frm (id, ReplyInfo r) = (ReplyMemberId id, r.text)
-    fms (id, MessageInfo m) = (MessageSubpartId id, m.text)
-    frs (id, ReplyInfo r) = (ReplySubpartId id, r.text)
+    fmm (id, MessageInfo m) =
+      { index = MessageMemberId id
+      , title = ""
+      , description = m.text
+      }
+    frm (id, ReplyInfo r) =
+      { index = ReplyMemberId id
+      , title = ""
+      , description = r.text
+      }
+    fms (id, MessageInfo m) =
+      { index = MessageSubpartId id
+      , title = ""
+      , description = m.text
+      }
+    frs (id, ReplyInfo r) =
+      { index = ReplySubpartId id
+      , title = ""
+      , description = r.text
+      }
   in
     List.map fmm (idMapToList inbox.messageMember) ++
     List.map frm (idMapToList inbox.replyMember) ++

@@ -9,18 +9,20 @@ module CSDC.Component.ViewUnit exposing
   )
 
 import CSDC.API as API
+import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
 import CSDC.Component.PreviewPerson as PreviewPerson
 import CSDC.Component.PreviewUnit as PreviewUnit
+import CSDC.Component.Progress as Progress
 import CSDC.Input exposing (..)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
-import Element exposing (..)
-import Element.Font as Font
-import Element.Input as Input
+import Html exposing (Html)
+import Html.Attributes
+import Html.Events
 import String
 import Tuple exposing (pair)
 
@@ -118,6 +120,7 @@ type Msg
   | MessageMember (Id Person) (Id Unit) MessageType
   | MessageSubpart (Id Person) (Id Unit) MessageType
   | ViewAdmin (Id Unit)
+  | CloseModal
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
@@ -209,12 +212,12 @@ update pageInfo msg model =
     View selected ->
       case selected of
         ViewSelectedPerson id ->
-          ( model
+          ( initial
           , Page.goTo pageInfo (Page.ViewPerson id)
           )
 
         ViewSelectedUnit id ->
-          ( model
+          ( initial
           , Page.goTo pageInfo (Page.ViewUnit id)
           )
 
@@ -236,6 +239,11 @@ update pageInfo msg model =
           , Page.goTo pageInfo (Page.ViewUnitAdmin unit.id)
           )
 
+    CloseModal ->
+      ( { model | selected = SelectedNothing }
+      , Cmd.none
+      )
+
     APIMsg apimsg ->
       case apimsg of
         API.GetUnitInfo result ->
@@ -248,14 +256,24 @@ update pageInfo msg model =
               let
                 pairsMembers =
                   idMapToList info.members |>
-                  List.map (\(id,withid) -> (id, withid.value.name))
+                  List.map (\(id,withid) ->
+                    { index = id
+                    , title = withid.value.name
+                    , description = withid.value.description
+                    }
+                  )
 
                 panelMembers =
                   Panel.update (Panel.SetItems pairsMembers) model.panelMembers
 
                 pairsChildren =
                   idMapToList info.children |>
-                  List.map (\(id,withid) -> (id, withid.value.name))
+                  List.map (\(id,withid) ->
+                    { index = id
+                    , title = withid.value.name
+                    , description = withid.value.description
+                    }
+                  )
 
                 panelChildren =
                   Panel.update (Panel.SetItems pairsChildren) model.panelChildren
@@ -310,106 +328,114 @@ update pageInfo msg model =
 --------------------------------------------------------------------------------
 -- View
 
-view : Maybe (User PersonInfo) -> Model -> List (Element Msg)
+view : Maybe (User PersonInfo) -> Model -> List (Html Msg)
 view mid model =
   case model.info of
     Nothing ->
-      [ text "Loading..."
-      ] ++
-      Notification.view model.notification
+      [ Progress.view
+      ] ++ Notification.view model.notification
 
     Just info ->
-      [ row
-          [ Font.bold, Font.size 30 ]
-          [ text "Unit Viewer" ]
-      , editableText
-          { canEdit = canEdit mid model
-          , mode = model.editName
-          , label = "Name"
-          , value = info.unit.name
-          , event = EditName
-          }
-      , editableMultiline
-          { canEdit = canEdit mid model
-          , mode = model.editDescription
-          , label = "Description"
-          , value = info.unit.description
-          , event = EditDescription
-          }
-      , row []
-          [ text <| "Chair: " ++
-              case idMapFind (\w -> w.id == info.unit.chair) info.members of
-                Nothing -> "Loading..."
-                Just withid -> withid.value.name
+      [ Html.h1
+          [ Html.Attributes.class "title" ]
+          [ Html.text info.unit.name ]
+      , Html.div
+          [ Html.Attributes.class "columns"
+          , Html.Attributes.style "height" "100%"
           ]
-      , row [] <|
-          if canEdit mid model
-          then [ button (ViewAdmin info.id) "Admin" ]
-          else []
-      , row [] <|
-          case isMember mid model of
-            Nothing -> []
-            Just wid ->
-              if isMemberPending mid model
-              then [ text "Your submission was sent." ]
-              else
-                let
-                  msg = MessageMember wid.id info.id Submission
-                in
-                  [ button msg "Become a member" ]
-      , row [] <|
-          case mid of
-            Just (User pinfo) ->
-              let
-                msg = MessageSubpart pinfo.id info.id Invitation
-              in
-               [ button msg "Invite this unit to your unit" ]
-            _ ->
-               []
-      , row [] <|
-          case mid of
-            Just (User pinfo) ->
-              let
-                msg = MessageSubpart pinfo.id info.id Submission
-              in
-               [ button msg "Make your unit a part of this unit" ]
-            _ ->
-               []
-      , row
-          [ height <| fillPortion 1
-          , width fill
-          , spacing 10
+          [ Html.div
+              [ Html.Attributes.class "column" ]
+              [ Html.div
+                  []
+                  [ Html.strong [] [ Html.text "Chair: " ]
+                  , Html.text <|
+                      case idMapFind (\w -> w.id == info.unit.chair) info.members of
+                        Nothing -> "Loading..."
+                        Just withid -> withid.value.name
+                  ]
+              , Html.div
+                  []
+                  [ Html.strong [] [ Html.text "Description: " ]
+                  , Html.text info.unit.description
+                  ]
+              , Html.div [] <|
+                  if canEdit mid model
+                  then
+                    [ Html.button
+                        [ Html.Attributes.class "button"
+                        , Html.Events.onClick (ViewAdmin info.id)
+                        ]
+                        [ Html.text "Admin" ]
+                    ]
+                  else []
+              , Html.div [] <|
+                  case isMember mid model of
+                    Nothing -> []
+                    Just wid ->
+                      if isMemberPending mid model
+                      then
+                        [ Html.text "Your submission was sent." ]
+                      else
+                        [ Html.button
+                            [ Html.Attributes.class "button"
+                            , Html.Events.onClick (MessageMember wid.id info.id Submission)
+                            ]
+                            [ Html.text "Become a member" ]
+                        ]
+              , Html.div [] <|
+                  case mid of
+                    Just (User pinfo) ->
+                      [ Html.button
+                          [ Html.Attributes.class "button"
+                          , Html.Events.onClick (MessageSubpart pinfo.id info.id Invitation)
+                          ]
+                          [ Html.text "Invite this unit to your unit" ]
+                      ]
+                    _ ->
+                      []
+              , Html.div [] <|
+                  case mid of
+                    Just (User pinfo) ->
+                      [ Html.button
+                          [ Html.Attributes.class "button"
+                          , Html.Events.onClick (MessageSubpart pinfo.id info.id Submission)
+                          ]
+                          [ Html.text "Make your unit a part of this unit" ]
+                      ]
+                    _ ->
+                       []
+              ]
+          , Html.div
+              [ Html.Attributes.class "column" ]
+              [ Html.map SubpartsMsg <| Panel.view model.panelChildren ]
+          , Html.div
+              [ Html.Attributes.class "column" ]
+              [ Html.map MembersMsg <| Panel.view model.panelMembers ]
           ]
-          [ map SubpartsMsg <| Panel.view model.panelChildren
-          , map MembersMsg <| Panel.view model.panelMembers
-          ]
-      , case model.selected of
-          SelectedNothing ->
-            row [] []
+      , let
+          isActive = case model.selected of
+            SelectedNothing -> False
+            _ -> True
+        in
+          Modal.view isActive CloseModal <| List.singleton <|
+            case model.selected of
+              SelectedNothing ->
+                Html.div [] []
 
-          SelectedPerson id ->
-            row
-              [ height <| fillPortion 1
-              , width fill
-              ] <|
-              case idMapLookup id info.members of
-                Nothing ->
-                  [ text "Loading..." ]
-                Just person ->
-                  PreviewPerson.view person.value <|
-                  View (ViewSelectedPerson person.id)
+              SelectedPerson id ->
+                case idMapLookup id info.members of
+                  Nothing ->
+                    Html.div [] [ Html.text "Loading..." ]
+                  Just person ->
+                    PreviewPerson.view person.value <|
+                    View (ViewSelectedPerson person.id)
 
-          SelectedUnit id ->
-            row
-              [ height <| fillPortion 1
-              , width fill
-              ] <|
-              case idMapLookup id info.children of
-                Nothing ->
-                  [ text "Loading..." ]
-                Just subunit ->
-                  PreviewUnit.view subunit.value <|
-                  View (ViewSelectedUnit subunit.id)
+              SelectedUnit id ->
+                case idMapLookup id info.children of
+                  Nothing ->
+                    Html.div [] [ Html.text "Loading..." ]
+                  Just subunit ->
+                    PreviewUnit.view subunit.value <|
+                    View (ViewSelectedUnit subunit.id)
 
-      ] ++
-      Notification.view model.notification
+      ] ++ Notification.view model.notification

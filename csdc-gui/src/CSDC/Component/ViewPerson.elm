@@ -8,16 +8,19 @@ module CSDC.Component.ViewPerson exposing
   )
 
 import CSDC.API as API
+import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
 import CSDC.Component.PreviewUnit as PreviewUnit
+import CSDC.Component.Progress as Progress
 import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
-import Element exposing (..)
-import Element.Font as Font
+import Html exposing (Html)
+import Html.Attributes
+import Html.Events
 import String
 import Tuple exposing (pair)
 
@@ -48,6 +51,8 @@ type Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | ViewSelected (Id Unit)
   | MessageMember (Id Person)
+  | Reset
+  | CloseModal
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
@@ -58,27 +63,44 @@ update pageInfo msg model =
       )
 
     ViewSelected uid ->
-      ( model
+      ( initial
       , Page.goTo pageInfo (Page.ViewUnit uid)
       )
 
     MessageMember pid ->
-      ( model
+      ( initial
       , Page.goTo pageInfo (Page.InvitationMember pid)
       )
 
+    CloseModal ->
+      ( { model | panelUnits = Panel.update (Panel.SetSelected Nothing) model.panelUnits }
+      , Cmd.none
+      )
+
+    Reset ->
+      ( { model | notification = Notification.Empty }
+      , Cmd.none
+      )
+
     APIMsg apimsg ->
+      let onSuccess = Notification.withResponse Reset model in
       case apimsg of
-        API.GetPersonInfo result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
+        API.GetPersonInfo result -> onSuccess result <| \info ->
+          let
+            pairs =
+              idMapToList info.members |>
+              List.map (\(uid,unit) ->
+                { index = uid
+                , title = unit.value.name
+                , description = unit.value.description
+                }
               )
-            Ok person ->
-              ( { model | person = Just person }
-              , Cmd.none
-              )
+
+            panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
+          in
+            ( { model | person = Just info, panelUnits = panelUnits }
+            , Cmd.none
+            )
 
         _ ->
           (model, Cmd.none)
@@ -86,54 +108,60 @@ update pageInfo msg model =
 --------------------------------------------------------------------------------
 -- View
 
-view : Model -> List (Element Msg)
+view : Model -> List (Html Msg)
 view model =
   case model.person of
     Nothing ->
-      [ text "Loading..."
-      ] ++
-      Notification.view model.notification
+      [ Progress.view
+      ] ++ Notification.view model.notification
 
     Just person ->
-      [ row
-          [ Font.bold, Font.size 30 ]
-          [ text "View Person" ]
-      , row []
-          [ text person.person.name ]
-      , row []
-          [ el [ Font.bold ] (text "ORCID ID: ")
-          , newTabLink []
-              { url = "https://orcid.org/" ++ person.person.orcid
-              , label = text person.person.orcid
-              }
+      [ Html.h1
+          [ Html.Attributes.class "title" ]
+          [ Html.text person.person.name ]
+      , Html.div
+          [ Html.Attributes.class "columns"
+          , Html.Attributes.style "height" "100%"
           ]
+          [ Html.div
+              [ Html.Attributes.class "column is-two-thirds" ]
+              [ Html.div
+                  []
+                  [ Html.strong [] [ Html.text "ORCID ID: " ]
+                  , Html.a
+                      [ Html.Attributes.target "_blank" ]
+                      [ Html.text ("https://orcid.org/" ++ person.person.orcid) ]
+                  ]
 
-      , row []
-          [ button (MessageMember person.id) "Invite this person to your unit"
+              , Html.button
+                  [ Html.Attributes.class "button"
+                  , Html.Events.onClick (MessageMember person.id)
+                  ]
+                  [ Html.text "Invite this person to your unit" ]
+              , Html.div
+                  []
+                  [ Html.strong [] [ Html.text "Description: " ]
+                  , Html.text person.person.description
+                  ]
+              ]
+          , Html.div
+              [ Html.Attributes.class "column" ]
+              [ Html.map UnitsMsg <| Panel.view model.panelUnits ]
           ]
-
-      , row
-          [ height <| fillPortion 1
-          , width fill
-          , spacing 10
-          ]
-          [ column
-              [ width <| fillPortion 1 ]
-              [ text person.person.description ]
-          , map UnitsMsg <| Panel.view model.panelUnits
-          ]
-      , case Panel.getSelected model.panelUnits of
-          Nothing ->
-            row [] []
-          Just id ->
-            row
-              [ height <| fillPortion 1
-              , width fill
-              ] <|
-              case idMapLookup id person.members of
-                Nothing ->
-                  [ text "Error." ]
-                Just unit ->
-                  PreviewUnit.view unit.value (ViewSelected unit.id)
-      ] ++
-      Notification.view model.notification
+      , let
+          isActive =
+            case model.panelUnits.selected of
+              Nothing -> False
+              _ -> True
+        in
+          Modal.view isActive CloseModal <| List.singleton <|
+            case model.panelUnits.selected of
+              Nothing ->
+                Html.div [] []
+              Just id ->
+                case idMapLookup id person.members of
+                  Nothing ->
+                    Html.text "Error."
+                  Just unit ->
+                    PreviewUnit.view unit.value (ViewSelected unit.id)
+      ] ++ Notification.view model.notification

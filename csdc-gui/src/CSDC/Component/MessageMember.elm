@@ -148,5 +148,5 @@ view param model = whenLoaded model <| \personInfo unitInfo ->
         , spellcheck = True
         }
     , CSDC.Input.button Submit "Submit"
-    ] ++ Notification.view model.notification
+    ] ++ List.map html (Notification.view model.notification)
 

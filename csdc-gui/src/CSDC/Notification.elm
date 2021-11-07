@@ -6,7 +6,8 @@ module CSDC.Notification exposing
   )
 
 import Delay
-import Element exposing (..)
+import Html exposing (Html)
+import Html.Attributes
 import Http
 
 type Notification
@@ -16,40 +17,63 @@ type Notification
   | Error (List String)
   | HttpError Http.Error
 
-view : Notification -> List (Element msg)
+view : Notification -> List (Html msg)
 view notification =
-  case notification of
-    Empty ->
-      []
+  let
+    body = case notification of
+      Empty ->
+        []
 
-    Processing ->
-      [ text "Processing..." ]
+      Processing ->
+        [ Html.text "Processing..." ]
 
-    Success ->
-      [ text "Success!" ]
+      Success ->
+        [ Html.text "Success!" ]
 
-    Error msgs ->
-      [ text "Error: " ] ++ List.map text msgs
+      Error msgs ->
+        [ Html.text "Error: " ] ++ List.map Html.text msgs
 
-    HttpError err ->
-      case err of
-        Http.BadUrl msg ->
-          [ text <| "Bad url: " ++ msg ]
+      HttpError err ->
+        case err of
+          Http.BadUrl msg ->
+            [ Html.text <| "Bad url: " ++ msg ]
 
-        Http.Timeout ->
-          [ text "Timeout." ]
+          Http.Timeout ->
+            [ Html.text "Timeout." ]
 
-        Http.NetworkError ->
-          [ text "Network error." ]
+          Http.NetworkError ->
+            [ Html.text "Network error." ]
 
-        Http.BadStatus n ->
-          [ text <| "Bad status: " ++ String.fromInt n ]
+          Http.BadStatus n ->
+            [ Html.text <| "Bad status: " ++ String.fromInt n ]
 
-        Http.BadBody msg ->
-          [ text <| "Bad body: " ++ msg ]
+          Http.BadBody msg ->
+            [ Html.text <| "Bad body: " ++ msg ]
+  in
+    case notification of
+      Empty ->
+        []
+      _ ->
+        [ Html.div
+            [ case notification of
+                Success ->
+                  Html.Attributes.class "notification is-success is-light"
+                Processing ->
+                  Html.Attributes.class "notification is-info is-light"
+                _ ->
+                  Html.Attributes.class "notification is-danger is-light"
+            , Html.Attributes.style "position" "fixed"
+            , Html.Attributes.style "z-index" "1"
+            , Html.Attributes.style "bottom" "40px"
+            , Html.Attributes.style "width" "600px"
+            , Html.Attributes.style "left" "50%"
+            , Html.Attributes.style "transform" "translate(-50%, 0)"
+            ]
+            body
+        ]
 
 reset : msg -> Cmd msg
-reset = Delay.after 2 Delay.Second
+reset = Delay.after 3 Delay.Second
 
 type alias Has model = { model | notification : Notification }
 

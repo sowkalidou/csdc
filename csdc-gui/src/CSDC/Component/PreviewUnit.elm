@@ -5,40 +5,42 @@ module CSDC.Component.PreviewUnit exposing
 import CSDC.Types exposing (..)
 import CSDC.Input exposing (button)
 
+import Html exposing (Html)
+import Html.Attributes
+import Html.Events
+
 import Element exposing (..)
 import Element.Font as Font
 import Element.Background as Background
 import Element.Border as Border
 
-view : Unit -> msg -> List (Element msg)
-view unit event =
-  [ column
-     [ height fill
-     , width fill
-     , spacing 10
-     , Border.width 1
-     , Border.color <| rgb255 92 99 118
-     , Border.rounded 5
-     ]
-     [ row
-        [ spacing 10
-        , alignTop
-        , Background.color <| rgb255 92 99 118
-        , padding 10
-        , width fill
+view : Unit -> msg -> Html msg
+view unit viewUnit =
+  Html.div
+    [ Html.Attributes.class "box"
+    ]
+    [ Html.article
+        [ Html.Attributes.class "media"
         ]
-        [ column
-            [ Font.size 24 ]
-            [ text unit.name ]
-        , column
-            [ alignRight ]
-            [ button event "View Unit" ]
+        [ Html.div
+            [ Html.Attributes.class "media-content"
+            ]
+            [ Html.div
+                [ Html.Attributes.class "content"
+                ]
+                [ Html.p
+                    []
+                    [ Html.strong [] [ Html.text unit.name ]
+                    , Html.br [] []
+                    , Html.text unit.description
+                    ]
+                , Html.button
+                    [ Html.Attributes.class "button is-primary is-pulled-right"
+                    , Html.Events.onClick viewUnit
+                    ]
+                    [ Html.text "View Unit"
+                    ]
+                ]
+            ]
         ]
-     , row
-        [ height fill
-        , padding 10
-        ]
-        [ text unit.description
-        ]
-     ]
-  ]
+    ]

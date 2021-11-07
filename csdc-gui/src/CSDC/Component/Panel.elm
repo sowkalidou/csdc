@@ -1,18 +1,15 @@
 module CSDC.Component.Panel exposing
   ( Model
+  , Item
   , initial
   , Msg (..)
   , update
   , view
-  , getItems
-  , getSelected
   )
 
-import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Events
-import Element.Font as Font
+import Html exposing (Html)
+import Html.Attributes
+import Html.Events
 import Dict
 import Dict exposing (Dict)
 import List
@@ -20,79 +17,78 @@ import List
 --------------------------------------------------------------------------------
 -- Model
 
-type Model i = Model
+type alias Model i =
   { name : String
-  , items : List (i, String)
+  , items : List (Item i)
   , selected : Maybe i
   }
 
+type alias Item i =
+  { index : i
+  , title : String
+  , description : String
+  }
+
 initial : String -> Model i
-initial name = Model
+initial name =
   { name = name
   , items = []
   , selected = Nothing
   }
 
-getSelected : Model i -> Maybe i
-getSelected (Model m) = m.selected
-
-getItems : Model i -> List (i, String)
-getItems (Model m) = m.items
-
 --------------------------------------------------------------------------------
 -- Update
 
 type Msg i
-  = SetItems (List (i, String))
+  = SetItems (List (Item i))
   | SetSelected (Maybe i)
 
 update : Msg i -> Model i -> Model i
-update msg (Model model) =
+update msg model =
   case msg of
     SetItems items ->
-      Model { model | items = items }
+      { model | items = items }
 
     SetSelected selected ->
-      Model { model | selected = selected }
+      { model | selected = selected }
 
 --------------------------------------------------------------------------------
 -- View
 
-view : Model i -> Element (Msg i)
-view (Model model) =
-  column
-    [ height fill
-    , width <| fillPortion 1
-    , Border.width 1
-    , Border.color <| rgb255 92 99 118
-    , Border.rounded 5
+view : Model i -> Html (Msg i)
+view model =
+  Html.div
+    [ Html.Attributes.class "box"
+    , Html.Attributes.style "height" "100%"
+    , Html.Attributes.style "overflow-y" "hidden"
+    , Html.Attributes.style "padding-bottom" "85px"
     ]
-    ( [ viewTitle model.name ] ++
-      List.map (viewItem model.selected) model.items
-    )
+    [ viewTitle model.name
+    , Html.div
+        [ Html.Attributes.style "height" "100%"
+        , Html.Attributes.style "padding" "5px"
+        , Html.Attributes.style "overflow-y" "auto"
+        ]
+        (List.map (viewItem model.selected) model.items)
+    ]
 
-viewTitle : String -> Element (Msg i)
+viewTitle : String -> Html (Msg i)
 viewTitle name =
-  row
-    [ height (px 50)
-    , padding 10
-    , width fill
-    , Background.color <| rgb255 92 99 118
-    , Font.size 24
+  Html.h4
+    [ Html.Attributes.class "title"
     ]
-    [ el [ centerX ] (text name)
+    [ Html.text name
     ]
 
-viewItem : Maybe i -> (i, String) -> Element (Msg i)
-viewItem selected (this,name) =
-  row
-    [ height (px 30)
-    , padding 10
-    , width fill
-    , Events.onClick <| SetSelected (Just this)
-    , if selected == Just this
-      then Background.color <| rgb255 142 151 164
-      else Background.color <| rgb255 255 255 255
+viewItem : Maybe i -> Item i -> Html (Msg i)
+viewItem selected {index, title, description} =
+  Html.div
+    [ if selected == Just index
+      then Html.Attributes.class "box option-box has-background-grey-lighter is-shadowless"
+      else Html.Attributes.class "box option-box has-background-white-ter is-shadowless"
+    , Html.Events.onClick <| SetSelected (Just index)
     ]
-    [ text name
+    [ Html.strong [] [ Html.text title ]
+    , Html.br [] []
+    , Html.text description
     ]
