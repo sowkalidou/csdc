@@ -7,6 +7,8 @@ module CSDC.Component.Panel exposing
   , view
   )
 
+import CSDC.Component.Column as Column
+
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
@@ -57,35 +59,24 @@ update msg model =
 
 view : Model i -> Html (Msg i)
 view model =
-  Html.div
-    [ Html.Attributes.class "box"
-    , Html.Attributes.style "height" "100%"
-    , Html.Attributes.style "overflow-y" "hidden"
-    , Html.Attributes.style "padding-bottom" "85px"
-    ]
-    [ viewTitle model.name
-    , Html.div
-        [ Html.Attributes.style "height" "100%"
-        , Html.Attributes.style "padding" "5px"
-        , Html.Attributes.style "overflow-y" "auto"
-        ]
-        (List.map (viewItem model.selected) model.items)
-    ]
+  Column.make
+    model.name
+    []
+    (List.map (viewItem model.name model.selected) model.items)
 
-viewTitle : String -> Html (Msg i)
-viewTitle name =
-  Html.h4
-    [ Html.Attributes.class "title"
-    ]
-    [ Html.text name
-    ]
-
-viewItem : Maybe i -> Item i -> Html (Msg i)
-viewItem selected {index, title, description} =
+viewItem : String -> Maybe i -> Item i -> Html (Msg i)
+viewItem name selected {index, title, description} =
   Html.div
     [ if selected == Just index
       then Html.Attributes.class "box option-box has-background-grey-lighter is-shadowless"
       else Html.Attributes.class "box option-box has-background-white-ter is-shadowless"
+    , if selected == Just index
+      then Html.Attributes.id (name ++ "-selected-item")
+      else Html.Attributes.id (name ++ "unselected-item")
+    , Html.Attributes.style "height" "88px"
+    , Html.Attributes.style "overflow" "hidden"
+    , Html.Attributes.style "text-overflow" "ellipsis"
+    , Html.Attributes.style "white-space" "nowrap"
     , Html.Events.onClick <| SetSelected (Just index)
     ]
     [ Html.strong [] [ Html.text title ]

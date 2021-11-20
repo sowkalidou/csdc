@@ -32,7 +32,7 @@ type Msg
   | GetUnitMembers (Response (IdMap Member (WithId Person)))
   | GetUnitChildren (Response (IdMap Subpart (WithId Unit)))
   | GetUnitParents (Response (IdMap Subpart (WithId Unit)))
-  | CreateUnit (Response (WithId Member))
+  | CreateUnit (Response (Id Unit))
   | SelectUnit (Id Unit) (Response Unit)
   | InsertUnit (Response (Id Unit))
   | UpdateUnit (Response ())
@@ -142,12 +142,12 @@ getUnitParents id =
     , expect = Http.expectJson GetUnitParents (decodeIdMap (decodeWithId decodeUnit))
     }
 
-createUnit : Id Person -> Cmd Msg
-createUnit id =
+createUnit : Unit -> Cmd Msg
+createUnit unit =
   Http.post
     { url = baseUrl ++ "unit/create"
-    , body = Http.jsonBody (encodeId id)
-    , expect = Http.expectJson CreateUnit (decodeWithId decodeMember)
+    , body = Http.jsonBody (encodeUnit unit)
+    , expect = Http.expectJson CreateUnit decodeId
     }
 
 selectUnit : Id Unit -> Cmd Msg

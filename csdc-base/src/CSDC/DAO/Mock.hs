@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -111,12 +112,11 @@ instance MonadIO m => HasDAO (Mock m) where
   rootUnit =
     use store_root
 
-  createUnit personId = do
-    let unit = Unit "New Unit" "Unit Description" personId
+  createUnit unit@(Unit {unit_chair}) = do
     unitId <- stating store_unit (IdMap.insertNew unit)
-    let member = Member personId unitId
+    let member = Member unit_chair unitId
     memberId <- insertRelation @Member member
-    pure $ WithId memberId member
+    pure unitId
 
   inboxPerson personId = do
     let

@@ -1,4 +1,4 @@
-module CSDC.Component.MessageMember exposing
+module CSDC.View.MessageMember exposing
   ( Param
   , Model
   , initial
@@ -147,6 +147,6 @@ view param model = whenLoaded model <| \personInfo unitInfo ->
         , text = model.text
         , spellcheck = True
         }
-    , CSDC.Input.button Submit "Submit"
+    , Element.html <| CSDC.Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)
 

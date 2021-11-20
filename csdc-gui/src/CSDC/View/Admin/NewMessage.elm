@@ -1,4 +1,4 @@
-module CSDC.Component.Admin.NewMessage exposing
+module CSDC.View.Admin.NewMessage exposing
   ( Model
   , initial
   , Msg
@@ -152,7 +152,7 @@ view model =
         { onChange = InputUnit
         , field = model.unit
         }
-    , CSDC.Input.button Submit "Submit"
+    , Element.html <| CSDC.Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)
 
 selectMessageType : Model -> Element Msg

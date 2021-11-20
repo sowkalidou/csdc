@@ -6,6 +6,7 @@ module Validation exposing
   , invalid
   , map
   , andMap
+  , andThen
   )
 
 type Validation a = Validation (Result (List String) a)
@@ -36,3 +37,9 @@ andMap (Validation r) (Validation f) = Validation <|
      case f of
        Err ef -> Err ef
        Ok g -> Ok (g a)
+
+andThen : Validation a -> (a -> Validation b) -> Validation b
+andThen (Validation r) f =
+  case r of
+    Err e -> Validation (Err e)
+    Ok a -> f a

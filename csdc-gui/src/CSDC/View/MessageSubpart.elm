@@ -1,4 +1,4 @@
-module CSDC.Component.MessageSubpart exposing
+module CSDC.View.MessageSubpart exposing
   ( Param
   , Model
   , initial
@@ -183,7 +183,7 @@ view param model = whenLoaded model <| \personInfo unitInfo ->
         , text = model.text
         , spellcheck = True
         }
-    , CSDC.Input.button Submit "Submit"
+    , Element.html <| CSDC.Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)
 
 invitation :

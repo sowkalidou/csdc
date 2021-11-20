@@ -1,4 +1,4 @@
-module CSDC.Component.InvitationMember exposing
+module CSDC.View.InvitationMember exposing
   ( Param
   , Model
   , initial
@@ -137,7 +137,7 @@ view param model =
             , text = model.text
             , spellcheck = True
             }
-        , CSDC.Input.button Submit "Submit"
+        , Element.html <| CSDC.Input.button Submit "Submit"
         ] ++ List.map html (Notification.view model.notification)
 
 invitation :

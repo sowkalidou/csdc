@@ -1,144 +1,75 @@
 module CSDC.Input exposing
   ( button
-  , EditableMode (..)
-  , EditableMsg (..)
-  , editableText
-  , editableMultiline
+  , text
+  , textarea
   )
 
-import Element exposing (Element)
+import Field exposing (Field (..), Status (..))
 
-import Element as Element
-import Element.Font as Font
-import Element.Input as Input
-import Element.Background as Background
-import Element.Border as Border
+import Html exposing (Html)
+import Html.Attributes
+import Html.Events
 
 --------------------------------------------------------------------------------
 -- Button
 
-button : msg -> String -> Element msg
+button : msg -> String -> Html msg
 button msg txt =
-  Input.button
-    [ Background.color <| Element.rgb255 142 151 164
-    , Font.color <| Element.rgb255 243 243 244
-    , Element.paddingXY 20 10
+  Html.button
+    [ Html.Attributes.class "button is-link"
+    , Html.Events.onClick msg
     ]
-    { onPress = Just msg
-    , label = Element.text txt
-    }
+    [ Html.text txt
+    ]
+
 
 --------------------------------------------------------------------------------
--- Editable
+-- Text input
 
-type EditableMode
-  = EditableModeEdit
-  | EditableModeShow
+wrapper : Field a b -> Html msg -> Html msg
+wrapper field div =
+  Html.div
+    [ Html.Attributes.class "field"
+    ] <|
+    [ Html.label
+        [ Html.Attributes.class "label" ]
+        [ Html.text (Field.name field) ]
+    , Html.div
+        [ Html.Attributes.class "control" ]
+        [ div ]
+    ] ++
+      let
+        makeError err =
+          Html.p
+            [ Html.Attributes.class "help is-danger" ]
+            [ Html.text err ]
+      in
+        List.map makeError (Field.errors field)
 
-type EditableMsg
-  = EditableEdit
-  | EditableSave
-  | EditableUpdate String
+text : Field String a -> (String -> msg) -> Html msg
+text field makeMsg =
+  wrapper field <|
+    Html.input
+      [ case Field.status field of
+          Invalid _ -> Html.Attributes.class "input is-danger"
+          _ -> Html.Attributes.class "input"
+      , Html.Attributes.type_ "text"
+      , Html.Attributes.placeholder (Field.name field)
+      , Html.Attributes.value (Field.raw field)
+      , Html.Events.onInput makeMsg
+      ]
+      []
 
-editableText :
-  { canEdit : Bool
-  , mode : EditableMode
-  , label : String
-  , value : String
-  , event : EditableMsg -> msg
-  } -> Element msg
-editableText options =
-  Element.row [ Element.spacing 10 ] <|
-    case options.canEdit of
-      False ->
-        [ Element.text options.value
-        ]
-      True ->
-        case options.mode of
-          EditableModeShow ->
-            [ Element.column []
-                [ Element.text options.value
-                ]
-            , Element.column []
-                [ Input.button
-                  [ Font.color <| Element.rgb255 142 151 164
-                  ]
-                  { onPress = Just <| options.event <| EditableEdit
-                  , label = Element.text "Edit"
-                  }
-                ]
-            ]
 
-          EditableModeEdit ->
-            [ Element.column
-                [ Element.width <| Element.fillPortion 1
-                ]
-                [ Input.text []
-                  { onChange = options.event << EditableUpdate
-                  , text = options.value
-                  , placeholder = Nothing
-                  , label = Input.labelAbove [] <|
-                      Element.row [ Element.spacing 10 ]
-                        [ Element.text options.label
-                        , Input.button
-                          [ Font.color <| Element.rgb255 142 151 164
-                          ]
-                          { onPress = Just <| options.event <| EditableSave
-                          , label = Element.text "Save"
-                          }
-                        ]
-                  }
-                ]
-            ]
-
-editableMultiline :
-  { canEdit : Bool
-  , mode : EditableMode
-  , label : String
-  , value : String
-  , event : EditableMsg -> msg
-  } -> Element msg
-editableMultiline options =
-  Element.row [ Element.spacing 10 ] <|
-    case options.canEdit of
-      False ->
-        [ Element.text options.value
-        ]
-      True ->
-        case options.mode of
-          EditableModeShow ->
-            [ Element.column []
-                [ Element.text options.value
-                ]
-            , Element.column []
-                [ Input.button
-                  [ Font.color <| Element.rgb255 142 151 164
-                  ]
-                  { onPress = Just <| options.event <| EditableEdit
-                  , label = Element.text "Edit"
-                  }
-                ]
-            ]
-
-          EditableModeEdit ->
-            [ Element.column
-                [ Element.width Element.fill
-                ]
-                [ Input.multiline []
-                  { onChange = options.event << EditableUpdate
-                  , text = options.value
-                  , placeholder = Nothing
-                  , spellcheck = False
-                  , label = Input.labelAbove [] <|
-                      Element.row [ Element.spacing 10 ]
-                        [ Element.text options.label
-                        , Input.button
-                          [ Font.color <| Element.rgb255 142 151 164
-                          ]
-                          { onPress = Just <| options.event <| EditableSave
-                          , label = Element.text "Save"
-                          }
-                        ]
-                  }
-                ]
-            ]
+textarea : Field String a -> (String -> msg) -> Html msg
+textarea field makeMsg =
+  wrapper field <|
+    Html.textarea
+      [ case Field.status field of
+          Invalid _ -> Html.Attributes.class "textarea is-danger"
+          _ -> Html.Attributes.class "textarea"
+      , Html.Attributes.placeholder (Field.name field)
+      , Html.Attributes.value (Field.raw field)
+      , Html.Events.onInput makeMsg
+      ]
+      []

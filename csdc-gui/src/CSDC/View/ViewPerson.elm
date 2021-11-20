@@ -1,4 +1,4 @@
-module CSDC.Component.ViewPerson exposing
+module CSDC.View.ViewPerson exposing
   ( Model
   , initial
   , setup
@@ -8,13 +8,14 @@ module CSDC.Component.ViewPerson exposing
   )
 
 import CSDC.API as API
+import CSDC.Component.Column as Column
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
-import CSDC.Component.PreviewUnit as PreviewUnit
 import CSDC.Component.Progress as Progress
 import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
+import CSDC.View.PreviewUnit as PreviewUnit
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
@@ -125,27 +126,29 @@ view model =
           ]
           [ Html.div
               [ Html.Attributes.class "column is-two-thirds" ]
-              [ Html.div
-                  []
-                  [ Html.strong [] [ Html.text "ORCID ID: " ]
-                  , Html.a
-                      [ Html.Attributes.target "_blank" ]
-                      [ Html.text ("https://orcid.org/" ++ person.person.orcid) ]
+              [ Column.make "Information"
+                  [ { label = "Invite this person to your unit"
+                    , message = MessageMember person.id
+                    }
                   ]
+                  [ Html.div
+                      []
+                      [ Html.strong [] [ Html.text "ORCID ID: " ]
+                      , Html.a
+                          [ Html.Attributes.target "_blank" ]
+                          [ Html.text ("https://orcid.org/" ++ person.person.orcid) ]
+                      ]
 
-              , Html.button
-                  [ Html.Attributes.class "button"
-                  , Html.Events.onClick (MessageMember person.id)
-                  ]
-                  [ Html.text "Invite this person to your unit" ]
-              , Html.div
-                  []
-                  [ Html.strong [] [ Html.text "Description: " ]
-                  , Html.text person.person.description
+                  , Html.div
+                      [ Html.Attributes.style "white-space" "pre-wrap"
+                      ]
+                      [ Html.strong [] [ Html.text "Description: " ]
+                      , Html.text person.person.description
+                      ]
                   ]
               ]
           , Html.div
-              [ Html.Attributes.class "column" ]
+              [ Html.Attributes.class "column is-one-third" ]
               [ Html.map UnitsMsg <| Panel.view model.panelUnits ]
           ]
       , let

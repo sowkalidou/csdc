@@ -1,4 +1,4 @@
-module CSDC.Component.ViewUnitAdmin exposing
+module CSDC.View.ViewUnitAdmin exposing
   ( Model
   , setup
   , initial
@@ -9,19 +9,20 @@ module CSDC.Component.ViewUnitAdmin exposing
 
 import CSDC.API as API
 import CSDC.Component.Panel as Panel
-import CSDC.Component.PreviewMessage as PreviewMessage
-import CSDC.Component.PreviewPerson as PreviewPerson
-import CSDC.Component.PreviewReply as PreviewReply
-import CSDC.Component.PreviewUnit as PreviewUnit
-import CSDC.Input exposing (..)
+import CSDC.Input as Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
+import CSDC.View.PreviewMessage as PreviewMessage
+import CSDC.View.PreviewPerson as PreviewPerson
+import CSDC.View.PreviewReply as PreviewReply
+import CSDC.View.PreviewUnit as PreviewUnit
 
 import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
+import Html exposing (Html)
 import String
 import Tuple exposing (pair)
 
@@ -261,16 +262,16 @@ view mid model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      List.map (map PreviewMessageMemberMsg) <|
-                      PreviewMessage.view rid msg
+                      List.singleton <| html <|
+                      Html.map PreviewMessageMemberMsg (PreviewMessage.view rid msg)
 
                 MemberReply rid ->
                   case idMapLookup rid model.inbox.replyMember of
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      List.map (map PreviewReplyMemberMsg) <|
-                      PreviewReply.view rid msg
+                      List.singleton <| html <|
+                      Html.map PreviewReplyMemberMsg (PreviewReply.view rid msg)
 
           SelectedSubpart subpartId ->
             row
@@ -283,16 +284,16 @@ view mid model =
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      List.map (map PreviewMessageSubpartMsg) <|
-                      PreviewMessage.view rid msg
+                      List.singleton <| html <|
+                      Html.map PreviewMessageSubpartMsg (PreviewMessage.view rid msg)
 
                 SubpartReply rid ->
                   case idMapLookup rid model.inbox.replySubpart of
                     Nothing ->
                       [ text "Error." ]
                     Just msg ->
-                      List.map (map PreviewReplySubpartMsg) <|
-                      PreviewReply.view rid msg
+                      List.singleton <| html <|
+                      Html.map PreviewReplySubpartMsg (PreviewReply.view rid msg)
 
       ] ++
       List.map html (Notification.view model.notification)

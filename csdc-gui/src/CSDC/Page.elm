@@ -10,12 +10,6 @@ import CSDC.API as API
 
 import Browser
 import Browser.Navigation as Nav
-import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events exposing (..)
-import Element.Font as Font
-import Element.Input as Input
 import Html exposing (Html)
 import Maybe
 import Maybe exposing (withDefault)

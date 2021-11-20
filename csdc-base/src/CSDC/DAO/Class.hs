@@ -100,7 +100,7 @@ class
 
   rootUnit :: m (Id Unit)
 
-  createUnit :: Id Person -> m (WithId Member)
+  createUnit :: Unit -> m (Id Unit)
 
   inboxPerson :: Id Person -> m Inbox
 

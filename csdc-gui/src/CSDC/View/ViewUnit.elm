@@ -1,4 +1,4 @@
-module CSDC.Component.ViewUnit exposing
+module CSDC.View.ViewUnit exposing
   ( Model
   , initial
   , setup
@@ -9,16 +9,19 @@ module CSDC.Component.ViewUnit exposing
   )
 
 import CSDC.API as API
+import CSDC.Component.Column as Column
+import CSDC.Component.DotMenu as DotMenu
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
-import CSDC.Component.PreviewPerson as PreviewPerson
-import CSDC.Component.PreviewUnit as PreviewUnit
 import CSDC.Component.Progress as Progress
 import CSDC.Input exposing (..)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
+import CSDC.View.PreviewPerson as PreviewPerson
+import CSDC.View.PreviewUnit as PreviewUnit
+
 
 import Html exposing (Html)
 import Html.Attributes
@@ -43,8 +46,6 @@ type alias Model =
   , panelChildren : Panel.Model (Id Subpart)
   , panelMembers : Panel.Model (Id Member)
   , notification : Notification
-  , editName : EditableMode
-  , editDescription : EditableMode
   , selected : Selected
   , invited : Maybe (Id Unit)
   , inbox : Inbox
@@ -56,8 +57,6 @@ initial =
   , panelChildren = Panel.initial "Sub-Units"
   , panelMembers = Panel.initial "Members"
   , notification = Notification.Empty
-  , editName = EditableModeShow
-  , editDescription = EditableModeShow
   , selected = SelectedNothing
   , invited = Nothing
   , inbox = emptyInbox
@@ -114,8 +113,6 @@ type Msg
   = APIMsg API.Msg
   | SubpartsMsg (Panel.Msg (Id Subpart))
   | MembersMsg (Panel.Msg (Id Member))
-  | EditName EditableMsg
-  | EditDescription EditableMsg
   | View ViewSelected
   | MessageMember (Id Person) (Id Unit) MessageType
   | MessageSubpart (Id Person) (Id Unit) MessageType
@@ -153,60 +150,6 @@ update pageInfo msg model =
         _ ->
           ( { model | panelMembers = Panel.update m model.panelMembers }
           , Cmd.none
-          )
-
-    EditName m ->
-      case m of
-        EditableEdit ->
-          ( { model | editName = EditableModeEdit }
-          , Cmd.none
-          )
-        EditableUpdate name ->
-          let
-            setName unit nam = { unit | name = nam }
-          in
-          ( { model
-            | info =
-                Maybe.map
-                  (\info -> { info | unit = setName info.unit name })
-                  model.info
-            }
-          , Cmd.none
-          )
-        EditableSave ->
-          ( { model | editName = EditableModeShow }
-          , case model.info of
-              Nothing ->
-                Cmd.none
-              Just info ->
-                Cmd.map APIMsg <| API.updateUnit info.id info.unit
-          )
-
-    EditDescription m ->
-      case m of
-        EditableEdit ->
-          ( { model | editDescription = EditableModeEdit }
-          , Cmd.none
-          )
-        EditableUpdate description ->
-          let
-            setDesc unit desc = { unit | description = desc }
-          in
-          ( { model
-            | info =
-                Maybe.map
-                  (\info -> { info | unit = setDesc info.unit description })
-                  model.info
-            }
-          , Cmd.none
-          )
-        EditableSave ->
-          ( { model | editDescription = EditableModeShow }
-          , case model.info of
-              Nothing ->
-                Cmd.none
-              Just info ->
-                Cmd.map APIMsg <| API.updateUnit info.id info.unit
           )
 
     View selected ->
@@ -344,72 +287,62 @@ view mid model =
           , Html.Attributes.style "height" "100%"
           ]
           [ Html.div
-              [ Html.Attributes.class "column" ]
-              [ Html.div
-                  []
-                  [ Html.strong [] [ Html.text "Chair: " ]
-                  , Html.text <|
-                      case idMapFind (\w -> w.id == info.unit.chair) info.members of
-                        Nothing -> "Loading..."
-                        Just withid -> withid.value.name
-                  ]
-              , Html.div
-                  []
-                  [ Html.strong [] [ Html.text "Description: " ]
-                  , Html.text info.unit.description
-                  ]
-              , Html.div [] <|
-                  if canEdit mid model
-                  then
-                    [ Html.button
-                        [ Html.Attributes.class "button"
-                        , Html.Events.onClick (ViewAdmin info.id)
-                        ]
-                        [ Html.text "Admin" ]
-                    ]
-                  else []
-              , Html.div [] <|
-                  case isMember mid model of
-                    Nothing -> []
-                    Just wid ->
-                      if isMemberPending mid model
-                      then
-                        [ Html.text "Your submission was sent." ]
-                      else
-                        [ Html.button
-                            [ Html.Attributes.class "button"
-                            , Html.Events.onClick (MessageMember wid.id info.id Submission)
+              [ Html.Attributes.class "column is-one-third" ]
+              [ Column.make
+                  "Information"
+                  ( List.concat
+                      [ case mid of
+                          Just (User pinfo) ->
+                            [ { label = "Invite this unit to your unit"
+                              , message = MessageSubpart pinfo.id info.id Invitation
+                              }
+                            , { label = "Make your unit a part of this unit"
+                              , message = MessageSubpart pinfo.id info.id Submission
+                              }
                             ]
-                            [ Html.text "Become a member" ]
-                        ]
-              , Html.div [] <|
-                  case mid of
-                    Just (User pinfo) ->
-                      [ Html.button
-                          [ Html.Attributes.class "button"
-                          , Html.Events.onClick (MessageSubpart pinfo.id info.id Invitation)
-                          ]
-                          [ Html.text "Invite this unit to your unit" ]
+                          _ ->
+                            []
+                      , if canEdit mid model
+                          then
+                            [ { label = "Admin"
+                              , message = ViewAdmin info.id
+                              }
+                            ]
+                          else []
+                      , case isMember mid model of
+                          Nothing -> []
+                          Just wid ->
+                            [ { label = "Become a member"
+                              , message = MessageMember wid.id info.id Submission
+                              }
+                            ]
                       ]
-                    _ ->
+                  )
+                  [ Html.div
                       []
-              , Html.div [] <|
-                  case mid of
-                    Just (User pinfo) ->
-                      [ Html.button
-                          [ Html.Attributes.class "button"
-                          , Html.Events.onClick (MessageSubpart pinfo.id info.id Submission)
-                          ]
-                          [ Html.text "Make your unit a part of this unit" ]
+                      [ Html.strong [] [ Html.text "Chair: " ]
+                      , Html.text <|
+                          case idMapFind (\w -> w.id == info.unit.chair) info.members of
+                            Nothing -> "Loading..."
+                            Just withid -> withid.value.name
                       ]
-                    _ ->
-                       []
+                  , Html.div
+                      [ Html.Attributes.style "white-space" "pre-wrap"
+                      ]
+                      [ Html.strong [] [ Html.text "Description: " ]
+                      , Html.text info.unit.description
+                      ]
+                  , Html.div [] <|
+                      if isMemberPending mid model
+                      then [ Html.text "Your submission was sent." ]
+                      else []
+                  ]
               ]
           , Html.div
-              [ Html.Attributes.class "column" ]
+              [ Html.Attributes.class "column is-one-third" ]
               [ Html.map SubpartsMsg <| Panel.view model.panelChildren ]
           , Html.div
-              [ Html.Attributes.class "column" ]
+              [ Html.Attributes.class "column is-one-third" ]
               [ Html.map MembersMsg <| Panel.view model.panelMembers ]
           ]
       , let

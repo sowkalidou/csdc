@@ -1,5 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module CSDC.DAO where
 
@@ -151,19 +152,14 @@ instance HasDAO Action where
 
   rootUnit = pure rootUnitId
 
-  createUnit pid = do
-    let unit = Unit
-          { unit_name = "New unit"
-          , unit_description = "New unit description"
-          , unit_chair = pid
-          }
+  createUnit unit@(Unit {unit_chair}) = do
     uid <- insert unit
     let member = Member
-          { member_person = pid
+          { member_person = unit_chair
           , member_unit = uid
           }
-    mid <- insertRelation member
-    return $ WithId mid member
+    _ <- insertRelation member
+    return uid
 
   inboxPerson pid = do
     messagesAll <- runSQL $

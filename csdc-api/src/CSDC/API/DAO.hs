@@ -82,7 +82,7 @@ type UnitAPI =
   :<|> CaptureId Unit :> "members" :> GetJSON (IdMap Member (WithId Person))
   :<|> CaptureId Unit :> "children" :> GetJSON (IdMap Subpart (WithId Unit))
   :<|> CaptureId Unit :> "parents" :> GetJSON (IdMap Subpart (WithId Unit))
-  :<|> "create" :> PostJSON (Id Person) (WithId Member)
+  :<|> "create" :> PostJSON Unit (Id Unit)
   :<|> CRUD Unit
 
 serveUnitAPI :: HasDAO m => ServerT UnitAPI m

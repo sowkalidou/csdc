@@ -1,4 +1,4 @@
-module CSDC.Component.Explorer exposing
+module CSDC.View.Explorer exposing
   ( Model
   , initial
   , setup
@@ -10,18 +10,20 @@ module CSDC.Component.Explorer exposing
 import CSDC.API as API
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
-import CSDC.Component.PreviewUnit as PreviewUnit
+import CSDC.View.PreviewUnit as PreviewUnit
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
+import Browser.Dom as Dom
+import Delay
 import Dict
 import List
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Element
+import Task
 
 --------------------------------------------------------------------------------
 -- Model
@@ -65,6 +67,8 @@ type Msg
   | ViewUnit (Id Unit)
   | CloseModal
   | Reset
+  | Focus
+  | FocusResult (Result Dom.Error ())
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
@@ -120,7 +124,10 @@ update pageInfo msg model =
                 Panel.update
                   (Panel.SetItems []) model.right
             }
-          , Cmd.map (APIMsg Right) (API.selectUnit id)
+          , Cmd.batch
+              [ Cmd.map (APIMsg Right) (API.selectUnit id)
+              , Delay.after 0.1 Delay.Second Focus
+              ]
           )
 
         _ ->
@@ -141,6 +148,23 @@ update pageInfo msg model =
     Reset ->
       ( { model | notification = Notification.Empty }
       , Cmd.none
+      )
+
+    Focus ->
+      let
+        calculate p e = e.element.y - p.element.y - p.element.height / 2 + e.element.height / 2
+      in
+      ( model
+      , Task.map2 (\p e -> (p,e)) (Dom.getElement "Units-items") (Dom.getElement "Units-selected-item")
+        |> Task.andThen (\(p,e) -> Dom.setViewportOf "Units-items" 0 (calculate p e))
+        |> Task.attempt FocusResult
+      )
+
+    FocusResult r ->
+      ( model
+      , case r of
+          Err e -> Debug.log ("Could not focus: " ++ Debug.toString e) Cmd.none
+          _ -> Cmd.none
       )
 
     APIMsg component m ->
@@ -257,13 +281,13 @@ view model =
       , Html.Attributes.style "height" "100%"
       ]
       [ Html.div
-          [ Html.Attributes.class "column" ]
+          [ Html.Attributes.class "column is-one-third" ]
           [ Html.map LeftMsg <| Panel.view model.left ]
       , Html.div
-          [ Html.Attributes.class "column" ]
+          [ Html.Attributes.class "column is-one-third" ]
           [ Html.map CenterMsg <| Panel.view model.center ]
       , Html.div
-          [ Html.Attributes.class "column" ]
+          [ Html.Attributes.class "column is-one-third" ]
           [ Html.map RightMsg <| Panel.view model.right ]
       ]
   , let

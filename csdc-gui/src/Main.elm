@@ -1,26 +1,26 @@
 module Main exposing (..)
 
 import CSDC.API as API
-import CSDC.Component.Admin as Admin
-import CSDC.Component.Explorer as Explorer
-import CSDC.Component.InvitationMember as InvitationMember
 import CSDC.Component.Menu as Menu
 import CSDC.Component.Navbar as Navbar
-import CSDC.Component.MessageMember as MessageMember
-import CSDC.Component.MessageSubpart as MessageSubpart
-import CSDC.Component.PreviewMessage as PreviewMessage
-import CSDC.Component.PreviewReply as PreviewReply
-import CSDC.Component.ReplyMember as ReplyMember
-import CSDC.Component.ReplySubpart as ReplySubpart
-import CSDC.Component.Studio as Studio
-import CSDC.Component.ViewPerson as ViewPerson
-import CSDC.Component.ViewUnit as ViewUnit
-import CSDC.Component.ViewUnitAdmin as ViewUnitAdmin
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Page exposing (Page)
 import CSDC.Types exposing (..)
+import CSDC.View.Admin as Admin
+import CSDC.View.Explorer as Explorer
+import CSDC.View.InvitationMember as InvitationMember
+import CSDC.View.MessageMember as MessageMember
+import CSDC.View.MessageSubpart as MessageSubpart
+import CSDC.View.PreviewMessage as PreviewMessage
+import CSDC.View.PreviewReply as PreviewReply
+import CSDC.View.ReplyMember as ReplyMember
+import CSDC.View.ReplySubpart as ReplySubpart
+import CSDC.View.Studio as Studio
+import CSDC.View.ViewPerson as ViewPerson
+import CSDC.View.ViewUnit as ViewUnit
+import CSDC.View.ViewUnitAdmin as ViewUnitAdmin
 
 import Browser
 import Browser.Navigation as Nav
@@ -325,7 +325,7 @@ view model =
       [ Navbar.view
       , Html.div
           [ Html.Attributes.class "columns"
-          , Html.Attributes.attribute "style" "padding:10px; height: calc(100vh - 80px)"
+          , Html.Attributes.attribute "style" "padding:25px; height: calc(100vh - 80px)"
           ]
           [ Html.div
               [ Html.Attributes.class "column is-one-fifth"

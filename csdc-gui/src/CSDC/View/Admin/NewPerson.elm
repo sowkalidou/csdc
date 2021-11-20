@@ -1,4 +1,4 @@
-module CSDC.Component.Admin.NewUnit exposing
+module CSDC.View.Admin.NewPerson exposing
   ( Model
   , initial
   , Msg
@@ -23,13 +23,13 @@ import String
 -- Model
 
 type alias Model =
-  { chair : Field String (Id Person)
+  { name : Field String String
   , notification : Notification
   }
 
 initial : Model
 initial =
-  { chair = Field.requiredId "Chair"
+  { name = Field.requiredString "Name"
   , notification = Notification.Empty
   }
 
@@ -37,7 +37,7 @@ initial =
 -- Update
 
 type Msg
-  = InputId String
+  = InputName String
   | APIMsg API.Msg
   | Submit
   | Reset
@@ -45,31 +45,31 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    InputId str ->
-      ( { model | chair = Field.set str model.chair }
+    InputName name ->
+      ( { model | name = Field.set name model.name }
       , Cmd.none
       )
 
     Submit ->
-      case Validation.validate (Field.validate model.chair) of
+      case Validation.validate (Field.validate model.name) of
         Err e ->
           ( { model | notification = Notification.Error e }
           , Cmd.none
           )
-        Ok id ->
+        Ok name ->
           ( { model | notification = Notification.Processing }
-          , Cmd.map APIMsg <| API.createUnit id
+          , Cmd.map APIMsg <| API.insertPerson (Person name "ORCID" "")
           )
 
     APIMsg apimsg ->
       case apimsg of
-        API.CreateUnit result ->
+        API.InsertPerson result ->
           case result of
             Err err ->
               ( { model | notification = Notification.HttpError err }
               , Cmd.none
               )
-            Ok memberWithId ->
+            Ok _ ->
               ( { initial | notification = Notification.Success }
               , Notification.reset Reset
               )
@@ -89,10 +89,10 @@ view model =
   column [ width <| fillPortion 2, padding 10, spacing 10 ] <|
     [ row
         [ Font.bold, Font.size 30 ]
-        [ text "New Unit" ]
+        [ text "New Person" ]
     , Input.text
-        { onChange = InputId
-        , field = model.chair
+        { onChange = InputName
+        , field = model.name
         }
-    , CSDC.Input.button Submit "Submit"
+    , Element.html <| CSDC.Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)

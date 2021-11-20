@@ -1,4 +1,4 @@
-module CSDC.Component.Admin.NewSubpart exposing
+module CSDC.View.Admin.NewSubpart exposing
   ( Model
   , initial
   , Msg
@@ -115,5 +115,5 @@ view model =
         , field = model.parent
         }
 
-    , CSDC.Input.button Submit "Submit"
+    , Element.html <| CSDC.Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)

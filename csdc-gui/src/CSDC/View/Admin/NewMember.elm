@@ -1,4 +1,4 @@
-module CSDC.Component.Admin.NewPerson exposing
+module CSDC.View.Admin.NewMember exposing
   ( Model
   , initial
   , Msg
@@ -23,13 +23,15 @@ import String
 -- Model
 
 type alias Model =
-  { name : Field String String
+  { person : Field String (Id Person)
+  , unit : Field String (Id Unit)
   , notification : Notification
   }
 
 initial : Model
 initial =
-  { name = Field.requiredString "Name"
+  { person = Field.requiredId "Person"
+  , unit = Field.requiredId "Unit"
   , notification = Notification.Empty
   }
 
@@ -37,7 +39,8 @@ initial =
 -- Update
 
 type Msg
-  = InputName String
+  = InputPerson String
+  | InputUnit String
   | APIMsg API.Msg
   | Submit
   | Reset
@@ -45,25 +48,36 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    InputName name ->
-      ( { model | name = Field.set name model.name }
+    InputPerson str ->
+      ( { model | person = Field.set str model.person }
+      , Cmd.none
+      )
+
+    InputUnit str ->
+      ( { model | unit = Field.set str model.unit }
       , Cmd.none
       )
 
     Submit ->
-      case Validation.validate (Field.validate model.name) of
-        Err e ->
-          ( { model | notification = Notification.Error e }
-          , Cmd.none
-          )
-        Ok name ->
-          ( { model | notification = Notification.Processing }
-          , Cmd.map APIMsg <| API.insertPerson (Person name "ORCID" "")
-          )
+      let
+        result =
+          Validation.valid makeMember
+            |> Validation.andMap (Field.validate model.person)
+            |> Validation.andMap (Field.validate model.unit)
+      in
+        case Validation.validate result of
+          Err e ->
+            ( { model | notification = Notification.Error e }
+            , Cmd.none
+            )
+          Ok member ->
+            ( { model | notification = Notification.Processing }
+            , Cmd.map APIMsg <| API.insertMember member
+            )
 
     APIMsg apimsg ->
       case apimsg of
-        API.InsertPerson result ->
+        API.InsertMember result ->
           case result of
             Err err ->
               ( { model | notification = Notification.HttpError err }
@@ -89,10 +103,17 @@ view model =
   column [ width <| fillPortion 2, padding 10, spacing 10 ] <|
     [ row
         [ Font.bold, Font.size 30 ]
-        [ text "New Person" ]
+        [ text "New Member" ]
+
     , Input.text
-        { onChange = InputName
-        , field = model.name
+        { onChange = InputPerson
+        , field = model.person
         }
-    , CSDC.Input.button Submit "Submit"
+
+    , Input.text
+        { onChange = InputUnit
+        , field = model.unit
+        }
+
+    , Element.html <| CSDC.Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)

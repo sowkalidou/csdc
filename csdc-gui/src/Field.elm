@@ -1,9 +1,11 @@
 module Field exposing
-  ( Field
-  , Status
+  ( Field (..)
+  , Status (..)
   , name
   , raw
+  , status
   , set
+  , reload
   , errors
   , validate
     -- Common
@@ -22,7 +24,7 @@ type Status b
   -- The field was correctly parsed.
   | Valid b
   -- Exists so that initial values do not show errors from the start.
-  | Initial (List String)
+  | Initial
 
 type Field a b = Field
   { -- Name of the field, used for UI and errors.
@@ -41,6 +43,9 @@ name (Field f) = f.name
 raw : Field a b -> a
 raw (Field f) = f.raw
 
+status : Field a b -> Status b
+status (Field f) = f.status
+
 set : a -> Field a b -> Field a b
 set a (Field f) = Field
   { name = f.name
@@ -51,6 +56,9 @@ set a (Field f) = Field
         Ok b -> Valid b
   , validate = f.validate
   }
+
+reload : Field a b -> Field a b
+reload field = set (raw field) field
 
 errors : Field a b -> List String
 errors (Field f) =
@@ -66,7 +74,7 @@ validate (Field f) =
     case f.status of
       Invalid e -> Validation.make <| Err (List.map addPrefix e)
       Valid a -> Validation.make <| Ok a
-      Initial e -> Validation.make <| Err (List.map addPrefix e)
+      Initial -> Validation.make <| Err [addPrefix "Initial field: should not happen"]
 
 --------------------------------------------------------------------------------
 -- Fields
@@ -76,22 +84,19 @@ make n r v = Field
   { name = n
   , raw = r
   , validate = v
-  , status =
-      case Validation.validate (v r) of
-        Err e -> Initial e
-        Ok b -> Valid b
+  , status = Initial
   }
 
 required : String -> Field (Maybe a) a
 required n = make n Nothing <| \m ->
   case m of
-    Nothing -> Validation.invalid "Field is required."
+    Nothing -> Validation.invalid "This field is required."
     Just a -> Validation.valid a
 
 requiredString : String -> Field String String
 requiredString n = make n "" <| \s ->
   if String.isEmpty s
-  then Validation.invalid "String should not be empty."
+  then Validation.invalid "This field is required."
   else Validation.valid s
 
 requiredId : String -> Field String (Id a)

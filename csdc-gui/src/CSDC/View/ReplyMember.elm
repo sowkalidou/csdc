@@ -1,4 +1,4 @@
-module CSDC.Component.ReplyMember exposing
+module CSDC.View.ReplyMember exposing
   ( Param
   , Model
   , initial
@@ -141,7 +141,7 @@ view param model =
         , text = model.text
         , spellcheck = True
         }
-    , CSDC.Input.button Submit "Submit"
+    , Element.html <| CSDC.Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)
 
 selectReplyType : Model -> Element Msg

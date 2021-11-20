@@ -1,4 +1,4 @@
-module CSDC.Component.Studio exposing
+module CSDC.View.Studio exposing
   ( Model
   , initial
   , setup
@@ -10,17 +10,21 @@ module CSDC.Component.Studio exposing
   )
 
 import CSDC.API as API
+import CSDC.Component.Column as Column
+import CSDC.Component.DotMenu as DotMenu
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
-import CSDC.Component.PreviewMessage as PreviewMessage
-import CSDC.Component.PreviewReply as PreviewReply
-import CSDC.Component.PreviewUnit as PreviewUnit
+import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
+import CSDC.Form.Unit as UnitForm
 import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
+import CSDC.View.PreviewMessage as PreviewMessage
+import CSDC.View.PreviewReply as PreviewReply
+import CSDC.View.PreviewUnit as PreviewUnit
 
 import Html exposing (Html)
 import Html.Attributes
@@ -43,16 +47,20 @@ type alias Model =
   , notification : Notification
   , inbox : Inbox
   , selected : Selected
+  , unitCreate : UnitForm.Model
+  , unitCreateOpen : Bool
   }
 
 initial : Model
 initial =
   { info = Nothing
   , panelUnits = Panel.initial "Units"
-  , panelMessages = Panel.initial "Messages"
+  , panelMessages = Panel.initial "Inbox"
   , notification = Notification.Empty
   , inbox = emptyInbox
   , selected = SelectedNothing
+  , unitCreate = UnitForm.initial
+  , unitCreateOpen = False
   }
 
 setup : Id Person -> Cmd Msg
@@ -78,7 +86,9 @@ type Msg
   | PreviewMessageSubpartMsg (PreviewMessage.Msg Subpart)
   | PreviewReplyMemberMsg (PreviewReply.Msg Member)
   | PreviewReplySubpartMsg (PreviewReply.Msg Subpart)
-  | CreateUnit
+  | UnitCreateMsg UnitForm.Msg
+  | UnitCreateOpen
+  | UnitCreateClose
   | View ViewSelected
   | CloseModal
   | Reset
@@ -144,12 +154,46 @@ update pageInfo msg model =
             _ ->
              (model, Cmd.none)
 
-    CreateUnit ->
-      ( model
-      , case model.info of
-          Nothing -> Cmd.none
-          Just info -> Cmd.map APIMsg <| API.createUnit info.id
+    UnitCreateOpen ->
+      ( { model | unitCreateOpen = True }
+      , Cmd.none
       )
+
+    UnitCreateClose ->
+      ( { model | unitCreateOpen = False }
+      , Cmd.none
+      )
+
+    UnitCreateMsg unitMsg ->
+      case model.info of
+        Nothing ->
+          ( model
+          , Cmd.none
+          )
+        Just person ->
+          case unitMsg of
+            UnitForm.APIMsg (API.CreateUnit result) ->
+              let
+                initialUnitCreate = UnitForm.initial
+
+                onSuccess = Notification.withResponse UnitForm.ResetNotification model.unitCreate
+
+                (unitCreate, cmd) = onSuccess result <| \id ->
+                  ( initialUnitCreate
+                  , Page.goTo pageInfo (Page.ViewUnit id)
+                  )
+              in
+                ( { model | unitCreate = unitCreate, unitCreateOpen = False }
+                , Cmd.map UnitCreateMsg cmd
+                )
+
+            _ ->
+              let
+                (unitCreate, cmd) = UnitForm.update API.createUnit person.id unitMsg model.unitCreate
+              in
+                ( { model | unitCreate = unitCreate }
+                , Cmd.map UnitCreateMsg cmd
+                )
 
     PreviewMessageMemberMsg (PreviewMessage.Reply { message, messageType }) ->
       ( model
@@ -231,19 +275,18 @@ update pageInfo msg model =
                 , setup info.id
                 )
 
-        API.CreateUnit result -> onSuccess result <| \member ->
-            let
-              uid = getMemberUnit member.value
-            in
-              ( model
-              , Page.goTo pageInfo (Page.ViewUnit uid)
-              )
-
         _ ->
           (model, Cmd.none)
 
 --------------------------------------------------------------------------------
 -- View
+
+dotMenu : List (DotMenu.Item Msg)
+dotMenu =
+  [ { label = "Create New Unit"
+    , message = UnitCreateOpen
+    }
+  ]
 
 view : Model -> List (Html Msg)
 view model =
@@ -261,39 +304,41 @@ view model =
           , Html.Attributes.style "height" "100%"
           ]
           [ Html.div
-              [ Html.Attributes.class "column" ]
-              [ Html.div
-                  []
-                  [ Html.text info.person.name ]
-              , Html.div
-                  []
-                  [ Html.strong [] [ Html.text "ORCID ID: " ]
-                  , Html.a
-                      [ Html.Attributes.href ("https://orcid.org/" ++ info.person.orcid)
-                      , Html.Attributes.target "_blank"
+              [ Html.Attributes.class "column is-one-third" ]
+              [ Column.make "Information" dotMenu
+                  [ Html.div
+                      []
+                      [ Html.text info.person.name ]
+                  , Html.div
+                      []
+                      [ Html.strong [] [ Html.text "ORCID ID: " ]
+                      , Html.a
+                          [ Html.Attributes.href ("https://orcid.org/" ++ info.person.orcid)
+                          , Html.Attributes.target "_blank"
+                          ]
+                          [ Html.text info.person.orcid ]
                       ]
-                      [ Html.text info.person.orcid ]
-                  ]
-              , Html.div
-                  []
-                  [ Html.text info.person.description ]
-              , Html.div
-                  []
-                  [ Html.button
-                      [ Html.Attributes.class "button is-primary is-pulled-right"
-                      , Html.Events.onClick CreateUnit
-                      ]
-                      [ Html.text "Create New Unit"
-                      ]
+                  , Html.div
+                      []
+                      [ Html.text info.person.description ]
                   ]
               ]
           , Html.div
-              [ Html.Attributes.class "column" ]
+              [ Html.Attributes.class "column is-one-third" ]
               [ Html.map UnitsMsg <| Panel.view model.panelUnits ]
           , Html.div
-              [ Html.Attributes.class "column" ]
+              [ Html.Attributes.class "column is-one-third" ]
               [ Html.map MessagesMsg <| Panel.view model.panelMessages ]
           ]
+
+      , Modal.view model.unitCreateOpen UnitCreateClose <| List.singleton <|
+          Html.map UnitCreateMsg <|
+          Preview.make
+            [ Html.h2
+                []
+                [ Html.text "Create Unit" ]
+            , UnitForm.view model.unitCreate
+            ]
 
       , let
           isActive = case model.selected of
@@ -313,8 +358,19 @@ view model =
                     PreviewUnit.view unit.value <|
                     View (ViewSelectedUnit unit.id)
 
-{-
               SelectedInbox inboxId ->
+                case inboxId of
+                  ReplyMemberId id ->
+                    case idMapLookup id model.inbox.replyMember of
+                      Nothing ->
+                        Html.text "Error."
+                      Just msg ->
+                        Html.map PreviewReplyMemberMsg (PreviewReply.view id msg)
+
+                  _ ->
+                    Html.text "OOO"
+
+{-
                 row
                   [ height <| fillPortion 1
                   , width fill
@@ -328,13 +384,6 @@ view model =
                           List.map (map PreviewMessageMemberMsg) <|
                           PreviewMessage.view id msg
 
-                    ReplyMemberId id ->
-                      case idMapLookup id model.inbox.replyMember of
-                        Nothing ->
-                          [ text "Error." ]
-                        Just msg ->
-                          List.map (map PreviewReplyMemberMsg) <|
-                          PreviewReply.view id msg
 
                     MessageSubpartId id ->
                       case idMapLookup id model.inbox.messageSubpart of
@@ -352,8 +401,6 @@ view model =
                           List.map (map PreviewReplySubpartMsg) <|
                           PreviewReply.view id msg
 -}
-              _ -> Html.div [] []
-
       ] ++ Notification.view model.notification
 
 --------------------------------------------------------------------------------

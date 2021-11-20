@@ -1,4 +1,4 @@
-module CSDC.Component.Admin exposing
+module CSDC.View.Admin exposing
   ( Model
   , initial
   , Msg
@@ -6,12 +6,12 @@ module CSDC.Component.Admin exposing
   , view
   )
 
-import CSDC.Component.Admin.NewMember as NewMember
-import CSDC.Component.Admin.NewMessage as NewMessage
-import CSDC.Component.Admin.NewPerson as NewPerson
-import CSDC.Component.Admin.NewReply as NewReply
-import CSDC.Component.Admin.NewUnit as NewUnit
-import CSDC.Component.Admin.NewSubpart as NewSubpart
+import CSDC.View.Admin.NewMember as NewMember
+import CSDC.View.Admin.NewMessage as NewMessage
+import CSDC.View.Admin.NewPerson as NewPerson
+import CSDC.View.Admin.NewReply as NewReply
+import CSDC.View.Admin.NewUnit as NewUnit
+import CSDC.View.Admin.NewSubpart as NewSubpart
 
 import Browser
 import Element exposing (..)

@@ -64,7 +64,7 @@ view notification =
                   Html.Attributes.class "notification is-danger is-light"
             , Html.Attributes.style "position" "fixed"
             , Html.Attributes.style "z-index" "1"
-            , Html.Attributes.style "bottom" "40px"
+            , Html.Attributes.style "bottom" "20px"
             , Html.Attributes.style "width" "600px"
             , Html.Attributes.style "left" "50%"
             , Html.Attributes.style "transform" "translate(-50%, 0)"
@@ -85,6 +85,7 @@ withResponse :
   (Has model, Cmd msg)
 withResponse resetMsg model result onSuccess =
   case result of
+    -- XXX: Manage 401
     Err err ->
       ( { model | notification = HttpError err }
       , reset resetMsg
