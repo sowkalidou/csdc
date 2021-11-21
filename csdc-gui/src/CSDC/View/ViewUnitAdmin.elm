@@ -8,6 +8,7 @@ module CSDC.View.ViewUnitAdmin exposing
   )
 
 import CSDC.API as API
+import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
 import CSDC.Input as Input
 import CSDC.Notification as Notification
@@ -19,10 +20,9 @@ import CSDC.View.PreviewPerson as PreviewPerson
 import CSDC.View.PreviewReply as PreviewReply
 import CSDC.View.PreviewUnit as PreviewUnit
 
-import Element exposing (..)
-import Element.Font as Font
-import Element.Input as Input
 import Html exposing (Html)
+import Html.Attributes
+import Html.Events
 import String
 import Tuple exposing (pair)
 
@@ -79,6 +79,7 @@ type Msg
   | PreviewReplyMemberMsg (PreviewReply.Msg Member)
   | PreviewReplySubpartMsg (PreviewReply.Msg Subpart)
   | Reset
+  | CloseModal
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
@@ -142,6 +143,11 @@ update pageInfo msg model =
 
     Reset ->
       ( { model | notification = Notification.Empty }
+      , Cmd.none
+      )
+
+    CloseModal ->
+      ( { model | selected = SelectedNothing }
       , Cmd.none
       )
 
@@ -222,78 +228,80 @@ canEdit muser unitInfo =
     Just Admin -> True
     Just (User person) -> person.id == unitInfo.unit.chair
 
-view : Maybe (User PersonInfo) -> Model -> List (Element Msg)
+view : Maybe (User PersonInfo) -> Model -> List (Html Msg)
 view mid model =
   case model.unit of
     Nothing ->
-      [ text "Loading..."
-      ] ++
-      List.map html (Notification.view model.notification)
+      [ Html.text "Loading..."
+      ] ++ Notification.view model.notification
 
     Just unit ->
       if not (canEdit mid unit)
         then
-          [ text "You cannot edit this unit."
+          [ Html.text "You cannot edit this unit."
           ]
         else
-      [ row
-          [ Font.bold, Font.size 30 ]
-          [ text "Unit Admin" ]
-      , row
-          [ height <| fillPortion 1
-          , width fill
-          , spacing 10
-          ]
-          [ map PanelMemberMsg <| Element.html (Panel.view model.panelMember)
-          , map PanelSubpartMsg <| Element.html (Panel.view model.panelSubpart)
-          ]
-      , case model.selected of
-          SelectedNothing ->
-            row [] []
+          [ Html.h1
+              [ Html.Attributes.class "title" ]
+              [ Html.text "Unit Admin" ]
+          , Html.div
+              [ Html.Attributes.class "columns"
+              , Html.Attributes.style "height" "100%"
+              ]
+              [ Html.div
+                  [ Html.Attributes.class "column is-half" ]
+                  [ Html.map PanelMemberMsg <| Panel.view model.panelMember ]
+              , Html.div
+                  [ Html.Attributes.class "column is-half" ]
+                  [ Html.map PanelSubpartMsg <| Panel.view model.panelSubpart ]
+              ]
 
-          SelectedMember memberId ->
-            row
-              [ height <| fillPortion 1
-              , width fill
-              ] <|
-              case memberId of
-                MemberMessage rid ->
-                  case idMapLookup rid model.inbox.messageMember of
-                    Nothing ->
-                      [ text "Error." ]
-                    Just msg ->
-                      List.singleton <| html <|
-                      Html.map PreviewMessageMemberMsg (PreviewMessage.view rid msg)
+          , let
+              isActive = case model.selected of
+                SelectedNothing -> False
+                _ -> True
+            in
+              Modal.view isActive CloseModal <| List.singleton <|
+                case model.selected of
+                  SelectedNothing ->
+                    Html.div [] []
 
-                MemberReply rid ->
-                  case idMapLookup rid model.inbox.replyMember of
-                    Nothing ->
-                      [ text "Error." ]
-                    Just msg ->
-                      List.singleton <| html <|
-                      Html.map PreviewReplyMemberMsg (PreviewReply.view rid msg)
+                  SelectedMember memberId ->
+                    Html.div [] <|
+                      case memberId of
+                        MemberMessage rid ->
+                          case idMapLookup rid model.inbox.messageMember of
+                            Nothing ->
+                              [ Html.text "Error." ]
+                            Just msg ->
+                              List.singleton <|
+                              Html.map PreviewMessageMemberMsg (PreviewMessage.view rid msg)
 
-          SelectedSubpart subpartId ->
-            row
-              [ height <| fillPortion 1
-              , width fill
-              ] <|
-              case subpartId of
-                SubpartMessage rid ->
-                  case idMapLookup rid model.inbox.messageSubpart of
-                    Nothing ->
-                      [ text "Error." ]
-                    Just msg ->
-                      List.singleton <| html <|
-                      Html.map PreviewMessageSubpartMsg (PreviewMessage.view rid msg)
+                        MemberReply rid ->
+                          case idMapLookup rid model.inbox.replyMember of
+                            Nothing ->
+                              [ Html.text "Error." ]
+                            Just msg ->
+                              List.singleton <|
+                              Html.map PreviewReplyMemberMsg (PreviewReply.view rid msg)
 
-                SubpartReply rid ->
-                  case idMapLookup rid model.inbox.replySubpart of
-                    Nothing ->
-                      [ text "Error." ]
-                    Just msg ->
-                      List.singleton <| html <|
-                      Html.map PreviewReplySubpartMsg (PreviewReply.view rid msg)
+                  SelectedSubpart subpartId ->
+                    Html.div [] <|
+                      case subpartId of
+                        SubpartMessage rid ->
+                          case idMapLookup rid model.inbox.messageSubpart of
+                            Nothing ->
+                              [ Html.text "Error." ]
+                            Just msg ->
+                              List.singleton <|
+                              Html.map PreviewMessageSubpartMsg (PreviewMessage.view rid msg)
 
-      ] ++
-      List.map html (Notification.view model.notification)
+                        SubpartReply rid ->
+                          case idMapLookup rid model.inbox.replySubpart of
+                            Nothing ->
+                              [ Html.text "Error." ]
+                            Just msg ->
+                              List.singleton <|
+                              Html.map PreviewReplySubpartMsg (PreviewReply.view rid msg)
+          ] ++
+          Notification.view model.notification

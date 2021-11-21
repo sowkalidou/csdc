@@ -381,8 +381,7 @@ mainPanel model =
         ViewUnit.view model.info model.viewUnit
 
       Page.ViewUnitAdmin _ ->
-        wrapElements <|
-        List.map (Element.map ViewUnitAdminMsg) <|
+        List.map (Html.map ViewUnitAdminMsg) <|
         ViewUnitAdmin.view model.info model.viewUnitAdmin
 
       Page.Admin ->

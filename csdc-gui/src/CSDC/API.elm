@@ -60,7 +60,7 @@ type Msg
 rootPerson : Cmd Msg
 rootPerson =
   Http.get
-    { url = baseUrl ++ "person/root"
+    { url = baseUrl ++ "user"
     , expect = Http.expectJson RootPerson (decodeUser decodeId)
     }
 

@@ -1,5 +1,6 @@
 module CSDC.Input exposing
   ( button
+  , buttonDanger
   , text
   , textarea
   )
@@ -22,6 +23,14 @@ button msg txt =
     [ Html.text txt
     ]
 
+buttonDanger : msg -> String -> Html msg
+buttonDanger msg txt =
+  Html.button
+    [ Html.Attributes.class "button is-danger is-pulled-right"
+    , Html.Events.onClick msg
+    ]
+    [ Html.text txt
+    ]
 
 --------------------------------------------------------------------------------
 -- Text input

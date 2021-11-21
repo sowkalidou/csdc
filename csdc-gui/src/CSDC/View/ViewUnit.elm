@@ -16,7 +16,7 @@ import CSDC.Component.Panel as Panel
 import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
 import CSDC.Form.Unit as UnitForm
-import CSDC.Input exposing (..)
+import CSDC.Input as Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
@@ -53,6 +53,7 @@ type alias Model =
   , inbox : Inbox
   , unitEdit : UnitForm.Model
   , unitEditOpen : Bool
+  , unitDeleteOpen : Bool
   }
 
 initial : Model
@@ -66,6 +67,7 @@ initial =
   , inbox = emptyInbox
   , unitEdit = UnitForm.initial
   , unitEditOpen = False
+  , unitDeleteOpen = False
   }
 
 setup : Id Unit -> Cmd Msg
@@ -127,6 +129,10 @@ type Msg
   | UnitEditMsg UnitForm.Msg
   | UnitEditOpen
   | UnitEditClose
+  | UnitDeleteConfirm
+  | UnitDeleteOpen
+  | UnitDeleteClose
+  | Reset
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
@@ -246,83 +252,93 @@ update pageInfo msg model =
                 , Cmd.map UnitEditMsg cmd
                 )
 
+    UnitDeleteOpen ->
+      ( { model | unitDeleteOpen = True }
+      , Cmd.none
+      )
+
+    UnitDeleteClose ->
+      ( { model | unitDeleteOpen = False }
+      , Cmd.none
+      )
+
+    UnitDeleteConfirm ->
+      case model.info of
+        Nothing ->
+          ( model
+          , Cmd.none
+          )
+        Just unit ->
+          ( model
+          , Cmd.map APIMsg <| API.deleteUnit unit.id
+          )
+
+    Reset ->
+      ( { model | notification = Notification.Empty }
+      , Cmd.none
+      )
+
     APIMsg apimsg ->
+      let
+        onSuccess = Notification.withResponse Reset model
+      in
       case apimsg of
-        API.GetUnitInfo result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok info ->
-              let
-                pairsMembers =
-                  idMapToList info.members |>
-                  List.map (\(id,withid) ->
-                    { index = id
-                    , title = withid.value.name
-                    , description = withid.value.description
-                    }
-                  )
-
-                panelMembers =
-                  Panel.update (Panel.SetItems pairsMembers) model.panelMembers
-
-                pairsChildren =
-                  idMapToList info.children |>
-                  List.map (\(id,withid) ->
-                    { index = id
-                    , title = withid.value.name
-                    , description = withid.value.description
-                    }
-                  )
-
-                panelChildren =
-                  Panel.update (Panel.SetItems pairsChildren) model.panelChildren
-              in
-                ( { model
-                  | info = Just info
-                  , panelMembers = panelMembers
-                  , panelChildren = panelChildren
-                  , selected = SelectedNothing
-                  }
-                , Cmd.none
-                )
-
-        API.UpdateUnit result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok unit ->
-              ( { model | notification = Notification.Success }
-              , Cmd.none
+        API.GetUnitInfo result -> onSuccess result <| \info ->
+          let
+            pairsMembers =
+              idMapToList info.members |>
+              List.map (\(id,withid) ->
+                { index = id
+                , title = withid.value.name
+                , description = withid.value.description
+                }
               )
 
-        API.UnitInbox _ result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok inbox ->
-              ( { model | inbox = inbox }
-              , Cmd.none
+            panelMembers =
+              Panel.update (Panel.SetItems pairsMembers) model.panelMembers
+
+            pairsChildren =
+              idMapToList info.children |>
+              List.map (\(id,withid) ->
+                { index = id
+                , title = withid.value.name
+                , description = withid.value.description
+                }
               )
 
-        API.SendMessageSubpart result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok _ ->
-              ( model
-              , case model.info of
-                  Nothing -> Cmd.none
-                  Just info -> Cmd.map APIMsg <| API.unitInbox info.id
-              )
+            panelChildren =
+              Panel.update (Panel.SetItems pairsChildren) model.panelChildren
+          in
+            ( { model
+              | info = Just info
+              , panelMembers = panelMembers
+              , panelChildren = panelChildren
+              , selected = SelectedNothing
+              }
+            , Cmd.none
+            )
+
+        API.UpdateUnit result -> onSuccess result <| \unit ->
+          ( { model | notification = Notification.Success }
+          , Cmd.none
+          )
+
+        API.UnitInbox _ result -> onSuccess result <| \inbox ->
+          ( { model | inbox = inbox }
+          , Cmd.none
+          )
+
+        API.DeleteUnit result -> onSuccess result <| \_ ->
+          ( { model | unitDeleteOpen = False }
+          , Page.goTo pageInfo Page.Studio
+          )
+
+        API.SendMessageSubpart result -> onSuccess result <| \_ ->
+          ( model
+          , case model.info of
+              Nothing -> Cmd.none
+              Just info -> Cmd.map APIMsg <| API.unitInbox info.id
+          )
 
         _ ->
           (model, Cmd.none)
@@ -352,10 +368,10 @@ view mid model =
                   ( List.concat
                       [ case mid of
                           Just (User pinfo) ->
-                            [ { label = "Invite this unit to your unit"
+                            [ { label = "Invitation for this unit"
                               , message = MessageSubpart pinfo.id info.id Invitation
                               }
-                            , { label = "Make your unit a part of this unit"
+                            , { label = "Submission to this unit"
                               , message = MessageSubpart pinfo.id info.id Submission
                               }
                             ]
@@ -363,11 +379,14 @@ view mid model =
                             []
                       , if canEdit mid model
                           then
-                            [ { label = "Edit Profile"
+                            [ { label = "Edit profile"
                               , message = UnitEditOpen
                               }
                             , { label = "Admin"
                               , message = ViewAdmin info.id
+                              }
+                            , { label = "Delete this unit"
+                              , message = UnitDeleteOpen
                               }
                             ]
                           else []
@@ -415,6 +434,20 @@ view mid model =
                 []
                 [ Html.text "Edit Profile" ]
             , UnitForm.view model.unitEdit
+            ]
+
+      , Modal.view model.unitDeleteOpen UnitDeleteClose <| List.singleton <|
+          Preview.make
+            [ Html.h2
+                []
+                [ Html.text "Delete Unit" ]
+            , Html.p
+                []
+                [ Html.text "Are you sure you want to delete this unit?" ]
+            , Html.p
+                []
+                [ Html.text "This operation is not reversible." ]
+            , Input.buttonDanger UnitDeleteConfirm "Delete"
             ]
 
       , let

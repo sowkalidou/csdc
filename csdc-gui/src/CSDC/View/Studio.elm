@@ -18,7 +18,6 @@ import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
 import CSDC.Form.Unit as UnitForm
 import CSDC.Form.Person as PersonForm
-import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
@@ -458,40 +457,27 @@ view model =
                       Just msg ->
                         Html.map PreviewReplyMemberMsg (PreviewReply.view id msg)
 
-                  _ ->
-                    Html.text "OOO"
+                  MessageMemberId id ->
+                    case idMapLookup id model.inbox.messageMember of
+                      Nothing ->
+                        Html.text "Error."
+                      Just msg ->
+                        Html.map PreviewMessageMemberMsg (PreviewMessage.view id msg)
 
-{-
-                row
-                  [ height <| fillPortion 1
-                  , width fill
-                  ] <|
-                  case inboxId of
-                    MessageMemberId id ->
-                      case idMapLookup id model.inbox.messageMember of
-                        Nothing ->
-                          [ text "Error." ]
-                        Just msg ->
-                          List.map (map PreviewMessageMemberMsg) <|
-                          PreviewMessage.view id msg
+                  MessageSubpartId id ->
+                    case idMapLookup id model.inbox.messageSubpart of
+                      Nothing ->
+                        Html.text "Error."
+                      Just msg ->
+                        Html.map PreviewMessageSubpartMsg (PreviewMessage.view id msg)
 
+                  ReplySubpartId id ->
+                    case idMapLookup id model.inbox.replySubpart of
+                      Nothing ->
+                        Html.text "Error."
+                      Just msg ->
+                        Html.map PreviewReplySubpartMsg (PreviewReply.view id msg)
 
-                    MessageSubpartId id ->
-                      case idMapLookup id model.inbox.messageSubpart of
-                        Nothing ->
-                          [ text "Error." ]
-                        Just msg ->
-                          List.map (map PreviewMessageSubpartMsg) <|
-                          PreviewMessage.view id msg
-
-                    ReplySubpartId id ->
-                      case idMapLookup id model.inbox.replySubpart of
-                        Nothing ->
-                          [ text "Error." ]
-                        Just msg ->
-                          List.map (map PreviewReplySubpartMsg) <|
-                          PreviewReply.view id msg
--}
       ] ++ Notification.view model.notification
 
 --------------------------------------------------------------------------------
@@ -508,22 +494,22 @@ inboxToItems inbox =
   let
     fmm (id, MessageInfo m) =
       { index = MessageMemberId id
-      , title = ""
+      , title = "Invitation from XXX"
       , description = m.text
       }
     frm (id, ReplyInfo r) =
       { index = ReplyMemberId id
-      , title = ""
+      , title = "Reply from XXX"
       , description = r.text
       }
     fms (id, MessageInfo m) =
       { index = MessageSubpartId id
-      , title = ""
+      , title = "Submission from XXX"
       , description = m.text
       }
     frs (id, ReplyInfo r) =
       { index = ReplySubpartId id
-      , title = ""
+      , title = "Reply from XXX"
       , description = r.text
       }
   in
