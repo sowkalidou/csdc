@@ -51,6 +51,7 @@ type alias Model =
   , unitCreateOpen : Bool
   , personEdit : PersonForm.Model
   , personEditOpen : Bool
+  , previewMessage : PreviewMessage.Model
   }
 
 initial : Model
@@ -65,6 +66,7 @@ initial =
   , unitCreateOpen = False
   , personEdit = PersonForm.initial
   , personEditOpen = False
+  , previewMessage = PreviewMessage.initial
   }
 
 setup : Id Person -> Cmd Msg
@@ -252,15 +254,21 @@ update pageInfo msg model =
                 , Cmd.map PersonEditMsg cmd
                 )
 
-    PreviewMessageMemberMsg (PreviewMessage.Reply { message, messageType }) ->
-      ( model
-      , Page.goTo pageInfo (Page.ReplyMember message messageType)
-      )
+    PreviewMessageMemberMsg preMsg ->
+      let
+        (previewMessage, cmd) = PreviewMessage.update preMsg model.previewMessage
+      in
+        ( { model | previewMessage = previewMessage }
+        , Cmd.map PreviewMessageMemberMsg cmd
+        )
 
-    PreviewMessageSubpartMsg (PreviewMessage.Reply { message, messageType }) ->
-      ( model
-      , Page.goTo pageInfo (Page.ReplySubpart message messageType)
-      )
+    PreviewMessageSubpartMsg preMsg ->
+      let
+        (previewMessage, cmd) = PreviewMessage.update preMsg model.previewMessage
+      in
+        ( { model | previewMessage = previewMessage }
+        , Cmd.map PreviewMessageSubpartMsg cmd
+        )
 
     PreviewReplyMemberMsg (PreviewReply.MarkAsSeen id) ->
       ( { model | selected = SelectedNothing }
@@ -462,14 +470,14 @@ view model =
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map PreviewMessageMemberMsg (PreviewMessage.view id msg)
+                        Html.map PreviewMessageMemberMsg (PreviewMessage.view msg model.previewMessage)
 
                   MessageSubpartId id ->
                     case idMapLookup id model.inbox.messageSubpart of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map PreviewMessageSubpartMsg (PreviewMessage.view id msg)
+                        Html.map PreviewMessageSubpartMsg (PreviewMessage.view msg model.previewMessage)
 
                   ReplySubpartId id ->
                     case idMapLookup id model.inbox.replySubpart of

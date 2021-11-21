@@ -49,6 +49,7 @@ type alias Model =
   , panelSubpart : Panel.Model SubpartId
   , selected : Selected
   , notification : Notification
+  , previewMessage : PreviewMessage.Model
   }
 
 initial : Model
@@ -59,6 +60,7 @@ initial =
   , panelSubpart = Panel.initial "Subpart Messages"
   , selected = SelectedNothing
   , notification = Notification.Empty
+  , previewMessage = PreviewMessage.initial
   }
 
 setup : Id Unit -> Cmd Msg
@@ -118,16 +120,21 @@ update pageInfo msg model =
           , Cmd.none
           )
 
-    PreviewMessageMemberMsg (PreviewMessage.Reply r) ->
-          ( model
-          , Page.goTo pageInfo (Page.ReplyMember r.message r.messageType)
-          )
+    PreviewMessageMemberMsg preMsg ->
+      let
+        (previewMessage, cmd) = PreviewMessage.update preMsg model.previewMessage
+      in
+        ( { model | previewMessage = previewMessage }
+        , Cmd.map PreviewMessageMemberMsg cmd
+        )
 
-    PreviewMessageSubpartMsg (PreviewMessage.Reply r) ->
-          ( model
-          , Page.goTo pageInfo (Page.ReplySubpart r.message r.messageType)
-          )
-
+    PreviewMessageSubpartMsg preMsg ->
+      let
+        (previewMessage, cmd) = PreviewMessage.update preMsg model.previewMessage
+      in
+        ( { model | previewMessage = previewMessage }
+        , Cmd.map PreviewMessageSubpartMsg cmd
+        )
 
     PreviewReplyMemberMsg (PreviewReply.MarkAsSeen id) ->
       ( { model | selected = SelectedNothing }
@@ -274,7 +281,8 @@ view mid model =
                               [ Html.text "Error." ]
                             Just msg ->
                               List.singleton <|
-                              Html.map PreviewMessageMemberMsg (PreviewMessage.view rid msg)
+                              Html.map PreviewMessageMemberMsg <|
+                              PreviewMessage.view msg model.previewMessage
 
                         MemberReply rid ->
                           case idMapLookup rid model.inbox.replyMember of
@@ -293,7 +301,8 @@ view mid model =
                               [ Html.text "Error." ]
                             Just msg ->
                               List.singleton <|
-                              Html.map PreviewMessageSubpartMsg (PreviewMessage.view rid msg)
+                              Html.map PreviewMessageSubpartMsg <|
+                              PreviewMessage.view msg model.previewMessage
 
                         SubpartReply rid ->
                           case idMapLookup rid model.inbox.replySubpart of

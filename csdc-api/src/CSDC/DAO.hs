@@ -46,11 +46,14 @@ instance Exception Error
 newtype Action user a = Action (ReaderT (Context user) IO a)
   deriving (Functor, Applicative, Monad, MonadReader (Context user), MonadIO)
 
+-- Actions with authentication needed
+newtype ActionAuth a = Action (Id Person)
+
 run :: MonadIO m => Context user -> Action user a -> m a
 run ctx (Action act) = liftIO $
   runReaderT act ctx
 
-withToken :: UserToken -> Action (Id Person) a -> Action () a
+withToken :: UserToken -> ActionAuth a -> Action () a
 withToken token (Action (ReaderT act)) = do
   pid <- getUserFromToken token
   Action $ ReaderT $ \ctx -> act $ ctx { context_user = pid }
@@ -96,7 +99,7 @@ getUserFromToken (User token) =
     Just uid ->
       pure uid
 
-getUser :: Action (Id Person) (Id Person)
+getUser :: ActionAuth (Id Person)
 getUser = asks context_user
 
 --------------------------------------------------------------------------------
