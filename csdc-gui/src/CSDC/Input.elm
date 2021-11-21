@@ -16,7 +16,7 @@ import Html.Events
 button : msg -> String -> Html msg
 button msg txt =
   Html.button
-    [ Html.Attributes.class "button is-link"
+    [ Html.Attributes.class "button is-link is-pulled-right"
     , Html.Events.onClick msg
     ]
     [ Html.text txt

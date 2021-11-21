@@ -17,6 +17,7 @@ import CSDC.Component.Panel as Panel
 import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
 import CSDC.Form.Unit as UnitForm
+import CSDC.Form.Person as PersonForm
 import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
@@ -49,6 +50,8 @@ type alias Model =
   , selected : Selected
   , unitCreate : UnitForm.Model
   , unitCreateOpen : Bool
+  , personEdit : PersonForm.Model
+  , personEditOpen : Bool
   }
 
 initial : Model
@@ -61,6 +64,8 @@ initial =
   , selected = SelectedNothing
   , unitCreate = UnitForm.initial
   , unitCreateOpen = False
+  , personEdit = PersonForm.initial
+  , personEditOpen = False
   }
 
 setup : Id Person -> Cmd Msg
@@ -89,6 +94,9 @@ type Msg
   | UnitCreateMsg UnitForm.Msg
   | UnitCreateOpen
   | UnitCreateClose
+  | PersonEditMsg PersonForm.Msg
+  | PersonEditOpen
+  | PersonEditClose
   | View ViewSelected
   | CloseModal
   | Reset
@@ -195,6 +203,56 @@ update pageInfo msg model =
                 , Cmd.map UnitCreateMsg cmd
                 )
 
+    PersonEditOpen ->
+      case model.info of
+        Nothing ->
+          ( model
+          , Cmd.none
+          )
+        Just info ->
+          ( { model
+            | personEditOpen = True
+            , personEdit = PersonForm.fromPerson info.person
+            }
+          , Cmd.none
+          )
+
+    PersonEditClose ->
+      ( { model | personEditOpen = False }
+      , Cmd.none
+      )
+
+    PersonEditMsg personMsg ->
+      case model.info of
+        Nothing ->
+          ( model
+          , Cmd.none
+          )
+        Just person ->
+          case personMsg of
+            PersonForm.APIMsg (API.UpdatePerson result) ->
+              let
+                initialPersonEdit = PersonForm.initial
+
+                onSuccess = Notification.withResponse PersonForm.ResetNotification model.personEdit
+
+                (personEdit, cmd) = onSuccess result <| \_ ->
+                  ( initialPersonEdit
+                  , Page.goTo pageInfo Page.Studio
+                  )
+              in
+                ( { model | personEdit = personEdit, personEditOpen = False }
+                , Cmd.map PersonEditMsg cmd
+                )
+
+            _ ->
+              let
+                (personEdit, cmd) = PersonForm.update (API.updatePerson person.id) person.person.orcid personMsg model.personEdit
+              in
+                ( { model | personEdit = personEdit }
+                , Cmd.map PersonEditMsg cmd
+                )
+
     PreviewMessageMemberMsg (PreviewMessage.Reply { message, messageType }) ->
       ( model
       , Page.goTo pageInfo (Page.ReplyMember message messageType)
@@ -283,7 +341,10 @@ update pageInfo msg model =
 
 dotMenu : List (DotMenu.Item Msg)
 dotMenu =
-  [ { label = "Create New Unit"
+  [ { label = "Edit Profile"
+    , message = PersonEditOpen
+    }
+  , { label = "Create New Unit"
     , message = UnitCreateOpen
     }
   ]
@@ -307,19 +368,40 @@ view model =
               [ Html.Attributes.class "column is-one-third" ]
               [ Column.make "Information" dotMenu
                   [ Html.div
-                      []
-                      [ Html.text info.person.name ]
-                  , Html.div
-                      []
-                      [ Html.strong [] [ Html.text "ORCID ID: " ]
-                      , Html.a
-                          [ Html.Attributes.href ("https://orcid.org/" ++ info.person.orcid)
-                          , Html.Attributes.target "_blank"
+                      [ Html.Attributes.class "media"
+                      , Html.Attributes.style "padding-bottom" "25px"
+                      ]
+                      [ Html.div
+                          [ Html.Attributes.class "media-left" ]
+                          [ Html.figure
+                              [ Html.Attributes.class "image is-48x48"
+                              , Html.Attributes.style "margin" "0"
+                              ]
+                              [ Html.img
+                                  [ Html.Attributes.src "https://bulma.io/images/placeholders/96x96.png"
+                                  , Html.Attributes.alt "Profile image"
+                                  ]
+                                  []
+                              ]
                           ]
-                          [ Html.text info.person.orcid ]
+                      , Html.div
+                          [ Html.Attributes.class "media-content" ]
+                          [ Html.p
+                              [ Html.Attributes.class "title is-5" ]
+                              [ Html.text info.person.name ]
+                          , Html.p
+                              [ Html.Attributes.class "subtitle is-6" ]
+                              [ Html.text "ORCID: "
+                              , Html.a
+                                  [ Html.Attributes.href ("https://orcid.org/" ++ info.person.orcid)
+                                  , Html.Attributes.target "_blank"
+                                  ]
+                                  [ Html.text info.person.orcid ]
+                              ]
+                          ]
                       ]
                   , Html.div
-                      []
+                      [ Html.Attributes.class "content"]
                       [ Html.text info.person.description ]
                   ]
               ]
@@ -330,6 +412,15 @@ view model =
               [ Html.Attributes.class "column is-one-third" ]
               [ Html.map MessagesMsg <| Panel.view model.panelMessages ]
           ]
+
+      , Modal.view model.personEditOpen PersonEditClose <| List.singleton <|
+          Html.map PersonEditMsg <|
+          Preview.make
+            [ Html.h2
+                []
+                [ Html.text "Edit Profile" ]
+            , PersonForm.view model.personEdit
+            ]
 
       , Modal.view model.unitCreateOpen UnitCreateClose <| List.singleton <|
           Html.map UnitCreateMsg <|

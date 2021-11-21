@@ -13,7 +13,9 @@ import CSDC.Component.Column as Column
 import CSDC.Component.DotMenu as DotMenu
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
+import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
+import CSDC.Form.Unit as UnitForm
 import CSDC.Input exposing (..)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
@@ -49,6 +51,8 @@ type alias Model =
   , selected : Selected
   , invited : Maybe (Id Unit)
   , inbox : Inbox
+  , unitEdit : UnitForm.Model
+  , unitEditOpen : Bool
   }
 
 initial : Model
@@ -60,6 +64,8 @@ initial =
   , selected = SelectedNothing
   , invited = Nothing
   , inbox = emptyInbox
+  , unitEdit = UnitForm.initial
+  , unitEditOpen = False
   }
 
 setup : Id Unit -> Cmd Msg
@@ -118,6 +124,9 @@ type Msg
   | MessageSubpart (Id Person) (Id Unit) MessageType
   | ViewAdmin (Id Unit)
   | CloseModal
+  | UnitEditMsg UnitForm.Msg
+  | UnitEditOpen
+  | UnitEditClose
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
@@ -186,6 +195,56 @@ update pageInfo msg model =
       ( { model | selected = SelectedNothing }
       , Cmd.none
       )
+
+    UnitEditOpen ->
+      case model.info of
+        Nothing ->
+          ( model
+          , Cmd.none
+          )
+        Just info ->
+          ( { model
+            | unitEditOpen = True
+            , unitEdit = UnitForm.fromUnit info.unit
+            }
+          , Cmd.none
+          )
+
+    UnitEditClose ->
+      ( { model | unitEditOpen = False }
+      , Cmd.none
+      )
+
+    UnitEditMsg unitMsg ->
+      case model.info of
+        Nothing ->
+          ( model
+          , Cmd.none
+          )
+        Just unit ->
+          case unitMsg of
+            UnitForm.APIMsg (API.UpdateUnit result) ->
+              let
+                initialUnitEdit = UnitForm.initial
+
+                onSuccess = Notification.withResponse UnitForm.ResetNotification model.unitEdit
+
+                (unitEdit, cmd) = onSuccess result <| \_ ->
+                  ( initialUnitEdit
+                  , Page.goTo pageInfo (Page.ViewUnit unit.id)
+                  )
+              in
+                ( { model | unitEdit = unitEdit, unitEditOpen = False }
+                , Cmd.map UnitEditMsg cmd
+                )
+
+            _ ->
+              let
+                (unitEdit, cmd) = UnitForm.update (API.updateUnit unit.id) unit.unit.chair unitMsg model.unitEdit
+              in
+                ( { model | unitEdit = unitEdit }
+                , Cmd.map UnitEditMsg cmd
+                )
 
     APIMsg apimsg ->
       case apimsg of
@@ -304,7 +363,10 @@ view mid model =
                             []
                       , if canEdit mid model
                           then
-                            [ { label = "Admin"
+                            [ { label = "Edit Profile"
+                              , message = UnitEditOpen
+                              }
+                            , { label = "Admin"
                               , message = ViewAdmin info.id
                               }
                             ]
@@ -345,6 +407,16 @@ view mid model =
               [ Html.Attributes.class "column is-one-third" ]
               [ Html.map MembersMsg <| Panel.view model.panelMembers ]
           ]
+
+      , Modal.view model.unitEditOpen UnitEditClose <| List.singleton <|
+          Html.map UnitEditMsg <|
+          Preview.make
+            [ Html.h2
+                []
+                [ Html.text "Edit Profile" ]
+            , UnitForm.view model.unitEdit
+            ]
+
       , let
           isActive = case model.selected of
             SelectedNothing -> False

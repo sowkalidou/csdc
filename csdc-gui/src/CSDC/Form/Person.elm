@@ -1,7 +1,7 @@
-module CSDC.Form.Unit exposing
+module CSDC.Form.Person exposing
   ( Model
   , initial
-  , fromUnit
+  , fromPerson
   , Msg (..)
   , update
   , view
@@ -31,11 +31,11 @@ initial =
   , notification = Notification.Empty
   }
 
-fromUnit : Unit -> Model
-fromUnit unit =
+fromPerson : Person -> Model
+fromPerson person =
   { initial
-  | name = Field.set unit.name initial.name
-  , description = Field.set unit.description initial.description
+  | name = Field.set person.name initial.name
+  , description = Field.set person.description initial.description
   }
 
 reload : Model -> Model
@@ -52,8 +52,8 @@ type Msg
   | Save
   | APIMsg API.Msg
 
-update : (Unit -> Cmd API.Msg) -> Id Person -> Msg -> Model -> (Model, Cmd Msg)
-update makeAPIMsg chair msg model =
+update : (Person -> Cmd API.Msg) -> String -> Msg -> Model -> (Model, Cmd Msg)
+update makeAPIMsg orcid msg model =
   case msg of
     SetName val ->
       ( { model | name = Field.set val model.name }
@@ -77,7 +77,7 @@ update makeAPIMsg chair msg model =
           Validation.valid
             { name = name
             , description = description
-            , chair = chair
+            , orcid = orcid
             }
       in
         case Validation.validate result of

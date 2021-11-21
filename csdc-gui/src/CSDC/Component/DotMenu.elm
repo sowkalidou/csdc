@@ -41,7 +41,7 @@ make items =
         , Html.Attributes.attribute "role" "menu"
         ]
         [ Html.div
-            [ Html.Attributes.class "dropdown-content"
+            [ Html.Attributes.class "dropdown-content has-text-right"
             ]
             (List.map makeItem items)
         ]

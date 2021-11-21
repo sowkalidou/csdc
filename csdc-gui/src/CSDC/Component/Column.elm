@@ -19,6 +19,7 @@ make title items children =
     [ Html.div
         [ Html.Attributes.class
             "is-flex is-flex-direction-row is-justify-content-space-between"
+        , Html.Attributes.style "padding" "5px"
         ] <|
         [ viewTitle title
         ] ++
