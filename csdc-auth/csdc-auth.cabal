@@ -37,7 +37,6 @@ executable auth-test-server
 library
   exposed-modules:
     CSDC.Auth
-    CSDC.Auth.Admin
     CSDC.Auth.OAuth2
     CSDC.Auth.ORCID
     CSDC.Auth.User

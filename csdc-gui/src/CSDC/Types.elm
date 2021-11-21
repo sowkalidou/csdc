@@ -81,22 +81,7 @@ idMapFind pred (IdMap b) =
 --------------------------------------------------------------------------------
 -- User
 
-type User a = Admin | User a
-type alias UserId = User (Id Person)
-
-decodeUser : Decoder a -> Decoder (User a)
-decodeUser decode =
-  let
-    checkTag tag =
-      case tag of
-        "Admin" ->
-          Decoder.succeed Admin
-        "User" ->
-          Decoder.field "contents" decode |> Decoder.map User
-        _ ->
-          Decoder.fail "Invalid tag for User JSON."
-  in
-    Decoder.field "tag" Decoder.string |> Decoder.andThen checkTag
+type alias UserId = Id Person
 
 --------------------------------------------------------------------------------
 -- Person

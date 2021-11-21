@@ -6,8 +6,8 @@ module CSDC.Auth.User
 
 import Data.Aeson.TH (deriveJSON, defaultOptions)
 
--- | The current user of the server API. It can be either an admin or an user.
-data User user = Admin | User user
+-- | The current user of the server API.
+newtype User user = User user
   deriving (Show, Eq)
 
 deriveJSON defaultOptions ''User

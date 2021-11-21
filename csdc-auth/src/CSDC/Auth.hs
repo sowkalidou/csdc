@@ -11,7 +11,6 @@ module CSDC.Auth
 
 import CSDC.Auth.User (User (..))
 
-import qualified CSDC.Auth.Admin as Admin
 import qualified CSDC.Auth.ORCID as ORCID
 
 import qualified Data.ByteString.Lazy as L
@@ -41,20 +40,17 @@ import qualified Data.HashMap.Strict as HashMap
 
 data Config = Config
   { config_orcid :: ORCID.Config
-  , config_admin :: Admin.Token ORCID.Token
   } deriving (Show, Eq)
 
 instance ToJSON Config where
   toJSON config = object
     [ "orcid" .= config_orcid config
-    , "admin" .= config_admin config
     ]
 
 instance FromJSON Config where
   parseJSON = withObject "Config" $ \o ->
     Config <$>
-      o .: "orcid" <*>
-      o .: "admin"
+      o .: "orcid"
 
 --------------------------------------------------------------------------------
 -- Middleware
@@ -65,7 +61,6 @@ settings config =
     providers =
       HashMap.fromList
         [ ("orcid", Provider $ ORCID.oauth2 $ config_orcid config)
-        , ("admin", Provider $ config_admin config)
         ]
   in
     setAuthProviders providers $

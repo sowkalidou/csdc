@@ -16,7 +16,6 @@ module CSDC.Config
 import CSDC.Prelude
 
 import qualified CSDC.Auth as Auth
-import qualified CSDC.Auth.Admin as Admin
 import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.DAO as DAO
 import qualified CSDC.SQL as SQL
@@ -28,7 +27,6 @@ import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
 
 import Data.Text as Text
-import qualified Data.Text.Encoding as Text.Encoding
 import qualified Data.ByteString.Lazy.Char8 as ByteString
 
 --------------------------------------------------------------------------------
@@ -136,14 +134,10 @@ activate config secret = do
             , ORCID.config_secret = secret_orcidSecret secret
             , ORCID.config_endpoint = config_orcidEndpoint config
             }
-        , Auth.config_admin = Admin.Token
-            { Admin.token_value =
-                Text.Encoding.encodeUtf8 (secret_token secret)
-            }
         }
     , context_dao = DAO.Context
         { DAO.context_sql = sql
-        , DAO.context_token = ()
+        , DAO.context_user = ()
         }
     , context_migration = config_migration config
     }

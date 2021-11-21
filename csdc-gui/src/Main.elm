@@ -58,7 +58,7 @@ type alias Model =
   { key: Nav.Key
   , url: Url.Url
   , page : Page
-  , info : Maybe (User PersonInfo)
+  , info : Maybe PersonInfo
   , admin : Admin.Model
   , viewPerson : ViewPerson.Model
   , viewUnit : ViewUnit.Model
@@ -282,18 +282,12 @@ update msg model =
               , Cmd.none
               )
             Ok id ->
-              case id of
-                Admin ->
-                  ( { model | info = Just Admin }
-                  , Cmd.none
-                  )
-                User pid ->
-                  ( model
-                  , Cmd.batch
-                      [ Cmd.map StudioMsg <| Studio.setup pid
-                      , Cmd.map APIMsg <| API.getPersonInfo pid
-                      ]
-                  )
+              ( model
+              , Cmd.batch
+                  [ Cmd.map StudioMsg <| Studio.setup id
+                  , Cmd.map APIMsg <| API.getPersonInfo id
+                  ]
+              )
 
         API.GetPersonInfo result ->
           case result of
@@ -302,7 +296,7 @@ update msg model =
               , Cmd.none
               )
             Ok info ->
-              ( { model | info = Just (User info) }
+              ( { model | info = Just info }
               , Cmd.none
               )
 
@@ -392,7 +386,7 @@ mainPanel model =
       Page.InvitationMember pid ->
         wrapElements <|
         case model.info of
-          Just (User person) ->
+          Just person ->
             let
               param = {person = pid, user = person}
               toMsg = InvitationMemberMsg param

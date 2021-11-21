@@ -30,7 +30,7 @@ type API =
        Auth :> "api" :> DAO.API
   :<|> Raw
 
-serveAPI :: FilePath -> DAO.Server () API
+serveAPI :: FilePath -> ServerT API (Action ())
 serveAPI path =
          serveDAOAPI
     :<|> serveDirectoryWith (options path)

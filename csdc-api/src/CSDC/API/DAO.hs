@@ -12,7 +12,7 @@ import Servant hiding (Server)
 --------------------------------------------------------------------------------
 -- Synonyms
 
-type Server token api = ServerT api (Action token)
+type Server api = ServerT api (Action (Id Person))
 type GetJSON a = Get '[JSON] a
 type PostJSON a b = ReqBody '[JSON] a :> Post '[JSON] b
 type DeleteJSON a = Delete '[JSON] a
@@ -21,9 +21,9 @@ type CaptureId a = Capture "id" (Id a)
 --------------------------------------------------------------------------------
 -- User API
 
-type UserAPI = GetJSON UserId
+type UserAPI = GetJSON (Id Person)
 
-serveUserAPI :: Server UserToken UserAPI
+serveUserAPI :: Server UserAPI
 serveUserAPI = getUser
 
 --------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ type PersonAPI =
   :<|> CaptureId Person :> "info" :> GetJSON (Maybe PersonInfo)
   :<|> CaptureId Person :> "units" :> GetJSON (IdMap Member Unit)
 
-servePersonAPI :: Server token PersonAPI
+servePersonAPI :: Server PersonAPI
 servePersonAPI =
        selectPerson
   :<|> insertPerson
@@ -61,7 +61,7 @@ type UnitAPI =
   :<|> CaptureId Unit :> "parents" :> GetJSON (IdMap Subpart (WithId Unit))
   :<|> "create" :> PostJSON Unit (Id Unit)
 
-serveUnitAPI :: Server token UnitAPI
+serveUnitAPI :: Server UnitAPI
 serveUnitAPI =
        rootUnit
   :<|> selectUnit
@@ -83,7 +83,7 @@ type MemberAPI =
   :<|> PostJSON Member (Id Member)
   :<|> CaptureId Member :> DeleteJSON ()
 
-serveMemberAPI :: Server token MemberAPI
+serveMemberAPI :: Server MemberAPI
 serveMemberAPI =
        selectMembersByPerson
   :<|> selectMembersByUnit
@@ -99,7 +99,7 @@ type SubpartAPI =
   :<|> PostJSON Subpart (Id Subpart)
   :<|> CaptureId Subpart :> DeleteJSON ()
 
-serveSubpartAPI :: Server token SubpartAPI
+serveSubpartAPI :: Server SubpartAPI
 serveSubpartAPI =
        selectSubpartsByChild
   :<|> selectSubpartsByParent
@@ -114,7 +114,7 @@ type MessageMemberAPI =
   :<|> "reply" :> PostJSON (Reply Member) (Id (Reply Member))
   :<|> "view" :> PostJSON (Id (Reply Member)) ()
 
-serveMessageMemberAPI :: Server token MessageMemberAPI
+serveMessageMemberAPI :: Server MessageMemberAPI
 serveMessageMemberAPI =
        sendMessageMember
   :<|> sendReplyMember
@@ -125,7 +125,7 @@ type MessageSubpartAPI =
   :<|> "reply" :> PostJSON (Reply Subpart) (Id (Reply Subpart))
   :<|> "view" :> PostJSON (Id (Reply Subpart)) ()
 
-serveMessageSubpartAPI :: Server token MessageSubpartAPI
+serveMessageSubpartAPI :: Server MessageSubpartAPI
 serveMessageSubpartAPI =
        sendMessageSubpart
   :<|> sendReplySubpart
@@ -137,7 +137,7 @@ type MessageAPI =
   :<|> "inbox" :> "person" :> CaptureId Person :> GetJSON Inbox
   :<|> "inbox" :> "unit" :> CaptureId Unit :> GetJSON Inbox
 
-serveMessageAPI :: Server token MessageAPI
+serveMessageAPI :: Server MessageAPI
 serveMessageAPI =
        serveMessageMemberAPI
   :<|> serveMessageSubpartAPI
@@ -155,7 +155,7 @@ type API =
   :<|> "subpart" :> SubpartAPI
   :<|> "message" :> MessageAPI
 
-serveAPI :: Server UserToken API
+serveAPI :: Server API
 serveAPI =
        serveUserAPI
   :<|> servePersonAPI

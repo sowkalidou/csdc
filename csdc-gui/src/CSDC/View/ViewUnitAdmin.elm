@@ -221,14 +221,13 @@ update pageInfo msg model =
 --------------------------------------------------------------------------------
 -- View
 
-canEdit : Maybe (User PersonInfo) -> UnitInfo -> Bool
+canEdit : Maybe PersonInfo -> UnitInfo -> Bool
 canEdit muser unitInfo =
   case muser of
     Nothing -> False
-    Just Admin -> True
-    Just (User person) -> person.id == unitInfo.unit.chair
+    Just person -> person.id == unitInfo.unit.chair
 
-view : Maybe (User PersonInfo) -> Model -> List (Html Msg)
+view : Maybe PersonInfo -> Model -> List (Html Msg)
 view mid model =
   case model.unit of
     Nothing ->

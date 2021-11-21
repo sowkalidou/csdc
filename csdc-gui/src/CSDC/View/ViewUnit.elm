@@ -77,12 +77,11 @@ setup id =
     , Cmd.map APIMsg <| API.unitInbox id
     ]
 
-canEdit : Maybe (User PersonInfo) -> Model -> Bool
+canEdit : Maybe PersonInfo -> Model -> Bool
 canEdit mid model =
   case mid of
     Nothing -> False
-    Just Admin -> True
-    Just (User pinfo) ->
+    Just pinfo ->
       case model.info of
         Nothing -> False
         Just info ->
@@ -90,10 +89,10 @@ canEdit mid model =
             Nothing -> False
             Just member -> pinfo.id == member.id
 
-isMember : Maybe (User PersonInfo) -> Model -> Maybe (WithId Person)
+isMember : Maybe PersonInfo -> Model -> Maybe (WithId Person)
 isMember mid model =
   case mid of
-    Just (User pinfo) ->
+    Just pinfo ->
       case model.info of
         Nothing -> Nothing
         Just info ->
@@ -103,13 +102,13 @@ isMember mid model =
     _ ->
       Nothing
 
-isMemberPending : Maybe (User PersonInfo) -> Model -> Bool
+isMemberPending : Maybe PersonInfo -> Model -> Bool
 isMemberPending mid model =
   let
     getMessagePerson (MessageInfo m) = getMemberPerson m.value
   in
   case mid of
-    Just (User info) ->
+    Just info ->
       idMapAny (\m -> getMessagePerson m == info.id) model.inbox.messageMember
     _ ->
       False
@@ -346,7 +345,7 @@ update pageInfo msg model =
 --------------------------------------------------------------------------------
 -- View
 
-view : Maybe (User PersonInfo) -> Model -> List (Html Msg)
+view : Maybe PersonInfo -> Model -> List (Html Msg)
 view mid model =
   case model.info of
     Nothing ->
@@ -367,7 +366,7 @@ view mid model =
                   "Information"
                   ( List.concat
                       [ case mid of
-                          Just (User pinfo) ->
+                          Just pinfo ->
                             [ { label = "Invitation for this unit"
                               , message = MessageSubpart pinfo.id info.id Invitation
                               }

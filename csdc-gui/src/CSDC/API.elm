@@ -61,7 +61,7 @@ rootPerson : Cmd Msg
 rootPerson =
   Http.get
     { url = baseUrl ++ "user"
-    , expect = Http.expectJson RootPerson (decodeUser decodeId)
+    , expect = Http.expectJson RootPerson decodeId
     }
 
 getPersonInfo : Id Person -> Cmd Msg
