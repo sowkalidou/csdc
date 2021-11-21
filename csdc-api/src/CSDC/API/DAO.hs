@@ -1,129 +1,146 @@
 module CSDC.API.DAO
-  ( API
+  ( Server
+  , API
   , serveAPI
   ) where
 
+import CSDC.DAO
 import CSDC.Prelude hiding (JSON)
 
-import GHC.Types (Symbol)
-import Servant
+import Servant hiding (Server)
 
 --------------------------------------------------------------------------------
 -- Synonyms
 
+type Server token api = ServerT api (Action token)
 type GetJSON a = Get '[JSON] a
 type PostJSON a b = ReqBody '[JSON] a :> Post '[JSON] b
 type DeleteJSON a = Delete '[JSON] a
 type CaptureId a = Capture "id" (Id a)
 
 --------------------------------------------------------------------------------
--- CRUD, REL and MSG API
+-- User API
 
-type CRUD a =
-       CaptureId a :> GetJSON (Maybe a)
-  :<|> PostJSON a (Id a)
-  :<|> CaptureId a :> PostJSON a ()
-  :<|> CaptureId a :> DeleteJSON ()
+type UserAPI = GetJSON UserId
 
-serveCRUD :: HasCRUD a m => ServerT (CRUD a) m
-serveCRUD =
-       select
-  :<|> insert
-  :<|> update
-  :<|> delete
-
-type REL (left :: Symbol) (right :: Symbol) r =
-       left :> CaptureId (RelationL r) :> GetJSON (IdMap r r)
-  :<|> right :> CaptureId (RelationR r) :> GetJSON (IdMap r r)
-  :<|> PostJSON r (Id r)
-  :<|> CaptureId r :> DeleteJSON ()
-
-serveREL ::
-  (IsRelation r, HasRelation r m) => ServerT (REL left right r) m
-serveREL =
-       selectRelationL
-  :<|> selectRelationR
-  :<|> insertRelation
-  :<|> deleteRelation
-
-type MSG r =
-       "send" :> PostJSON (Message r) (Id (Message r))
-  :<|> "reply" :> PostJSON (Reply r) (Id (Reply r))
-  :<|> "view" :> PostJSON (Id (Reply r)) ()
-
-serveMSG :: (Show r, HasMessage r m) => ServerT (MSG r) m
-serveMSG =
-       sendMessage
-  :<|> sendReply
-  :<|> viewReply
+serveUserAPI :: Server UserToken UserAPI
+serveUserAPI = getUser
 
 --------------------------------------------------------------------------------
 -- Person API
 
 type PersonAPI =
-       "root" :> GetJSON UserId
+       CaptureId Person :> GetJSON (Maybe Person)
+  :<|> PostJSON Person (Id Person)
+  :<|> CaptureId Person :> PostJSON Person ()
+  :<|> CaptureId Person :> DeleteJSON ()
   :<|> CaptureId Person :> "info" :> GetJSON (Maybe PersonInfo)
   :<|> CaptureId Person :> "units" :> GetJSON (IdMap Member Unit)
-  :<|> CRUD Person
 
-servePersonAPI :: (HasUser m, HasDAO m) => ServerT PersonAPI m
+servePersonAPI :: Server token PersonAPI
 servePersonAPI =
-       getUser
+       selectPerson
+  :<|> insertPerson
+  :<|> updatePerson
+  :<|> deletePerson
   :<|> getPersonInfo
   :<|> getUserUnits
-  :<|> serveCRUD
 
 --------------------------------------------------------------------------------
 -- Unit API
 
 type UnitAPI =
        "root" :> Get '[JSON] (Id Unit)
+  :<|> CaptureId Unit :> GetJSON (Maybe Unit)
+  :<|> PostJSON Unit (Id Unit)
+  :<|> CaptureId Unit :> PostJSON Unit ()
+  :<|> CaptureId Unit :> DeleteJSON ()
   :<|> CaptureId Unit :> "info" :> GetJSON (Maybe UnitInfo)
   :<|> CaptureId Unit :> "members" :> GetJSON (IdMap Member (WithId Person))
   :<|> CaptureId Unit :> "children" :> GetJSON (IdMap Subpart (WithId Unit))
   :<|> CaptureId Unit :> "parents" :> GetJSON (IdMap Subpart (WithId Unit))
   :<|> "create" :> PostJSON Unit (Id Unit)
-  :<|> CRUD Unit
 
-serveUnitAPI :: HasDAO m => ServerT UnitAPI m
+serveUnitAPI :: Server token UnitAPI
 serveUnitAPI =
        rootUnit
+  :<|> selectUnit
+  :<|> insertUnit
+  :<|> updateUnit
+  :<|> deleteUnit
   :<|> getUnitInfo
   :<|> getUnitMembers
   :<|> getUnitChildren
   :<|> getUnitParents
   :<|> createUnit
-  :<|> serveCRUD
 
 --------------------------------------------------------------------------------
 -- Member API
 
-type MemberAPI = REL "person" "unit" Member
+type MemberAPI =
+       "person" :> CaptureId Person :> GetJSON (IdMap Member Member)
+  :<|> "unit" :> CaptureId Unit :> GetJSON (IdMap Member Member)
+  :<|> PostJSON Member (Id Member)
+  :<|> CaptureId Member :> DeleteJSON ()
 
-serveMemberAPI :: HasDAO m => ServerT MemberAPI m
-serveMemberAPI = serveREL
+serveMemberAPI :: Server token MemberAPI
+serveMemberAPI =
+       selectMembersByPerson
+  :<|> selectMembersByUnit
+  :<|> insertMember
+  :<|> deleteMember
 
 --------------------------------------------------------------------------------
 -- Subpart API
 
-type SubpartAPI = REL "child" "parent" Subpart
+type SubpartAPI =
+       "child" :> CaptureId Unit :> GetJSON (IdMap Subpart Subpart)
+  :<|> "parent" :> CaptureId Unit :> GetJSON (IdMap Subpart Subpart)
+  :<|> PostJSON Subpart (Id Subpart)
+  :<|> CaptureId Subpart :> DeleteJSON ()
 
-serveSubpartAPI :: HasDAO m => ServerT SubpartAPI m
-serveSubpartAPI = serveREL
+serveSubpartAPI :: Server token SubpartAPI
+serveSubpartAPI =
+       selectSubpartsByChild
+  :<|> selectSubpartsByParent
+  :<|> insertSubpart
+  :<|> deleteSubpart
 
 --------------------------------------------------------------------------------
 -- Message API
 
+type MessageMemberAPI =
+       "send" :> PostJSON (Message Member) (Id (Message Member))
+  :<|> "reply" :> PostJSON (Reply Member) (Id (Reply Member))
+  :<|> "view" :> PostJSON (Id (Reply Member)) ()
+
+serveMessageMemberAPI :: Server token MessageMemberAPI
+serveMessageMemberAPI =
+       sendMessageMember
+  :<|> sendReplyMember
+  :<|> viewReplyMember
+
+type MessageSubpartAPI =
+       "send" :> PostJSON (Message Subpart) (Id (Message Subpart))
+  :<|> "reply" :> PostJSON (Reply Subpart) (Id (Reply Subpart))
+  :<|> "view" :> PostJSON (Id (Reply Subpart)) ()
+
+serveMessageSubpartAPI :: Server token MessageSubpartAPI
+serveMessageSubpartAPI =
+       sendMessageSubpart
+  :<|> sendReplySubpart
+  :<|> viewReplySubpart
+
 type MessageAPI =
-       "member" :> MSG Member
-  :<|> "subpart" :> MSG Subpart
+       "member" :> MessageMemberAPI
+  :<|> "subpart" :> MessageSubpartAPI
   :<|> "inbox" :> "person" :> CaptureId Person :> GetJSON Inbox
   :<|> "inbox" :> "unit" :> CaptureId Unit :> GetJSON Inbox
 
-serveMessageAPI :: HasDAO m => ServerT MessageAPI m
+serveMessageAPI :: Server token MessageAPI
 serveMessageAPI =
-       serveMSG
-  :<|> serveMSG
+       serveMessageMemberAPI
+  :<|> serveMessageSubpartAPI
   :<|> inboxPerson
   :<|> inboxUnit
 
@@ -131,15 +148,17 @@ serveMessageAPI =
 -- API
 
 type API =
-       "person" :> PersonAPI
+       "user" :> UserAPI
+  :<|> "person" :> PersonAPI
   :<|> "unit" :> UnitAPI
   :<|> "member" :> MemberAPI
   :<|> "subpart" :> SubpartAPI
   :<|> "message" :> MessageAPI
 
-serveAPI :: (HasUser m, HasDAO m) => ServerT API m
+serveAPI :: Server UserToken API
 serveAPI =
-       servePersonAPI
+       serveUserAPI
+  :<|> servePersonAPI
   :<|> serveUnitAPI
   :<|> serveMemberAPI
   :<|> serveSubpartAPI

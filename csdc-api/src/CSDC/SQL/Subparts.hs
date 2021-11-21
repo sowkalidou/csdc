@@ -5,6 +5,7 @@ module CSDC.SQL.Subparts
   , selectR
   , insert
   , delete
+  , deleteUnit
   ) where
 
 import CSDC.DAO.Types (Unit, Subpart (..))
@@ -85,6 +86,18 @@ delete = Statement sql encoder decoder True
     sql = ByteString.unlines
       [ "DELETE FROM subparts"
       , "WHERE id = $1"
+      ]
+
+    encoder = Encoder.id
+
+    decoder = Decoder.noResult
+
+deleteUnit :: Statement (Id Unit) ()
+deleteUnit = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "DELETE FROM subparts"
+      , "WHERE child = $1 OR parent = $1"
       ]
 
     encoder = Encoder.id

@@ -4,6 +4,7 @@
 
 module CSDC.DAO where
 
+import CSDC.Auth.User (User (..))
 import CSDC.Prelude
 
 import qualified CSDC.Auth.ORCID as ORCID
@@ -17,16 +18,18 @@ import qualified CSDC.SQL.Subparts as SQL.Subparts
 import qualified CSDC.SQL.Units as SQL.Units
 
 import Control.Exception (Exception, throwIO)
+import Control.Monad (forM)
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
 
 --------------------------------------------------------------------------------
 -- Context
 
-data Context = Context
+data Context token = Context
   { context_sql :: SQL.Context
+  , context_token :: token
   } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Context
+    deriving (FromJSON, ToJSON) via JSON (Context token)
 
 --------------------------------------------------------------------------------
 -- Error
@@ -40,16 +43,20 @@ instance Exception Error
 --------------------------------------------------------------------------------
 -- Action
 
-newtype Action a = Action (ReaderT Context IO a)
-  deriving (Functor, Applicative, Monad, MonadReader Context, MonadIO)
+newtype Action token a = Action (ReaderT (Context token) IO a)
+  deriving (Functor, Applicative, Monad, MonadReader (Context token), MonadIO)
 
-run :: MonadIO m => Context -> Action a -> m a
+run :: MonadIO m => Context token -> Action token a -> m a
 run ctx (Action act) = liftIO $
   runReaderT act ctx
 
-check :: Action ()
+withToken :: token -> Action token a -> Action () a
+withToken token (Action (ReaderT act)) = Action $ ReaderT $ \ctx ->
+  act $ ctx { context_token = token }
+
+check :: Action token ()
 check = do
-  select rootUnitId >>= \case
+  selectUnit rootUnitId >>= \case
     Nothing -> do
       let person = Person "President" "" (ORCID.Id "")
       runSQL $ SQL.query SQL.Persons.insertAt (rootPersonId,person)
@@ -61,7 +68,7 @@ check = do
     Just _ ->
       pure ()
 
-runSQL :: SQL.Action a -> Action a
+runSQL :: SQL.Action a -> Action token a
 runSQL act = do
   ctx <- asks context_sql
   SQL.run ctx act >>= \case
@@ -71,181 +78,329 @@ runSQL act = do
       pure a
 
 --------------------------------------------------------------------------------
--- Capabilities
+-- User
 
-instance HasCRUD Person Action where
-  select i = runSQL $ SQL.query SQL.Persons.select i
-  insert p = runSQL $ SQL.query SQL.Persons.insert p
-  update i p = runSQL $ SQL.query SQL.Persons.update (i,p)
-  delete i = runSQL $ SQL.query SQL.Persons.delete i
+type UserId = User (Id Person)
 
-instance HasCRUD Unit Action where
-  select i = runSQL $ SQL.query SQL.Units.select i
-  insert p = runSQL $ SQL.query SQL.Units.insert p
-  update i p = runSQL $ SQL.query SQL.Units.update (i,p)
-  delete i = runSQL $ SQL.query SQL.Units.delete i
+getUser :: Action UserToken UserId
+getUser =
+  fmap context_token ask >>= \case
+    Admin ->
+      pure Admin
 
-instance HasRelation Member Action where
-  selectRelationL i = runSQL $ SQL.query SQL.Members.selectL i
-  selectRelationR i = runSQL $ SQL.query SQL.Members.selectR i
-  insertRelation r = runSQL $ SQL.query SQL.Members.insert r
-  deleteRelation i = runSQL $ SQL.query SQL.Members.delete i
+    User token ->
+      selectPersonORCID (ORCID.token_orcid token) >>= \case
+        Nothing ->
+          let
+            person = Person
+              { person_name = ORCID.token_name token
+              , person_orcid = ORCID.token_orcid token
+              , person_description = ""
+              }
+          in
+            User <$> insertPerson person
+        Just uid ->
+          pure $ User uid
 
-instance HasRelation Subpart Action where
-  selectRelationL i = runSQL $ SQL.query SQL.Subparts.selectL i
-  selectRelationR i = runSQL $ SQL.query SQL.Subparts.selectR i
-  insertRelation r = runSQL $ SQL.query SQL.Subparts.insert r
-  deleteRelation i = runSQL $ SQL.query SQL.Subparts.delete i
+--------------------------------------------------------------------------------
+-- Person
 
-instance HasMessage Member Action where
-  sendMessage m = runSQL $ SQL.query SQL.MessageMembers.sendMessage m
+selectPerson :: Id Person -> Action token (Maybe Person)
+selectPerson i = runSQL $ SQL.query SQL.Persons.select i
 
-  sendReply r = do
-    rid <- runSQL $ SQL.query SQL.MessageMembers.sendReply r
-    let
-      status = case reply_type r of
-        Accept -> Accepted
-        Reject -> Rejected
-      uid = reply_id r
-    runSQL $ SQL.query SQL.MessageMembers.updateMessage (uid, status)
-    case reply_type r of
-      Accept ->
-        runSQL (SQL.query SQL.MessageMembers.selectMember uid) >>= \case
-          Nothing ->
-            pure ()
-          Just val -> do
-            _ <- insertRelation val
-            pure ()
-      _ ->
-        pure ()
-    pure rid
+insertPerson :: Person -> Action token (Id (Person))
+insertPerson p = runSQL $ SQL.query SQL.Persons.insert p
 
-  viewReply i = runSQL $ SQL.query SQL.MessageMembers.viewReply i
+updatePerson :: Id Person -> Person -> Action token ()
+updatePerson i p = runSQL $ SQL.query SQL.Persons.update (i,p)
 
-instance HasMessage Subpart Action where
-  sendMessage m = runSQL $ SQL.query SQL.MessageSubparts.sendMessage m
+deletePerson :: Id Person -> Action token ()
+deletePerson i = runSQL $ SQL.query SQL.Persons.delete i
 
-  sendReply r = do
-    rid <- runSQL $ SQL.query SQL.MessageSubparts.sendReply r
-    let
-      status = case reply_type r of
-        Accept -> Accepted
-        Reject -> Rejected
-      uid = reply_id r
-    runSQL $ SQL.query SQL.MessageSubparts.updateMessage (uid, status)
-    case reply_type r of
-      Accept ->
-        runSQL (SQL.query SQL.MessageSubparts.selectSubpart uid) >>= \case
-          Nothing ->
-            pure ()
-          Just val -> do
-            _ <- insertRelation val
-            pure ()
-      _ ->
-        pure ()
-    pure rid
+--------------------------------------------------------------------------------
+-- Unit
 
-  viewReply i = runSQL $ SQL.query SQL.MessageSubparts.viewReply i
+selectUnit :: Id Unit -> Action token (Maybe Unit)
+selectUnit i = runSQL $ SQL.query SQL.Units.select i
 
-instance HasDAO Action where
-  selectPersonORCID i = runSQL $ SQL.query SQL.Persons.selectORCID i
+insertUnit :: Unit -> Action token (Id (Unit))
+insertUnit p = runSQL $ SQL.query SQL.Units.insert p
 
-  rootUnit = pure rootUnitId
+updateUnit :: Id Unit -> Unit -> Action token ()
+updateUnit i p = runSQL $ SQL.query SQL.Units.update (i,p)
 
-  createUnit unit@(Unit {unit_chair}) = do
-    uid <- insert unit
-    let member = Member
-          { member_person = unit_chair
-          , member_unit = uid
-          }
-    _ <- insertRelation member
-    return uid
+deleteUnit :: Id Unit -> Action token ()
+deleteUnit i = runSQL $ do
+  SQL.query SQL.Subparts.deleteUnit i
+  SQL.query SQL.Members.deleteUnit i
+  SQL.query SQL.Units.delete i
 
-  inboxPerson pid = do
-    messagesAll <- runSQL $
-      SQL.query SQL.MessageMembers.select $
-      SQL.MessageMembers.Filter (Just pid) Nothing
-    let mids = fmap fst messagesAll
-    repliesAll <- runSQL $
-      SQL.query SQL.MessageMembers.messageReplies mids
-    let
-      predMessage m =
-        messageInfo_status m == Waiting &&
-        messageInfo_type m == Invitation
+--------------------------------------------------------------------------------
+-- Member
 
-      messageMember =
-        IdMap.filter predMessage $
-        IdMap.fromList messagesAll
+selectMembersByPerson :: Id Person -> Action token (IdMap Member Member)
+selectMembersByPerson i = runSQL $ SQL.query SQL.Members.selectL i
 
-      predReply r =
-        replyInfo_status r == NotSeen &&
-        replyInfo_mtype r == Submission
+selectMembersByUnit :: Id Unit -> Action token (IdMap Member Member)
+selectMembersByUnit i = runSQL $ SQL.query SQL.Members.selectR i
 
-      replyMember =
-        IdMap.filter predReply $
-        IdMap.fromList repliesAll
+insertMember :: Member -> Action token (Id Member)
+insertMember r = runSQL $ SQL.query SQL.Members.insert r
 
-    pure Inbox
-      { inbox_messageMember = messageMember
-      , inbox_replyMember = replyMember
-      , inbox_messageSubpart = IdMap.empty
-      , inbox_replySubpart = IdMap.empty
-      }
+deleteMember :: Id Member -> Action token ()
+deleteMember i = runSQL $ SQL.query SQL.Members.delete i
 
-  inboxUnit uid = do
-    messagesSubpartAll <- runSQL $
-      SQL.query SQL.MessageSubparts.select uid
+--------------------------------------------------------------------------------
+-- Subpart
 
-    repliesSubpartAll <- runSQL $
-      SQL.query SQL.MessageSubparts.messageReplies $
-      fmap fst messagesSubpartAll
+selectSubpartsByChild :: Id Unit -> Action token (IdMap Subpart Subpart)
+selectSubpartsByChild i = runSQL $ SQL.query SQL.Subparts.selectL i
 
-    let
-      predMessageSubpart m =
-        messageInfo_status m == Waiting
+selectSubpartsByParent :: Id Unit -> Action token (IdMap Subpart Subpart)
+selectSubpartsByParent i = runSQL $ SQL.query SQL.Subparts.selectR i
 
-      messagesSubpart =
-        IdMap.filter predMessageSubpart $
-        IdMap.fromList messagesSubpartAll
+insertSubpart :: Subpart -> Action token (Id Subpart)
+insertSubpart r = runSQL $ SQL.query SQL.Subparts.insert r
 
-      predReplySubpart r =
-        replyInfo_status r == NotSeen
+deleteSubpart :: Id Subpart -> Action token ()
+deleteSubpart i = runSQL $ SQL.query SQL.Subparts.delete i
 
-      repliesSubpart =
-        IdMap.filter predReplySubpart $
-        IdMap.fromList repliesSubpartAll
+--------------------------------------------------------------------------------
+-- Message Member
 
-    messagesMemberAll <- runSQL $
-      SQL.query SQL.MessageMembers.select $
-      SQL.MessageMembers.Filter Nothing (Just uid)
+sendMessageMember :: Message Member -> Action token (Id (Message Member))
+sendMessageMember m = runSQL $ SQL.query SQL.MessageMembers.sendMessage m
 
-    repliesMemberAll <- runSQL $
-      SQL.query SQL.MessageMembers.messageReplies $
-      fmap fst messagesMemberAll
+sendReplyMember :: Reply Member -> Action token (Id (Reply Member))
+sendReplyMember r = do
+  rid <- runSQL $ SQL.query SQL.MessageMembers.sendReply r
+  let
+    status = case reply_type r of
+      Accept -> Accepted
+      Reject -> Rejected
+    uid = reply_id r
+  runSQL $ SQL.query SQL.MessageMembers.updateMessage (uid, status)
+  case reply_type r of
+    Accept ->
+      runSQL (SQL.query SQL.MessageMembers.selectMember uid) >>= \case
+        Nothing ->
+          pure ()
+        Just val -> do
+          _ <- insertMember val
+          pure ()
+    _ ->
+      pure ()
+  pure rid
 
-    let
-      predMessageMember m =
-        messageInfo_status m == Waiting &&
-        messageInfo_type m == Submission
+viewReplyMember :: Id (Reply Member) -> Action token ()
+viewReplyMember i = runSQL $ SQL.query SQL.MessageMembers.viewReply i
 
-      messageMember =
-        IdMap.filter predMessageMember $
-        IdMap.fromList messagesMemberAll
+--------------------------------------------------------------------------------
+-- Message Subpart
 
-      predReplyMember r =
-        replyInfo_status r == NotSeen &&
-        replyInfo_mtype r == Invitation
+sendMessageSubpart :: Message Subpart -> Action token (Id (Message Subpart))
+sendMessageSubpart m = runSQL $ SQL.query SQL.MessageSubparts.sendMessage m
 
-      replyMember =
-        IdMap.filter predReplyMember $
-        IdMap.fromList repliesMemberAll
+sendReplySubpart :: Reply Subpart -> Action token (Id (Reply Subpart))
+sendReplySubpart r = do
+  rid <- runSQL $ SQL.query SQL.MessageSubparts.sendReply r
+  let
+    status = case reply_type r of
+      Accept -> Accepted
+      Reject -> Rejected
+    uid = reply_id r
+  runSQL $ SQL.query SQL.MessageSubparts.updateMessage (uid, status)
+  case reply_type r of
+    Accept ->
+      runSQL (SQL.query SQL.MessageSubparts.selectSubpart uid) >>= \case
+        Nothing ->
+          pure ()
+        Just val -> do
+          _ <- insertSubpart val
+          pure ()
+    _ ->
+      pure ()
+  pure rid
 
-    pure Inbox
-      { inbox_messageMember = messageMember
-      , inbox_replyMember = replyMember
-      , inbox_messageSubpart = messagesSubpart
-      , inbox_replySubpart = repliesSubpart
-      }
+viewReplySubpart :: Id (Reply Subpart) -> Action token ()
+viewReplySubpart i = runSQL $ SQL.query SQL.MessageSubparts.viewReply i
+
+--------------------------------------------------------------------------------
+-- Others
+
+selectPersonORCID :: ORCID.Id -> Action token (Maybe (Id Person))
+selectPersonORCID i = runSQL $ SQL.query SQL.Persons.selectORCID i
+
+rootUnit :: Action token (Id Unit)
+rootUnit = pure rootUnitId
+
+createUnit :: Unit -> Action token (Id Unit)
+createUnit unit@(Unit {unit_chair}) = do
+  uid <- insertUnit unit
+  let member = Member
+        { member_person = unit_chair
+        , member_unit = uid
+        }
+  _ <- insertMember member
+  return uid
+
+inboxPerson :: Id Person -> Action token Inbox
+inboxPerson pid = do
+  messagesAll <- runSQL $
+    SQL.query SQL.MessageMembers.select $
+    SQL.MessageMembers.Filter (Just pid) Nothing
+  let mids = fmap fst messagesAll
+  repliesAll <- runSQL $
+    SQL.query SQL.MessageMembers.messageReplies mids
+  let
+    predMessage m =
+      messageInfo_status m == Waiting &&
+      messageInfo_type m == Invitation
+
+    messageMember =
+      IdMap.filter predMessage $
+      IdMap.fromList messagesAll
+
+    predReply r =
+      replyInfo_status r == NotSeen &&
+      replyInfo_mtype r == Submission
+
+    replyMember =
+      IdMap.filter predReply $
+      IdMap.fromList repliesAll
+
+  pure Inbox
+    { inbox_messageMember = messageMember
+    , inbox_replyMember = replyMember
+    , inbox_messageSubpart = IdMap.empty
+    , inbox_replySubpart = IdMap.empty
+    }
+
+inboxUnit :: Id Unit -> Action token Inbox
+inboxUnit uid = do
+  messagesSubpartAll <- runSQL $
+    SQL.query SQL.MessageSubparts.select uid
+
+  repliesSubpartAll <- runSQL $
+    SQL.query SQL.MessageSubparts.messageReplies $
+    fmap fst messagesSubpartAll
+
+  let
+    predMessageSubpart m =
+      messageInfo_status m == Waiting
+
+    messagesSubpart =
+      IdMap.filter predMessageSubpart $
+      IdMap.fromList messagesSubpartAll
+
+    predReplySubpart r =
+      replyInfo_status r == NotSeen
+
+    repliesSubpart =
+      IdMap.filter predReplySubpart $
+      IdMap.fromList repliesSubpartAll
+
+  messagesMemberAll <- runSQL $
+    SQL.query SQL.MessageMembers.select $
+    SQL.MessageMembers.Filter Nothing (Just uid)
+
+  repliesMemberAll <- runSQL $
+    SQL.query SQL.MessageMembers.messageReplies $
+    fmap fst messagesMemberAll
+
+  let
+    predMessageMember m =
+      messageInfo_status m == Waiting &&
+      messageInfo_type m == Submission
+
+    messageMember =
+      IdMap.filter predMessageMember $
+      IdMap.fromList messagesMemberAll
+
+    predReplyMember r =
+      replyInfo_status r == NotSeen &&
+      replyInfo_mtype r == Invitation
+
+    replyMember =
+      IdMap.filter predReplyMember $
+      IdMap.fromList repliesMemberAll
+
+  pure Inbox
+    { inbox_messageMember = messageMember
+    , inbox_replyMember = replyMember
+    , inbox_messageSubpart = messagesSubpart
+    , inbox_replySubpart = repliesSubpart
+    }
+
+getPersonInfo :: Id Person -> Action token (Maybe PersonInfo)
+getPersonInfo uid =
+  selectPerson uid >>= \case
+    Nothing -> pure Nothing
+    Just person -> do
+      membersList <- selectMembersByPerson uid
+      pairs <- forM membersList $ \(Member _ unitId) ->
+        fmap (WithId unitId) <$> selectUnit unitId
+      case sequence pairs of
+        Nothing ->
+          pure Nothing
+        Just members ->
+          pure $ Just PersonInfo
+            { personInfo_id = uid
+            , personInfo_person = person
+            , personInfo_members = members
+            }
+
+getUnitInfo :: Id Unit -> Action token (Maybe UnitInfo)
+getUnitInfo uid =
+  selectUnit uid >>= \case
+    Nothing -> pure Nothing
+    Just unit -> do
+      members <- getUnitMembers uid
+      children <- getUnitChildren uid
+      parents <- getUnitParents uid
+      pure $ Just UnitInfo
+        { unitInfo_id = uid
+        , unitInfo_unit = unit
+        , unitInfo_members = members
+        , unitInfo_children = children
+        , unitInfo_parents = parents
+        }
+
+getUserUnits :: Id Person -> Action token (IdMap Member Unit)
+getUserUnits uid = do
+  members <- selectMembersByPerson uid
+  pairs <- forM members $ \(Member _ unitId) ->
+    selectUnit unitId
+  case sequence pairs of
+    Nothing -> pure IdMap.empty
+    Just m -> pure m
+
+getUnitMembers :: Id Unit -> Action token (IdMap Member (WithId Person))
+getUnitMembers uid = do
+  members <- selectMembersByUnit uid
+  pairs <- forM members $ \(Member personId _) ->
+    fmap (WithId personId) <$> selectPerson personId
+  case sequence pairs of
+    Nothing -> pure IdMap.empty
+    Just m -> pure m
+
+getUnitChildren :: Id Unit -> Action token (IdMap Subpart (WithId Unit))
+getUnitChildren uid = do
+  subparts <- selectSubpartsByParent uid
+  pairs <- forM subparts $ \(Subpart childId _) ->
+    fmap (WithId childId) <$> selectUnit childId
+  case sequence pairs of
+    Nothing -> pure IdMap.empty
+    Just m -> pure m
+
+getUnitParents :: Id Unit -> Action token (IdMap Subpart (WithId Unit))
+getUnitParents uid = do
+  subparts <- selectSubpartsByChild uid
+  pairs <- forM subparts $ \(Subpart _ parentId) ->
+    fmap (WithId parentId) <$> selectUnit parentId
+  case sequence pairs of
+    Nothing -> pure IdMap.empty
+    Just m -> pure m
 
 --------------------------------------------------------------------------------
 -- Helpers

@@ -24,11 +24,8 @@ library
     CSDC.Data.IdMap
     CSDC.Data.RIO
     CSDC.Error
-    CSDC.DAO.Class
-    CSDC.DAO.Mock
     CSDC.DAO.Types
     CSDC.Prelude
-    CSDC.User
   build-depends:
     csdc-auth,
     aeson,

@@ -12,8 +12,8 @@ module CSDC.API
   ) where
 
 import CSDC.Auth (getUserToken)
+import CSDC.DAO
 import CSDC.Prelude
-import CSDC.User (runUserT)
 
 import qualified CSDC.API.DAO as DAO
 
@@ -30,13 +30,13 @@ type API =
        Auth :> "api" :> DAO.API
   :<|> Raw
 
-serveAPI :: HasDAO m => FilePath -> ServerT API m
+serveAPI :: FilePath -> DAO.Server () API
 serveAPI path =
          serveDAOAPI
     :<|> serveDirectoryWith (options path)
   where
     serveDAOAPI token =
-      hoistServer (Proxy @DAO.API) (runUserT token) DAO.serveAPI
+      hoistServer (Proxy @DAO.API) (withToken token) DAO.serveAPI
 
 options :: FilePath -> StaticSettings
 options path =

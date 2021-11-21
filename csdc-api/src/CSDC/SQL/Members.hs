@@ -5,6 +5,7 @@ module CSDC.SQL.Members
   , selectR
   , insert
   , delete
+  , deleteUnit
   ) where
 
 import CSDC.DAO.Types (Person, Unit, Member (..))
@@ -90,3 +91,15 @@ delete = Statement sql encoder decoder True
     encoder = Encoder.id
 
     decoder = Decoder.noResult
+
+deleteUnit :: Statement (Id Unit) ()
+deleteUnit = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "DELETE FROM members"
+      , "WHERE unit = $1"
+      ]
+
+    encoder = Encoder.id
+    decoder = Decoder.noResult
+

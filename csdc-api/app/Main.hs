@@ -66,7 +66,7 @@ makeMiddleware context = do
       cors = Cors.cors (\_ -> Just corsOptions)
   pure $ authentication . cors
 
-application :: FilePath -> DAO.Context -> Application
+application :: FilePath -> DAO.Context () -> Application
 application path context = \request response ->
   let
     proxy = Proxy @API

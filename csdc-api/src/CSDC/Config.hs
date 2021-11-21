@@ -119,7 +119,7 @@ data Context = Context
   { context_port :: Int
   , context_path :: FilePath
   , context_auth :: Auth.Config
-  , context_dao :: DAO.Context
+  , context_dao :: DAO.Context ()
   , context_migration :: FilePath
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Context
@@ -143,6 +143,7 @@ activate config secret = do
         }
     , context_dao = DAO.Context
         { DAO.context_sql = sql
+        , DAO.context_token = ()
         }
     , context_migration = config_migration config
     }
