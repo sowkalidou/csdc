@@ -28,9 +28,7 @@ type Page
   | ViewUnitAdmin (Id Unit)
   | MessageMember (Id Person) (Id Unit) MessageType
   | InvitationMember (Id Person)
-  | ReplyMember (Id (Message Member)) MessageType
   | MessageSubpart (Id Person) (Id Unit) MessageType
-  | ReplySubpart (Id (Message Subpart)) MessageType
 
 type alias Info =
   { key : Nav.Key
@@ -72,20 +70,10 @@ toFragments page =
       [ "invitation-member"
       , toFragmentId pid
       ]
-    ReplyMember mid mtype ->
-      [ "reply-member"
-      , toFragmentId mid
-      , toFragmentMessageType mtype
-      ]
     MessageSubpart mid uid mtype ->
       [ "message-subpart"
       , toFragmentId mid
       , toFragmentId uid
-      , toFragmentMessageType mtype
-      ]
-    ReplySubpart mid mtype ->
-      [ "reply-subpart"
-      , toFragmentId mid
       , toFragmentMessageType mtype
       ]
 
@@ -135,21 +123,11 @@ fromFragments l =
       default <|
       Maybe.map InvitationMember
         (fromFragmentId pid)
-    ["reply-member",mid,mtype] ->
-      default <|
-      Maybe.map2 ReplyMember
-        (fromFragmentId mid)
-        (fromFragmentMessageType mtype)
     ["message-subpart",mid,uid,mtype] ->
       default <|
       Maybe.map3 MessageSubpart
         (fromFragmentId mid)
         (fromFragmentId uid)
-        (fromFragmentMessageType mtype)
-    ["reply-subpart",mid,mtype] ->
-      default <|
-      Maybe.map2 ReplySubpart
-        (fromFragmentId mid)
         (fromFragmentMessageType mtype)
     _ -> Studio
 

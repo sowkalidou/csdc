@@ -15,8 +15,6 @@ import CSDC.View.MessageMember as MessageMember
 import CSDC.View.MessageSubpart as MessageSubpart
 import CSDC.View.PreviewMessage as PreviewMessage
 import CSDC.View.PreviewReply as PreviewReply
-import CSDC.View.ReplyMember as ReplyMember
-import CSDC.View.ReplySubpart as ReplySubpart
 import CSDC.View.Studio as Studio
 import CSDC.View.ViewPerson as ViewPerson
 import CSDC.View.ViewUnit as ViewUnit
@@ -65,9 +63,7 @@ type alias Model =
   , viewUnitAdmin : ViewUnitAdmin.Model
   , messageMember : MessageMember.Model
   , invitationMember : InvitationMember.Model
-  , replyMember : ReplyMember.Model
   , messageSubpart : MessageSubpart.Model
-  , replySubpart : ReplySubpart.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
   , notification : Notification
@@ -90,9 +86,7 @@ init _ url key =
       , viewUnitAdmin = ViewUnitAdmin.initial
       , messageMember = MessageMember.initial
       , invitationMember = InvitationMember.initial
-      , replyMember = ReplyMember.initial
       , messageSubpart = MessageSubpart.initial
-      , replySubpart = ReplySubpart.initial
       , notification = Notification.Empty
       }
     , case page of
@@ -114,9 +108,7 @@ type Msg
   | ViewUnitAdminMsg ViewUnitAdmin.Msg
   | MessageMemberMsg MessageMember.Param MessageMember.Msg
   | InvitationMemberMsg InvitationMember.Param InvitationMember.Msg
-  | ReplyMemberMsg ReplyMember.Param ReplyMember.Msg
   | MessageSubpartMsg MessageSubpart.Param MessageSubpart.Msg
-  | ReplySubpartMsg ReplySubpart.Param ReplySubpart.Msg
   | StudioMsg Studio.Msg
   | APIMsg API.Msg
 
@@ -137,12 +129,8 @@ routeCmd page =
       Cmd.none
     Page.MessageMember pid uid mtype ->
       Cmd.map (MessageMemberMsg { messageType = mtype }) (MessageMember.setup pid uid)
-    Page.ReplyMember _ _ ->
-      Cmd.none
     Page.MessageSubpart pid uid mtype ->
       Cmd.map (MessageSubpartMsg { messageType = mtype }) (MessageSubpart.setup pid uid)
-    Page.ReplySubpart _ _ ->
-      Cmd.none
     Page.Admin ->
       Cmd.none
 
@@ -249,28 +237,12 @@ update msg model =
         , Cmd.map (InvitationMemberMsg p) cmd
         )
 
-    ReplyMemberMsg p m ->
-      let
-        (replyMember, cmd) = ReplyMember.update pageInfo m p model.replyMember
-      in
-        ( { model | replyMember = replyMember }
-        , Cmd.map (ReplyMemberMsg p) cmd
-        )
-
     MessageSubpartMsg p m ->
       let
         (messageSubpart, cmd) = MessageSubpart.update pageInfo m p model.messageSubpart
       in
         ( { model | messageSubpart = messageSubpart }
         , Cmd.map (MessageSubpartMsg p) cmd
-        )
-
-    ReplySubpartMsg p m ->
-      let
-        (replySubpart, cmd) = ReplySubpart.update pageInfo m p model.replySubpart
-      in
-        ( { model | replySubpart = replySubpart }
-        , Cmd.map (ReplySubpartMsg p) cmd
         )
 
     APIMsg m ->
@@ -404,15 +376,6 @@ mainPanel model =
           List.map (Element.map toMsg) <|
           [ MessageMember.view param model.messageMember ]
 
-      Page.ReplyMember mid mtype ->
-        wrapElements <|
-        let
-          param = { message = mid, messageType = mtype }
-          toMsg = ReplyMemberMsg param
-        in
-          List.map (Element.map toMsg) <|
-          [ ReplyMember.view param model.replyMember ]
-
       Page.MessageSubpart _ _ mtype ->
         wrapElements <|
         let
@@ -421,12 +384,3 @@ mainPanel model =
         in
           List.map (Element.map toMsg) <|
           [ MessageSubpart.view param model.messageSubpart ]
-
-      Page.ReplySubpart mid mtype ->
-        wrapElements <|
-        let
-          param = {message = mid, messageType = mtype}
-          toMsg = ReplySubpartMsg param
-        in
-          List.map (Element.map toMsg) <|
-          [ ReplySubpart.view param model.replySubpart ]

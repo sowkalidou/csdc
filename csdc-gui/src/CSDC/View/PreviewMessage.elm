@@ -4,6 +4,7 @@ module CSDC.View.PreviewMessage exposing
   , Msg (..)
   , update
   , view
+  , viewMessage
   )
 
 import CSDC.Component.Preview as Preview
@@ -64,8 +65,25 @@ view (MessageInfo msg) model = Preview.make <|
           Invitation -> "Invitation"
           Submission -> "Submission"
       ]
+  ] ++
+  viewMessage (MessageInfo msg) ++
+  [ Html.hr [] []
 
-  , Html.p [] <|
+  , Html.p [] [ Html.i [] [ Html.text "Please answer below." ] ]
+
+  , Input.textarea model.reason SetReason
+
+  , Html.div
+      [ Html.Attributes.class "field is-grouped is-grouped-right"
+      ]
+      [ Html.p [ Html.Attributes.class "control" ] [ Input.buttonDanger Reply "Refuse" ]
+      , Html.p [ Html.Attributes.class "control" ] [ Input.button Reply "Accept" ]
+      ]
+  ]
+
+viewMessage : MessageInfo a -> List (Html msg)
+viewMessage (MessageInfo msg) =
+  [ Html.p [] <|
       case msg.mtype of
         Invitation ->
           [ Html.strong [] [ Html.text msg.right ]
@@ -81,17 +99,5 @@ view (MessageInfo msg) model = Preview.make <|
           ]
 
   , Html.p [] [ Html.text msg.text ]
-
-  , Html.hr [] []
-
-  , Html.p [] [ Html.i [] [ Html.text "Please answer below." ] ]
-
-  , Input.textarea model.reason SetReason
-
-  , Html.div
-      [ Html.Attributes.class "field is-grouped is-grouped-right"
-      ]
-      [ Html.p [ Html.Attributes.class "control" ] [ Input.buttonDanger Reply "Refuse" ]
-      , Html.p [ Html.Attributes.class "control" ] [ Input.button Reply "Accept" ]
-      ]
   ]
+

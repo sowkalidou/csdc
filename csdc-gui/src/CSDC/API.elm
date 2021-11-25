@@ -256,7 +256,7 @@ viewReplyMember id =
   Http.post
     { url = baseUrl ++ "message/member/view"
     , body = Http.jsonBody <| encodeId id
-    , expect = Http.expectJson SendReplyMember decodeId
+    , expect = Http.expectJson ViewReplyMember decodeNull
     }
 
 sendMessageSubpart : Message Subpart -> Cmd Msg
@@ -280,7 +280,7 @@ viewReplySubpart id =
   Http.post
     { url = baseUrl ++ "message/subpart/view"
     , body = Http.jsonBody <| encodeId id
-    , expect = Http.expectJson SendReplySubpart decodeId
+    , expect = Http.expectJson ViewReplySubpart decodeNull
     }
 
 personInbox : Id Person -> Cmd Msg

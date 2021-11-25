@@ -47,7 +47,7 @@ newtype Action user a = Action (ReaderT (Context user) IO a)
   deriving (Functor, Applicative, Monad, MonadReader (Context user), MonadIO)
 
 -- Actions with authentication needed
-newtype ActionAuth a = Action (Id Person)
+type ActionAuth = Action (Id Person)
 
 run :: MonadIO m => Context user -> Action user a -> m a
 run ctx (Action act) = liftIO $
