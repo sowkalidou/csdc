@@ -398,7 +398,7 @@ decodeReply =
 type alias NewReply a =
   { rtype : ReplyType
   , text : String
-  , id : Id (Message a)
+  , message : Id (Message a)
   }
 
 encodeNewReply : NewReply a -> Value
@@ -406,7 +406,7 @@ encodeNewReply m =
   Encoder.object
     [ ("type", encodeReplyType m.rtype)
     , ("text", Encoder.string m.text)
-    , ("id", encodeId m.id)
+    , ("message", encodeId m.message)
     ]
 
 type alias ReplyInfo a =

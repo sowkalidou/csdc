@@ -6,7 +6,6 @@ module CSDC.View.Studio exposing
   , update
   , view
   , Selected (..)
-  , ViewSelected (..)
   )
 
 import CSDC.API as API
@@ -80,16 +79,11 @@ setup id =
 --------------------------------------------------------------------------------
 -- Update
 
-type ViewSelected
-  = ViewSelectedUnit (Id Unit)
-  | ViewSelectedInbox InboxId ReplyType
-
 type Msg
   = APIMsg API.Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | MessagesMsg (Panel.Msg InboxId)
-  | MessagePreviewMemberMsg (MessagePreview.Msg Member)
-  | MessagePreviewSubpartMsg (MessagePreview.Msg Subpart)
+  | MessagePreviewMsg MessagePreview.Msg
   | ReplyPreviewMemberMsg (ReplyPreview.Msg Member)
   | ReplyPreviewSubpartMsg (ReplyPreview.Msg Subpart)
   | UnitCreateMsg UnitForm.Msg
@@ -98,7 +92,7 @@ type Msg
   | PersonEditMsg PersonForm.Msg
   | PersonEditOpen
   | PersonEditClose
-  | View ViewSelected
+  | View (Id Unit)
   | CloseModal
   | Reset
 
@@ -137,29 +131,10 @@ update pageInfo msg model =
           , Cmd.none
           )
 
-    View selected ->
-      case selected of
-        ViewSelectedUnit id ->
-          ( { model | selected = SelectedNothing }
-          , Page.goTo pageInfo (Page.Unit id)
-          )
-
-        ViewSelectedInbox inboxId rtype ->
-          case inboxId of
-            MessageMemberId id ->
-              let
-                reply =
-                  { rtype = rtype
-                  , text = "Reply"
-                  , id = id
-                  }
-              in
-                ( { model | selected = SelectedNothing }
-                , Cmd.map APIMsg <| API.sendReplyMember reply
-                )
-
-            _ ->
-             (model, Cmd.none)
+    View id ->
+      ( { model | selected = SelectedNothing }
+      , Page.goTo pageInfo (Page.Unit id)
+      )
 
     UnitCreateOpen ->
       ( { model | unitCreateOpen = True }
@@ -252,21 +227,48 @@ update pageInfo msg model =
                 , Cmd.map PersonEditMsg cmd
                 )
 
-    MessagePreviewMemberMsg preMsg ->
-      let
-        (previewMessage, cmd) = MessagePreview.update preMsg model.previewMessage
-      in
-        ( { model | previewMessage = previewMessage }
-        , Cmd.map MessagePreviewMemberMsg cmd
-        )
+    MessagePreviewMsg preMsg ->
+      case model.selected of
+        SelectedInbox inboxId ->
+          case inboxId of
+            MessageMemberId id ->
+              let
+                (previewMessage, cmd) = MessagePreview.updateMember id preMsg model.previewMessage
+              in
+                case preMsg of
+                  MessagePreview.APIMsg (API.SendReplyMember (Ok _)) ->
+                    ( { model | previewMessage = previewMessage, selected = SelectedNothing }
+                    , Cmd.batch
+                        [ Page.goTo pageInfo Page.Studio
+                        , Cmd.map MessagePreviewMsg cmd
+                        ]
+                    )
+                  _ ->
+                    ( { model | previewMessage = previewMessage }
+                    , Cmd.map MessagePreviewMsg cmd
+                    )
 
-    MessagePreviewSubpartMsg preMsg ->
-      let
-        (previewMessage, cmd) = MessagePreview.update preMsg model.previewMessage
-      in
-        ( { model | previewMessage = previewMessage }
-        , Cmd.map MessagePreviewSubpartMsg cmd
-        )
+            MessageSubpartId id ->
+              let
+                (previewMessage, cmd) = MessagePreview.updateSubpart id preMsg model.previewMessage
+              in
+                case preMsg of
+                  MessagePreview.APIMsg (API.SendReplySubpart (Ok _)) ->
+                    ( { model | previewMessage = previewMessage, selected = SelectedNothing }
+                    , Cmd.batch
+                        [ Page.goTo pageInfo Page.Studio
+                        , Cmd.map MessagePreviewMsg cmd
+                        ]
+                    )
+                  _ ->
+                    ( { model | previewMessage = previewMessage }
+                    , Cmd.map MessagePreviewMsg cmd
+                    )
+
+            _ ->
+              (model, Cmd.none)
+        _ ->
+          (model, Cmd.none)
 
     ReplyPreviewMemberMsg (ReplyPreview.MarkAsSeen id) ->
       ( { model | selected = SelectedNothing }
@@ -451,8 +453,7 @@ view model =
                   Nothing ->
                     Html.text "Error."
                   Just unit ->
-                    UnitPreview.view unit.value <|
-                    View (ViewSelectedUnit unit.id)
+                    UnitPreview.view unit.value (View unit.id)
 
               SelectedInbox inboxId ->
                 case inboxId of
@@ -468,14 +469,14 @@ view model =
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map MessagePreviewMemberMsg (MessagePreview.view msg model.previewMessage)
+                        Html.map MessagePreviewMsg (MessagePreview.view msg model.previewMessage)
 
                   MessageSubpartId id ->
                     case idMapLookup id model.inbox.messageSubpart of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map MessagePreviewSubpartMsg (MessagePreview.view msg model.previewMessage)
+                        Html.map MessagePreviewMsg (MessagePreview.view msg model.previewMessage)
 
                   ReplySubpartId id ->
                     case idMapLookup id model.inbox.replySubpart of

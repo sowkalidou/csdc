@@ -2,7 +2,8 @@ module CSDC.View.MessagePreview exposing
   ( Model
   , initial
   , Msg (..)
-  , update
+  , updateMember
+  , updateSubpart
   , view
   , viewMessage
   )
@@ -11,7 +12,9 @@ import CSDC.Component.Preview as Preview
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Types exposing (..)
 import CSDC.Input as Input
+import CSDC.API as API
 import Field exposing (Field)
+import Validation
 
 import Html exposing (Html)
 import Html.Attributes
@@ -28,24 +31,47 @@ initial =
   , notification = Notification.Empty
   }
 
-type Msg a
+type Msg
   = SetReason String
-  | Reply -- (Reply a)
+  | Reply ReplyType
   | Reset
   | ResetNotification
+  | APIMsg API.Msg
 
-update : Msg a -> Model -> (Model, Cmd (Msg a))
-update msg model =
+updateMember : Id (Message Member) -> Msg -> Model -> (Model, Cmd Msg)
+updateMember mid = updateWith <| \reason -> \rtype ->
+  Cmd.map APIMsg <| API.sendReplyMember
+    { rtype = rtype
+    , text = reason
+    , message = mid
+    }
+
+updateSubpart : Id (Message Subpart) -> Msg -> Model -> (Model, Cmd Msg)
+updateSubpart mid = updateWith <| \reason -> \rtype ->
+  Cmd.map APIMsg <| API.sendReplySubpart
+    { rtype = rtype
+    , text = reason
+    , message = mid
+    }
+
+updateWith : (String -> ReplyType -> Cmd Msg) -> Msg -> Model -> (Model, Cmd Msg)
+updateWith makeCmd msg model =
   case msg of
     SetReason val ->
       ( { model | reason = Field.set val model.reason }
       , Cmd.none
       )
 
-    Reply ->
-      ( model
-      , Cmd.none
-      )
+    Reply rtype ->
+      case Validation.validate (Field.validate model.reason) of
+        Err e ->
+          ( { model | notification = Notification.Error e }
+          , Cmd.none
+          )
+        Ok reason ->
+          ( { model | notification = Notification.Processing }
+          , makeCmd reason rtype
+          )
 
     Reset ->
       ( initial
@@ -57,7 +83,25 @@ update msg model =
       , Cmd.none
       )
 
-view : MessageInfo a -> Model -> Html (Msg a)
+    APIMsg apiMsg ->
+      let
+        onSuccess = Notification.withResponse Reset model
+      in
+      case apiMsg of
+        API.SendReplyMember response -> onSuccess response <| \_ ->
+          ( { model | notification = Notification.Success }
+          , Cmd.none
+          )
+
+        API.SendReplySubpart response -> onSuccess response <| \_ ->
+          ( { model | notification = Notification.Success }
+          , Cmd.none
+          )
+
+        _ ->
+          (model, Cmd.none)
+
+view : MessageInfo a -> Model -> Html Msg
 view msg model = Preview.make <|
   [ Html.h4 []
       [ Html.text <|
@@ -76,8 +120,8 @@ view msg model = Preview.make <|
   , Html.div
       [ Html.Attributes.class "field is-grouped is-grouped-right"
       ]
-      [ Html.p [ Html.Attributes.class "control" ] [ Input.buttonDanger Reply "Refuse" ]
-      , Html.p [ Html.Attributes.class "control" ] [ Input.button Reply "Accept" ]
+      [ Html.p [ Html.Attributes.class "control" ] [ Input.buttonDanger (Reply Reject) "Reject" ]
+      , Html.p [ Html.Attributes.class "control" ] [ Input.button (Reply Accept) "Accept" ]
       ]
   ]
 
