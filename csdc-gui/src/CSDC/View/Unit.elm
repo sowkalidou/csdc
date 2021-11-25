@@ -1,4 +1,4 @@
-module CSDC.View.ViewUnit exposing
+module CSDC.View.Unit exposing
   ( Model
   , initial
   , setup
@@ -21,8 +21,8 @@ import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
-import CSDC.View.PreviewPerson as PreviewPerson
-import CSDC.View.PreviewUnit as PreviewUnit
+import CSDC.View.PersonPreview as PersonPreview
+import CSDC.View.UnitPreview as UnitPreview
 
 
 import Html exposing (Html)
@@ -170,12 +170,12 @@ update pageInfo msg model =
       case selected of
         ViewSelectedPerson id ->
           ( initial
-          , Page.goTo pageInfo (Page.ViewPerson id)
+          , Page.goTo pageInfo (Page.Person id)
           )
 
         ViewSelectedUnit id ->
           ( initial
-          , Page.goTo pageInfo (Page.ViewUnit id)
+          , Page.goTo pageInfo (Page.Unit id)
           )
 
     MessageMember pid uid mtype ->
@@ -193,7 +193,7 @@ update pageInfo msg model =
         Nothing -> (model, Cmd.none)
         Just unit ->
           ( model
-          , Page.goTo pageInfo (Page.ViewUnitAdmin unit.id)
+          , Page.goTo pageInfo (Page.UnitAdmin unit.id)
           )
 
     CloseModal ->
@@ -236,7 +236,7 @@ update pageInfo msg model =
 
                 (unitEdit, cmd) = onSuccess result <| \_ ->
                   ( initialUnitEdit
-                  , Page.goTo pageInfo (Page.ViewUnit unit.id)
+                  , Page.goTo pageInfo (Page.Unit unit.id)
                   )
               in
                 ( { model | unitEdit = unitEdit, unitEditOpen = False }
@@ -464,7 +464,7 @@ view mid model =
                   Nothing ->
                     Html.div [] [ Html.text "Loading..." ]
                   Just person ->
-                    PreviewPerson.view person.value <|
+                    PersonPreview.view person.value <|
                     View (ViewSelectedPerson person.id)
 
               SelectedUnit id ->
@@ -472,7 +472,7 @@ view mid model =
                   Nothing ->
                     Html.div [] [ Html.text "Loading..." ]
                   Just subunit ->
-                    PreviewUnit.view subunit.value <|
+                    UnitPreview.view subunit.value <|
                     View (ViewSelectedUnit subunit.id)
 
       ] ++ Notification.view model.notification

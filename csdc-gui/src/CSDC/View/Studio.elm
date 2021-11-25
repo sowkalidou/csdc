@@ -22,9 +22,9 @@ import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
-import CSDC.View.PreviewMessage as PreviewMessage
-import CSDC.View.PreviewReply as PreviewReply
-import CSDC.View.PreviewUnit as PreviewUnit
+import CSDC.View.MessagePreview as MessagePreview
+import CSDC.View.ReplyPreview as ReplyPreview
+import CSDC.View.UnitPreview as UnitPreview
 
 import Html exposing (Html)
 import Html.Attributes
@@ -51,7 +51,7 @@ type alias Model =
   , unitCreateOpen : Bool
   , personEdit : PersonForm.Model
   , personEditOpen : Bool
-  , previewMessage : PreviewMessage.Model
+  , previewMessage : MessagePreview.Model
   }
 
 initial : Model
@@ -66,7 +66,7 @@ initial =
   , unitCreateOpen = False
   , personEdit = PersonForm.initial
   , personEditOpen = False
-  , previewMessage = PreviewMessage.initial
+  , previewMessage = MessagePreview.initial
   }
 
 setup : Id Person -> Cmd Msg
@@ -88,10 +88,10 @@ type Msg
   = APIMsg API.Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | MessagesMsg (Panel.Msg InboxId)
-  | PreviewMessageMemberMsg (PreviewMessage.Msg Member)
-  | PreviewMessageSubpartMsg (PreviewMessage.Msg Subpart)
-  | PreviewReplyMemberMsg (PreviewReply.Msg Member)
-  | PreviewReplySubpartMsg (PreviewReply.Msg Subpart)
+  | MessagePreviewMemberMsg (MessagePreview.Msg Member)
+  | MessagePreviewSubpartMsg (MessagePreview.Msg Subpart)
+  | ReplyPreviewMemberMsg (ReplyPreview.Msg Member)
+  | ReplyPreviewSubpartMsg (ReplyPreview.Msg Subpart)
   | UnitCreateMsg UnitForm.Msg
   | UnitCreateOpen
   | UnitCreateClose
@@ -141,7 +141,7 @@ update pageInfo msg model =
       case selected of
         ViewSelectedUnit id ->
           ( { model | selected = SelectedNothing }
-          , Page.goTo pageInfo (Page.ViewUnit id)
+          , Page.goTo pageInfo (Page.Unit id)
           )
 
         ViewSelectedInbox inboxId mtype rtype ->
@@ -189,7 +189,7 @@ update pageInfo msg model =
 
                 (unitCreate, cmd) = onSuccess result <| \id ->
                   ( initialUnitCreate
-                  , Page.goTo pageInfo (Page.ViewUnit id)
+                  , Page.goTo pageInfo (Page.Unit id)
                   )
               in
                 ( { model | unitCreate = unitCreate, unitCreateOpen = False }
@@ -254,29 +254,29 @@ update pageInfo msg model =
                 , Cmd.map PersonEditMsg cmd
                 )
 
-    PreviewMessageMemberMsg preMsg ->
+    MessagePreviewMemberMsg preMsg ->
       let
-        (previewMessage, cmd) = PreviewMessage.update preMsg model.previewMessage
+        (previewMessage, cmd) = MessagePreview.update preMsg model.previewMessage
       in
         ( { model | previewMessage = previewMessage }
-        , Cmd.map PreviewMessageMemberMsg cmd
+        , Cmd.map MessagePreviewMemberMsg cmd
         )
 
-    PreviewMessageSubpartMsg preMsg ->
+    MessagePreviewSubpartMsg preMsg ->
       let
-        (previewMessage, cmd) = PreviewMessage.update preMsg model.previewMessage
+        (previewMessage, cmd) = MessagePreview.update preMsg model.previewMessage
       in
         ( { model | previewMessage = previewMessage }
-        , Cmd.map PreviewMessageSubpartMsg cmd
+        , Cmd.map MessagePreviewSubpartMsg cmd
         )
 
-    PreviewReplyMemberMsg (PreviewReply.MarkAsSeen id) ->
+    ReplyPreviewMemberMsg (ReplyPreview.MarkAsSeen id) ->
       ( { model | selected = SelectedNothing }
       , Cmd.map APIMsg <|
         API.viewReplyMember id
       )
 
-    PreviewReplySubpartMsg (PreviewReply.MarkAsSeen id) ->
+    ReplyPreviewSubpartMsg (ReplyPreview.MarkAsSeen id) ->
       ( { model | selected = SelectedNothing }
       , Cmd.map APIMsg <|
         API.viewReplySubpart id
@@ -453,7 +453,7 @@ view model =
                   Nothing ->
                     Html.text "Error."
                   Just unit ->
-                    PreviewUnit.view unit.value <|
+                    UnitPreview.view unit.value <|
                     View (ViewSelectedUnit unit.id)
 
               SelectedInbox inboxId ->
@@ -463,28 +463,28 @@ view model =
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map PreviewReplyMemberMsg (PreviewReply.view id msg)
+                        Html.map ReplyPreviewMemberMsg (ReplyPreview.view id msg)
 
                   MessageMemberId id ->
                     case idMapLookup id model.inbox.messageMember of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map PreviewMessageMemberMsg (PreviewMessage.view msg model.previewMessage)
+                        Html.map MessagePreviewMemberMsg (MessagePreview.view msg model.previewMessage)
 
                   MessageSubpartId id ->
                     case idMapLookup id model.inbox.messageSubpart of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map PreviewMessageSubpartMsg (PreviewMessage.view msg model.previewMessage)
+                        Html.map MessagePreviewSubpartMsg (MessagePreview.view msg model.previewMessage)
 
                   ReplySubpartId id ->
                     case idMapLookup id model.inbox.replySubpart of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map PreviewReplySubpartMsg (PreviewReply.view id msg)
+                        Html.map ReplyPreviewSubpartMsg (ReplyPreview.view id msg)
 
       ] ++ Notification.view model.notification
 

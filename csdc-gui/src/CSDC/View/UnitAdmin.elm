@@ -1,4 +1,4 @@
-module CSDC.View.ViewUnitAdmin exposing
+module CSDC.View.UnitAdmin exposing
   ( Model
   , setup
   , initial
@@ -15,10 +15,10 @@ import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
-import CSDC.View.PreviewMessage as PreviewMessage
-import CSDC.View.PreviewPerson as PreviewPerson
-import CSDC.View.PreviewReply as PreviewReply
-import CSDC.View.PreviewUnit as PreviewUnit
+import CSDC.View.MessagePreview as MessagePreview
+import CSDC.View.PersonPreview as PersonPreview
+import CSDC.View.ReplyPreview as ReplyPreview
+import CSDC.View.UnitPreview as UnitPreview
 
 import Html exposing (Html)
 import Html.Attributes
@@ -49,7 +49,7 @@ type alias Model =
   , panelSubpart : Panel.Model SubpartId
   , selected : Selected
   , notification : Notification
-  , previewMessage : PreviewMessage.Model
+  , previewMessage : MessagePreview.Model
   }
 
 initial : Model
@@ -60,7 +60,7 @@ initial =
   , panelSubpart = Panel.initial "Subpart Messages"
   , selected = SelectedNothing
   , notification = Notification.Empty
-  , previewMessage = PreviewMessage.initial
+  , previewMessage = MessagePreview.initial
   }
 
 setup : Id Unit -> Cmd Msg
@@ -76,10 +76,10 @@ type Msg
   = APIMsg API.Msg
   | PanelMemberMsg (Panel.Msg MemberId)
   | PanelSubpartMsg (Panel.Msg SubpartId)
-  | PreviewMessageMemberMsg (PreviewMessage.Msg Member)
-  | PreviewMessageSubpartMsg (PreviewMessage.Msg Subpart)
-  | PreviewReplyMemberMsg (PreviewReply.Msg Member)
-  | PreviewReplySubpartMsg (PreviewReply.Msg Subpart)
+  | MessagePreviewMemberMsg (MessagePreview.Msg Member)
+  | MessagePreviewSubpartMsg (MessagePreview.Msg Subpart)
+  | ReplyPreviewMemberMsg (ReplyPreview.Msg Member)
+  | ReplyPreviewSubpartMsg (ReplyPreview.Msg Subpart)
   | Reset
   | CloseModal
 
@@ -120,29 +120,29 @@ update pageInfo msg model =
           , Cmd.none
           )
 
-    PreviewMessageMemberMsg preMsg ->
+    MessagePreviewMemberMsg preMsg ->
       let
-        (previewMessage, cmd) = PreviewMessage.update preMsg model.previewMessage
+        (previewMessage, cmd) = MessagePreview.update preMsg model.previewMessage
       in
         ( { model | previewMessage = previewMessage }
-        , Cmd.map PreviewMessageMemberMsg cmd
+        , Cmd.map MessagePreviewMemberMsg cmd
         )
 
-    PreviewMessageSubpartMsg preMsg ->
+    MessagePreviewSubpartMsg preMsg ->
       let
-        (previewMessage, cmd) = PreviewMessage.update preMsg model.previewMessage
+        (previewMessage, cmd) = MessagePreview.update preMsg model.previewMessage
       in
         ( { model | previewMessage = previewMessage }
-        , Cmd.map PreviewMessageSubpartMsg cmd
+        , Cmd.map MessagePreviewSubpartMsg cmd
         )
 
-    PreviewReplyMemberMsg (PreviewReply.MarkAsSeen id) ->
+    ReplyPreviewMemberMsg (ReplyPreview.MarkAsSeen id) ->
       ( { model | selected = SelectedNothing }
       , Cmd.map APIMsg <|
         API.viewReplyMember id
       )
 
-    PreviewReplySubpartMsg (PreviewReply.MarkAsSeen id) ->
+    ReplyPreviewSubpartMsg (ReplyPreview.MarkAsSeen id) ->
       ( { model | selected = SelectedNothing }
       , Cmd.map APIMsg <|
         API.viewReplySubpart id
@@ -281,8 +281,8 @@ view mid model =
                               [ Html.text "Error." ]
                             Just msg ->
                               List.singleton <|
-                              Html.map PreviewMessageMemberMsg <|
-                              PreviewMessage.view msg model.previewMessage
+                              Html.map MessagePreviewMemberMsg <|
+                              MessagePreview.view msg model.previewMessage
 
                         MemberReply rid ->
                           case idMapLookup rid model.inbox.replyMember of
@@ -290,7 +290,7 @@ view mid model =
                               [ Html.text "Error." ]
                             Just msg ->
                               List.singleton <|
-                              Html.map PreviewReplyMemberMsg (PreviewReply.view rid msg)
+                              Html.map ReplyPreviewMemberMsg (ReplyPreview.view rid msg)
 
                   SelectedSubpart subpartId ->
                     Html.div [] <|
@@ -301,8 +301,8 @@ view mid model =
                               [ Html.text "Error." ]
                             Just msg ->
                               List.singleton <|
-                              Html.map PreviewMessageSubpartMsg <|
-                              PreviewMessage.view msg model.previewMessage
+                              Html.map MessagePreviewSubpartMsg <|
+                              MessagePreview.view msg model.previewMessage
 
                         SubpartReply rid ->
                           case idMapLookup rid model.inbox.replySubpart of
@@ -310,6 +310,6 @@ view mid model =
                               [ Html.text "Error." ]
                             Just msg ->
                               List.singleton <|
-                              Html.map PreviewReplySubpartMsg (PreviewReply.view rid msg)
+                              Html.map ReplyPreviewSubpartMsg (ReplyPreview.view rid msg)
           ] ++
           Notification.view model.notification

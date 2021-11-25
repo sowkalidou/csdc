@@ -1,4 +1,4 @@
-module CSDC.View.PreviewReply exposing
+module CSDC.View.ReplyPreview exposing
   ( Msg (..)
   , view
   )
@@ -6,7 +6,7 @@ module CSDC.View.PreviewReply exposing
 import CSDC.Component.Preview as Preview
 import CSDC.Types exposing (..)
 import CSDC.Input exposing (button)
-import CSDC.View.PreviewMessage exposing (viewMessage)
+import CSDC.View.MessagePreview exposing (viewMessage)
 
 import Html exposing (Html)
 import Html.Attributes

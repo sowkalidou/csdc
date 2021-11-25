@@ -10,7 +10,7 @@ module CSDC.View.Explorer exposing
 import CSDC.API as API
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
-import CSDC.View.PreviewUnit as PreviewUnit
+import CSDC.View.UnitPreview as UnitPreview
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
@@ -64,7 +64,7 @@ type Msg
   | CenterMsg (Panel.Msg (Id Unit))
   | RightMsg (Panel.Msg (Id Unit))
   | APIMsg Component API.Msg
-  | ViewUnit (Id Unit)
+  | Unit (Id Unit)
   | CloseModal
   | Reset
   | Focus
@@ -135,9 +135,9 @@ update pageInfo msg model =
           , Cmd.none
           )
 
-    ViewUnit m ->
+    Unit m ->
       ( { model | preview = Nothing }
-      , Page.goTo pageInfo (Page.ViewUnit m)
+      , Page.goTo pageInfo (Page.Unit m)
       )
 
     CloseModal ->
@@ -298,7 +298,7 @@ view model =
       Modal.view isActive CloseModal <|
         case model.preview of
           Nothing -> []
-          Just unit -> [ PreviewUnit.view unit.value (ViewUnit unit.id) ]
+          Just unit -> [ UnitPreview.view unit.value (Unit unit.id) ]
   ] ++
   Notification.view model.notification
 

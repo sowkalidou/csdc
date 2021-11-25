@@ -105,7 +105,7 @@ update pageInfo msg param model =
               ( { initial | notification = Notification.Success }
               , Cmd.batch
                   [ Notification.reset Reset
-                  , Page.goTo pageInfo (Page.ViewUnit unitInfo.id)
+                  , Page.goTo pageInfo (Page.Unit unitInfo.id)
                   ]
               )
 

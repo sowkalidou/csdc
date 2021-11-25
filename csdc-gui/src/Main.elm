@@ -13,12 +13,12 @@ import CSDC.View.Explorer as Explorer
 import CSDC.View.InvitationMember as InvitationMember
 import CSDC.View.MessageMember as MessageMember
 import CSDC.View.MessageSubpart as MessageSubpart
-import CSDC.View.PreviewMessage as PreviewMessage
-import CSDC.View.PreviewReply as PreviewReply
+import CSDC.View.MessagePreview as MessagePreview
+import CSDC.View.ReplyPreview as ReplyPreview
 import CSDC.View.Studio as Studio
-import CSDC.View.ViewPerson as ViewPerson
-import CSDC.View.ViewUnit as ViewUnit
-import CSDC.View.ViewUnitAdmin as ViewUnitAdmin
+import CSDC.View.Person as Person
+import CSDC.View.Unit as Unit
+import CSDC.View.UnitAdmin as UnitAdmin
 
 import Browser
 import Browser.Navigation as Nav
@@ -58,9 +58,9 @@ type alias Model =
   , page : Page
   , info : Maybe PersonInfo
   , admin : Admin.Model
-  , viewPerson : ViewPerson.Model
-  , viewUnit : ViewUnit.Model
-  , viewUnitAdmin : ViewUnitAdmin.Model
+  , viewPerson : Person.Model
+  , viewUnit : Unit.Model
+  , viewUnitAdmin : UnitAdmin.Model
   , messageMember : MessageMember.Model
   , invitationMember : InvitationMember.Model
   , messageSubpart : MessageSubpart.Model
@@ -81,9 +81,9 @@ init _ url key =
       , explorer = Explorer.initial
       , admin = Admin.initial
       , studio = Studio.initial
-      , viewPerson = ViewPerson.initial
-      , viewUnit = ViewUnit.initial
-      , viewUnitAdmin = ViewUnitAdmin.initial
+      , viewPerson = Person.initial
+      , viewUnit = Unit.initial
+      , viewUnitAdmin = UnitAdmin.initial
       , messageMember = MessageMember.initial
       , invitationMember = InvitationMember.initial
       , messageSubpart = MessageSubpart.initial
@@ -103,9 +103,9 @@ type Msg
   | AdminMsg Admin.Msg
   | MenuMsg Menu.Msg
   | ExplorerMsg Explorer.Msg
-  | ViewPersonMsg ViewPerson.Msg
-  | ViewUnitMsg ViewUnit.Msg
-  | ViewUnitAdminMsg ViewUnitAdmin.Msg
+  | PersonMsg Person.Msg
+  | UnitMsg Unit.Msg
+  | UnitAdminMsg UnitAdmin.Msg
   | MessageMemberMsg MessageMember.Param MessageMember.Msg
   | InvitationMemberMsg InvitationMember.Param InvitationMember.Msg
   | MessageSubpartMsg MessageSubpart.Param MessageSubpart.Msg
@@ -119,12 +119,12 @@ routeCmd page =
       Cmd.map APIMsg API.rootPerson
     Page.Explorer ->
       Cmd.map ExplorerMsg Explorer.setup
-    Page.ViewUnit uid ->
-      Cmd.map ViewUnitMsg (ViewUnit.setup uid)
-    Page.ViewUnitAdmin uid ->
-      Cmd.map ViewUnitAdminMsg (ViewUnitAdmin.setup uid)
-    Page.ViewPerson uid ->
-      Cmd.map ViewPersonMsg (ViewPerson.setup uid)
+    Page.Unit uid ->
+      Cmd.map UnitMsg (Unit.setup uid)
+    Page.UnitAdmin uid ->
+      Cmd.map UnitAdminMsg (UnitAdmin.setup uid)
+    Page.Person uid ->
+      Cmd.map PersonMsg (Person.setup uid)
     Page.InvitationMember pid ->
       Cmd.none
     Page.MessageMember pid uid mtype ->
@@ -197,28 +197,28 @@ update msg model =
         , Cmd.map StudioMsg cmd
         )
 
-    ViewPersonMsg m ->
+    PersonMsg m ->
       let
-        (viewPerson, cmd) = ViewPerson.update pageInfo m model.viewPerson
+        (viewPerson, cmd) = Person.update pageInfo m model.viewPerson
       in
         ( { model | viewPerson = viewPerson }
-        , Cmd.map ViewPersonMsg cmd
+        , Cmd.map PersonMsg cmd
         )
 
-    ViewUnitMsg m ->
+    UnitMsg m ->
       let
-        (viewUnit, cmd) = ViewUnit.update pageInfo m model.viewUnit
+        (viewUnit, cmd) = Unit.update pageInfo m model.viewUnit
       in
         ( { model | viewUnit = viewUnit }
-        , Cmd.map ViewUnitMsg cmd
+        , Cmd.map UnitMsg cmd
         )
 
-    ViewUnitAdminMsg m ->
+    UnitAdminMsg m ->
       let
-        (viewUnitAdmin, cmd) = ViewUnitAdmin.update pageInfo m model.viewUnitAdmin
+        (viewUnitAdmin, cmd) = UnitAdmin.update pageInfo m model.viewUnitAdmin
       in
         ( { model | viewUnitAdmin = viewUnitAdmin }
-        , Cmd.map ViewUnitAdminMsg cmd
+        , Cmd.map UnitAdminMsg cmd
         )
 
     MessageMemberMsg p m ->
@@ -338,17 +338,17 @@ mainPanel model =
         List.map (Html.map ExplorerMsg) <|
         Explorer.view model.explorer
 
-      Page.ViewPerson _ ->
-        List.map (Html.map ViewPersonMsg) <|
-        ViewPerson.view model.viewPerson
+      Page.Person _ ->
+        List.map (Html.map PersonMsg) <|
+        Person.view model.viewPerson
 
-      Page.ViewUnit _ ->
-        List.map (Html.map ViewUnitMsg) <|
-        ViewUnit.view model.info model.viewUnit
+      Page.Unit _ ->
+        List.map (Html.map UnitMsg) <|
+        Unit.view model.info model.viewUnit
 
-      Page.ViewUnitAdmin _ ->
-        List.map (Html.map ViewUnitAdminMsg) <|
-        ViewUnitAdmin.view model.info model.viewUnitAdmin
+      Page.UnitAdmin _ ->
+        List.map (Html.map UnitAdminMsg) <|
+        UnitAdmin.view model.info model.viewUnitAdmin
 
       Page.Admin ->
         wrapElements <|

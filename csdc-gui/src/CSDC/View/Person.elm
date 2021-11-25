@@ -1,4 +1,4 @@
-module CSDC.View.ViewPerson exposing
+module CSDC.View.Person exposing
   ( Model
   , initial
   , setup
@@ -15,7 +15,7 @@ import CSDC.Component.Progress as Progress
 import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
-import CSDC.View.PreviewUnit as PreviewUnit
+import CSDC.View.UnitPreview as UnitPreview
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
@@ -65,7 +65,7 @@ update pageInfo msg model =
 
     ViewSelected uid ->
       ( initial
-      , Page.goTo pageInfo (Page.ViewUnit uid)
+      , Page.goTo pageInfo (Page.Unit uid)
       )
 
     MessageMember pid ->
@@ -166,5 +166,5 @@ view model =
                   Nothing ->
                     Html.text "Error."
                   Just unit ->
-                    PreviewUnit.view unit.value (ViewSelected unit.id)
+                    UnitPreview.view unit.value (ViewSelected unit.id)
       ] ++ Notification.view model.notification

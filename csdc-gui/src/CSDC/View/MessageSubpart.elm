@@ -125,7 +125,7 @@ update pageInfo msg param model =
               [ Notification.reset Reset
               , case model.unit of
                   Nothing -> Cmd.none
-                  Just unit -> Page.goTo pageInfo (Page.ViewUnit unit.id)
+                  Just unit -> Page.goTo pageInfo (Page.Unit unit.id)
               ]
           )
 
@@ -135,7 +135,7 @@ update pageInfo msg param model =
               [ Notification.reset Reset
               , case model.unit of
                   Nothing -> Cmd.none
-                  Just unit -> Page.goTo pageInfo (Page.ViewUnit unit.id)
+                  Just unit -> Page.goTo pageInfo (Page.Unit unit.id)
               ]
           )
 

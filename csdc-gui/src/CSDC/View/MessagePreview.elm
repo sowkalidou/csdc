@@ -1,4 +1,4 @@
-module CSDC.View.PreviewMessage exposing
+module CSDC.View.MessagePreview exposing
   ( Model
   , initial
   , Msg (..)

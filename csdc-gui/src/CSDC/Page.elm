@@ -22,10 +22,10 @@ import Url exposing (Url)
 type Page
   = Explorer
   | Studio
-  | ViewPerson (Id Person)
-  | ViewUnit (Id Unit)
+  | Person (Id Person)
+  | Unit (Id Unit)
   | Admin
-  | ViewUnitAdmin (Id Unit)
+  | UnitAdmin (Id Unit)
   | MessageMember (Id Person) (Id Unit) MessageType
   | InvitationMember (Id Person)
   | MessageSubpart (Id Person) (Id Unit) MessageType
@@ -56,10 +56,10 @@ toFragments page =
   case page of
     Explorer -> ["explorer"]
     Studio -> ["studio"]
-    ViewPerson uid -> ["view-person", toFragmentId uid]
-    ViewUnit uid -> ["view-unit", toFragmentId uid]
+    Person uid -> ["person", toFragmentId uid]
+    Unit uid -> ["unit", toFragmentId uid]
     Admin -> ["admin"]
-    ViewUnitAdmin uid -> ["view-unit-admin", toFragmentId uid]
+    UnitAdmin uid -> ["unit-admin", toFragmentId uid]
     MessageMember pid uid mtype ->
       [ "message-member"
       , toFragmentId pid
@@ -100,18 +100,18 @@ fromFragments l =
     [] -> Studio
     ["studio"] -> Studio
     ["explorer"] -> Explorer
-    ["view-person", uid] ->
+    ["person", uid] ->
       default <|
-      Maybe.map ViewPerson
+      Maybe.map Person
         (fromFragmentId uid)
-    ["view-unit", uid] ->
+    ["unit", uid] ->
       default <|
-      Maybe.map ViewUnit
+      Maybe.map Unit
         (fromFragmentId uid)
     ["admin"] -> Admin
-    ["view-unit-admin",uid] ->
+    ["unit-admin",uid] ->
       default <|
-      Maybe.map ViewUnitAdmin
+      Maybe.map UnitAdmin
         (fromFragmentId uid)
     ["message-member",pid,uid,mtype] ->
       default <|

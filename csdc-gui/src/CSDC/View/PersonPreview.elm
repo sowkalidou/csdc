@@ -1,4 +1,4 @@
-module CSDC.View.PreviewUnit exposing
+module CSDC.View.PersonPreview exposing
   ( view
   )
 
@@ -10,19 +10,18 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 
-view : Unit -> msg -> Html msg
-view unit viewUnit = Preview.make
+view : Person -> msg -> Html msg
+view person viewPerson = Preview.make
   [ Html.p
-      [ Html.Attributes.style "white-space" "pre-wrap"
-      ]
-      [ Html.strong [] [ Html.text unit.name ]
+      []
+      [ Html.strong [] [ Html.text person.name ]
       , Html.br [] []
-      , Html.text unit.description
+      , Html.text person.description
       ]
   , Html.button
       [ Html.Attributes.class "button is-primary is-pulled-right"
-      , Html.Events.onClick viewUnit
+      , Html.Events.onClick viewPerson
       ]
-      [ Html.text "View Unit"
+      [ Html.text "View Person"
       ]
   ]
