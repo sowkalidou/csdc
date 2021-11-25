@@ -82,7 +82,7 @@ setup id =
 
 type ViewSelected
   = ViewSelectedUnit (Id Unit)
-  | ViewSelectedInbox InboxId MessageType ReplyType
+  | ViewSelectedInbox InboxId ReplyType
 
 type Msg
   = APIMsg API.Msg
@@ -144,15 +144,13 @@ update pageInfo msg model =
           , Page.goTo pageInfo (Page.Unit id)
           )
 
-        ViewSelectedInbox inboxId mtype rtype ->
+        ViewSelectedInbox inboxId rtype ->
           case inboxId of
             MessageMemberId id ->
               let
                 reply =
                   { rtype = rtype
-                  , mtype = mtype
                   , text = "Reply"
-                  , status = NotSeen
                   , id = id
                   }
               in

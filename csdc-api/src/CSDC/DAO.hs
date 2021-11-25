@@ -168,19 +168,19 @@ deleteSubpart i = runSQL $ SQL.query SQL.Subparts.delete i
 --------------------------------------------------------------------------------
 -- Message Member
 
-sendMessageMember :: Message Member -> Action user (Id (Message Member))
+sendMessageMember :: NewMessage Member -> Action user (Id (Message Member))
 sendMessageMember m = runSQL $ SQL.query SQL.MessageMembers.sendMessage m
 
-sendReplyMember :: Reply Member -> Action user (Id (Reply Member))
+sendReplyMember :: NewReply Member -> Action user (Id (Reply Member))
 sendReplyMember r = do
   rid <- runSQL $ SQL.query SQL.MessageMembers.sendReply r
   let
-    status = case reply_type r of
+    status = case newReply_type r of
       Accept -> Accepted
       Reject -> Rejected
-    uid = reply_id r
+    uid = newReply_message r
   runSQL $ SQL.query SQL.MessageMembers.updateMessage (uid, status)
-  case reply_type r of
+  case newReply_type r of
     Accept ->
       runSQL (SQL.query SQL.MessageMembers.selectMember uid) >>= \case
         Nothing ->
@@ -198,19 +198,19 @@ viewReplyMember i = runSQL $ SQL.query SQL.MessageMembers.viewReply i
 --------------------------------------------------------------------------------
 -- Message Subpart
 
-sendMessageSubpart :: Message Subpart -> Action user (Id (Message Subpart))
+sendMessageSubpart :: NewMessage Subpart -> Action user (Id (Message Subpart))
 sendMessageSubpart m = runSQL $ SQL.query SQL.MessageSubparts.sendMessage m
 
-sendReplySubpart :: Reply Subpart -> Action user (Id (Reply Subpart))
+sendReplySubpart :: NewReply Subpart -> Action user (Id (Reply Subpart))
 sendReplySubpart r = do
   rid <- runSQL $ SQL.query SQL.MessageSubparts.sendReply r
   let
-    status = case reply_type r of
+    status = case newReply_type r of
       Accept -> Accepted
       Reject -> Rejected
-    uid = reply_id r
+    uid = newReply_message r
   runSQL $ SQL.query SQL.MessageSubparts.updateMessage (uid, status)
-  case reply_type r of
+  case newReply_type r of
     Accept ->
       runSQL (SQL.query SQL.MessageSubparts.selectSubpart uid) >>= \case
         Nothing ->

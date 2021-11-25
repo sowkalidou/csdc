@@ -91,7 +91,6 @@ update pageInfo msg param model =
                 message =
                  { mtype = param.messageType
                  , text = model.text
-                 , status = Waiting
                  , value =
                      case param.messageType of
                        Invitation ->

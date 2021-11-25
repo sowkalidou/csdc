@@ -26,7 +26,6 @@ type alias Model =
   { person : Field String (Id Person)
   , unit : Field String (Id Unit)
   , messageType : Field (Maybe MessageType) MessageType
-  , messageStatus : Field (Maybe MessageStatus) MessageStatus
   , notification : Notification
   }
 
@@ -35,18 +34,16 @@ initial =
   { person = Field.requiredId "Person"
   , unit = Field.requiredId "Unit"
   , messageType = Field.required "Message Type"
-  , messageStatus = Field.required "Message Status"
   , notification = Notification.Empty
   }
 
-validate : Model -> Result (List String) (Message Member)
+validate : Model -> Result (List String) (NewMessage Member)
 validate model =
   let
     result =
-      Validation.valid Message
+      Validation.valid NewMessage
         |> Validation.andMap (Field.validate model.messageType)
         |> Validation.andMap (Validation.valid "Message")
-        |> Validation.andMap (Field.validate model.messageStatus)
         |> Validation.andMap
              ( Validation.valid Member
                  |> Validation.andMap (Field.validate model.person)
@@ -63,7 +60,6 @@ type Msg
   | InputUnit String
   | APIMsg API.Msg
   | InputMessageType MessageType
-  | InputMessageStatus MessageStatus
   | Submit
   | Reset
 
@@ -90,11 +86,6 @@ update msg model =
           ( { model | notification = Notification.Processing }
           , Cmd.map APIMsg <| API.sendMessageMember message
           )
-
-    InputMessageStatus messageStatus ->
-      ( { model | messageStatus = Field.set (Just messageStatus) model.messageStatus }
-      , Cmd.none
-      )
 
     InputMessageType messageType ->
       ( { model | messageType = Field.set (Just messageType) model.messageType }
@@ -143,7 +134,6 @@ view model =
         [ Font.bold, Font.size 30 ]
         [ text "New Message" ]
     , selectMessageType model
-    , selectMessageStatus model
     , Input.text
         { onChange = InputPerson
         , field = model.person
@@ -166,14 +156,3 @@ selectMessageType model =
         ]
     }
 
-selectMessageStatus : Model -> Element Msg
-selectMessageStatus model =
-  Input.radio
-    { onChange = InputMessageStatus
-    , field = model.messageStatus
-    , options =
-        [ (Waiting, "Waiting")
-        , (Accepted, "Accepted")
-        , (Rejected, "Rejected")
-        ]
-    }

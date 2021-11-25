@@ -25,8 +25,6 @@ import String
 type alias Model =
   { message : Field String (Id (Message Member))
   , replyType : Field (Maybe ReplyType) ReplyType
-  , messageType : Field (Maybe MessageType) MessageType
-  , replyStatus : Field (Maybe ReplyStatus) ReplyStatus
   , notification : Notification
   }
 
@@ -34,20 +32,16 @@ initial : Model
 initial =
   { message = Field.requiredId "Message"
   , replyType = Field.required "Reply Type"
-  , messageType = Field.required "Message Type"
-  , replyStatus = Field.required "Reply Status"
   , notification = Notification.Empty
   }
 
-validate : Model -> Result (List String) (Reply Member)
+validate : Model -> Result (List String) (NewReply Member)
 validate model =
   let
     result =
-      Validation.valid Reply
+      Validation.valid NewReply
         |> Validation.andMap (Field.validate model.replyType)
-        |> Validation.andMap (Field.validate model.messageType)
         |> Validation.andMap (Validation.valid "Reply")
-        |> Validation.andMap (Field.validate model.replyStatus)
         |> Validation.andMap (Field.validate model.message)
   in
     Validation.validate result
@@ -58,9 +52,7 @@ validate model =
 type Msg
   = InputMessage String
   | APIMsg API.Msg
-  | InputMessageType MessageType
   | InputReplyType ReplyType
-  | InputReplyStatus ReplyStatus
   | Submit
   | Reset
 
@@ -83,18 +75,8 @@ update msg model =
           , Cmd.map APIMsg <| API.sendReplyMember reply
           )
 
-    InputReplyStatus replyStatus ->
-      ( { model | replyStatus = Field.set (Just replyStatus) model.replyStatus }
-      , Cmd.none
-      )
-
     InputReplyType replyType ->
       ( { model | replyType = Field.set (Just replyType) model.replyType }
-      , Cmd.none
-      )
-
-    InputMessageType messageType ->
-      ( { model | messageType = Field.set (Just messageType) model.messageType }
       , Cmd.none
       )
 
@@ -139,8 +121,6 @@ view model =
     [ row
         [ Font.bold, Font.size 30 ]
         [ text "New Reply" ]
-    , selectReplyStatus model
-    , selectMessageType model
     , selectReplyType model
     , Input.text
         { onChange = InputMessage
@@ -157,27 +137,5 @@ selectReplyType model =
     , options =
         [ (Accept, "Accept")
         , (Reject, "Reject")
-        ]
-    }
-
-selectMessageType : Model -> Element Msg
-selectMessageType model =
-  Input.radio
-    { onChange = InputMessageType
-    , field = model.messageType
-    , options =
-        [ (Invitation, "Invitation")
-        , (Submission, "Submission")
-        ]
-    }
-
-selectReplyStatus : Model -> Element Msg
-selectReplyStatus model =
-  Input.radio
-    { onChange = InputReplyStatus
-    , field = model.replyStatus
-    , options =
-        [ (Seen, "Seen")
-        , (NotSeen, "Not Seen")
         ]
     }

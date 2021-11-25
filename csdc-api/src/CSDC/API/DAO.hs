@@ -110,8 +110,8 @@ serveSubpartAPI =
 -- Message API
 
 type MessageMemberAPI =
-       "send" :> PostJSON (Message Member) (Id (Message Member))
-  :<|> "reply" :> PostJSON (Reply Member) (Id (Reply Member))
+       "send" :> PostJSON (NewMessage Member) (Id (Message Member))
+  :<|> "reply" :> PostJSON (NewReply Member) (Id (Reply Member))
   :<|> "view" :> PostJSON (Id (Reply Member)) ()
 
 serveMessageMemberAPI :: Server MessageMemberAPI
@@ -121,8 +121,8 @@ serveMessageMemberAPI =
   :<|> viewReplyMember
 
 type MessageSubpartAPI =
-       "send" :> PostJSON (Message Subpart) (Id (Message Subpart))
-  :<|> "reply" :> PostJSON (Reply Subpart) (Id (Reply Subpart))
+       "send" :> PostJSON (NewMessage Subpart) (Id (Message Subpart))
+  :<|> "reply" :> PostJSON (NewReply Subpart) (Id (Reply Subpart))
   :<|> "view" :> PostJSON (Id (Reply Subpart)) ()
 
 serveMessageSubpartAPI :: Server MessageSubpartAPI

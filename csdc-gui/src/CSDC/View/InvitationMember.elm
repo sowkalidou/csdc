@@ -79,7 +79,6 @@ update pageInfo msg param model =
             message =
              { mtype = Invitation
              , text = model.text
-             , status = Waiting
              , value = { person = param.person, unit = unit }
              }
           in

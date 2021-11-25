@@ -283,6 +283,20 @@ decodeMessage decode =
     (Decoder.field "status" decodeMessageStatus)
     (Decoder.field "value" decode)
 
+type alias NewMessage a =
+  { mtype : MessageType
+  , text : String
+  , value : a
+  }
+
+encodeNewMessage : (a -> Value) -> NewMessage a -> Value
+encodeNewMessage encode m =
+  Encoder.object
+    [ ("type", encodeMessageType m.mtype)
+    , ("text", Encoder.string m.text)
+    , ("value", encode m.value)
+    ]
+
 type alias MessageInfo a =
   { mtype : MessageType
   , text : String
@@ -290,17 +304,6 @@ type alias MessageInfo a =
   , value : a
   , left : String
   , right : String
-  }
-
-makeMessageInfo :
-  MessageType -> String -> MessageStatus -> a -> String -> String -> MessageInfo a
-makeMessageInfo mtype text status value left right =
-  { mtype = mtype
-  , text = text
-  , status = status
-  , value = value
-  , left = left
-  , right = right
   }
 
 encodeMessageInfo : (a -> Value) -> MessageInfo a -> Value
@@ -316,7 +319,7 @@ encodeMessageInfo encode m =
 
 decodeMessageInfo : Decoder a -> Decoder (MessageInfo a)
 decodeMessageInfo decode =
-  Decoder.map6 makeMessageInfo
+  Decoder.map6 MessageInfo
     (Decoder.field "type" decodeMessageType)
     (Decoder.field "text" Decoder.string)
     (Decoder.field "status" decodeMessageStatus)
@@ -392,22 +395,26 @@ decodeReply =
     (Decoder.field "status" decodeReplyStatus)
     (Decoder.field "id" decodeId)
 
+type alias NewReply a =
+  { rtype : ReplyType
+  , text : String
+  , id : Id (Message a)
+  }
+
+encodeNewReply : NewReply a -> Value
+encodeNewReply m =
+  Encoder.object
+    [ ("type", encodeReplyType m.rtype)
+    , ("text", Encoder.string m.text)
+    , ("id", encodeId m.id)
+    ]
+
 type alias ReplyInfo a =
   { rtype : ReplyType
   , mtype : MessageType
   , text : String
   , status : ReplyStatus
   , message : MessageInfo a
-  }
-
-makeReplyInfo :
-  ReplyType -> MessageType -> String -> ReplyStatus -> MessageInfo a -> ReplyInfo a
-makeReplyInfo rtype mtype text status message =
-  { rtype = rtype
-  , mtype = mtype
-  , text = text
-  , status = status
-  , message = message
   }
 
 encodeReplyInfo : (a -> Value) -> ReplyInfo a -> Value
@@ -422,7 +429,7 @@ encodeReplyInfo encode m =
 
 decodeReplyInfo : Decoder a -> Decoder (ReplyInfo a)
 decodeReplyInfo decode =
-  Decoder.map5 makeReplyInfo
+  Decoder.map5 ReplyInfo
     (Decoder.field "type" decodeReplyType)
     (Decoder.field "mtype" decodeMessageType)
     (Decoder.field "text" Decoder.string)

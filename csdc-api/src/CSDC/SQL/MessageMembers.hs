@@ -14,9 +14,11 @@ module CSDC.SQL.MessageMembers
 
 import CSDC.DAO.Types
   ( Message (..)
+  , NewMessage (..)
   , MessageInfo (..)
   , MessageStatus
   , Reply (..)
+  , NewReply (..)
   , ReplyInfo (..)
   , Person
   , Unit
@@ -61,21 +63,20 @@ selectMember =  Statement sql encoder decoder True
         Decoder.id <*>
         Decoder.id
 
-sendMessage :: Statement (Message Member) (Id (Message Member))
+sendMessage :: Statement (NewMessage Member) (Id (Message Member))
 sendMessage = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "INSERT INTO messages_member (type, status, message, person, unit)"
-      , "VALUES ($1 :: message_type, $2 :: message_status, $3, $4, $5)"
+      [ "INSERT INTO messages_member (type, message, person, unit)"
+      , "VALUES ($1 :: message_type, $2, $3, $4)"
       , "RETURNING id"
       ]
 
     encoder =
-      (contramap message_type Encoder.messageType) <>
-      (contramap message_status Encoder.messageStatus) <>
-      (contramap message_text Encoder.text) <>
-      (contramap (member_person . message_value) Encoder.id) <>
-      (contramap (member_unit . message_value) Encoder.id)
+      (contramap newMessage_type Encoder.messageType) <>
+      (contramap newMessage_text Encoder.text) <>
+      (contramap (member_person . newMessage_value) Encoder.id) <>
+      (contramap (member_unit . newMessage_value) Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
 
@@ -95,20 +96,19 @@ updateMessage = Statement sql encoder decoder True
     decoder = Decoder.noResult
 
 
-sendReply :: Statement (Reply Member) (Id (Reply Member))
+sendReply :: Statement (NewReply Member) (Id (Reply Member))
 sendReply = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "INSERT INTO replies_member (type, status, reply, message)"
-      , "VALUES ($1 :: reply_type, $2 :: reply_status, $3, $4)"
+      [ "INSERT INTO replies_member (type, reply, message)"
+      , "VALUES ($1 :: reply_type, $2, $3)"
       , "RETURNING id"
       ]
 
     encoder =
-      (contramap reply_type Encoder.replyType) <>
-      (contramap reply_status Encoder.replyStatus) <>
-      (contramap reply_text Encoder.text) <>
-      (contramap reply_id Encoder.id)
+      (contramap newReply_type Encoder.replyType) <>
+      (contramap newReply_text Encoder.text) <>
+      (contramap newReply_message Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
 

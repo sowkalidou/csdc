@@ -235,19 +235,19 @@ deleteSubpart = delete "subpart" DeleteSubpart
 --------------------------------------------------------------------------------
 -- Message
 
-sendMessageMember : Message Member -> Cmd Msg
+sendMessageMember : NewMessage Member -> Cmd Msg
 sendMessageMember msg =
   Http.post
     { url = baseUrl ++ "message/member/send"
-    , body = Http.jsonBody <| encodeMessage encodeMember msg
+    , body = Http.jsonBody <| encodeNewMessage encodeMember msg
     , expect = Http.expectJson SendMessageMember decodeId
     }
 
-sendReplyMember : Reply Member -> Cmd Msg
+sendReplyMember : NewReply Member -> Cmd Msg
 sendReplyMember reply =
   Http.post
     { url = baseUrl ++ "message/member/reply"
-    , body = Http.jsonBody <| encodeReply reply
+    , body = Http.jsonBody <| encodeNewReply reply
     , expect = Http.expectJson SendReplyMember decodeId
     }
 
@@ -259,19 +259,19 @@ viewReplyMember id =
     , expect = Http.expectJson ViewReplyMember decodeNull
     }
 
-sendMessageSubpart : Message Subpart -> Cmd Msg
+sendMessageSubpart : NewMessage Subpart -> Cmd Msg
 sendMessageSubpart msg =
   Http.post
     { url = baseUrl ++ "message/subpart/send"
-    , body = Http.jsonBody <| encodeMessage encodeSubpart msg
+    , body = Http.jsonBody <| encodeNewMessage encodeSubpart msg
     , expect = Http.expectJson SendMessageSubpart decodeId
     }
 
-sendReplySubpart : Reply Subpart -> Cmd Msg
+sendReplySubpart : NewReply Subpart -> Cmd Msg
 sendReplySubpart reply =
   Http.post
     { url = baseUrl ++ "message/subpart/reply"
-    , body = Http.jsonBody <| encodeReply reply
+    , body = Http.jsonBody <| encodeNewReply reply
     , expect = Http.expectJson SendReplySubpart decodeId
     }
 
