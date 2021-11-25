@@ -51,6 +51,7 @@ type alias Model =
   , personEdit : PersonForm.Model
   , personEditOpen : Bool
   , previewMessage : MessagePreview.Model
+  , previewReply : ReplyPreview.Model
   }
 
 initial : Model
@@ -66,6 +67,7 @@ initial =
   , personEdit = PersonForm.initial
   , personEditOpen = False
   , previewMessage = MessagePreview.initial
+  , previewReply = ReplyPreview.initial
   }
 
 setup : Id Person -> Cmd Msg
@@ -84,8 +86,7 @@ type Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | MessagesMsg (Panel.Msg InboxId)
   | MessagePreviewMsg MessagePreview.Msg
-  | ReplyPreviewMemberMsg (ReplyPreview.Msg Member)
-  | ReplyPreviewSubpartMsg (ReplyPreview.Msg Subpart)
+  | ReplyPreviewMsg ReplyPreview.Msg
   | UnitCreateMsg UnitForm.Msg
   | UnitCreateOpen
   | UnitCreateClose
@@ -270,17 +271,48 @@ update pageInfo msg model =
         _ ->
           (model, Cmd.none)
 
-    ReplyPreviewMemberMsg (ReplyPreview.MarkAsSeen id) ->
-      ( { model | selected = SelectedNothing }
-      , Cmd.map APIMsg <|
-        API.viewReplyMember id
-      )
+    ReplyPreviewMsg preMsg ->
+      case model.selected of
+        SelectedInbox inboxId ->
+          case inboxId of
+            ReplyMemberId id ->
+              let
+                (previewReply, cmd) = ReplyPreview.updateMember id preMsg model.previewReply
+              in
+                case preMsg of
+                  ReplyPreview.APIMsg (API.ViewReplyMember (Ok _)) ->
+                    ( { model | previewReply = previewReply, selected = SelectedNothing }
+                    , Cmd.batch
+                        [ Page.goTo pageInfo Page.Studio
+                        , Cmd.map ReplyPreviewMsg cmd
+                        ]
+                    )
+                  _ ->
+                    ( { model | previewReply = previewReply }
+                    , Cmd.map ReplyPreviewMsg cmd
+                    )
 
-    ReplyPreviewSubpartMsg (ReplyPreview.MarkAsSeen id) ->
-      ( { model | selected = SelectedNothing }
-      , Cmd.map APIMsg <|
-        API.viewReplySubpart id
-      )
+            ReplySubpartId id ->
+              let
+                (previewReply, cmd) = ReplyPreview.updateSubpart id preMsg model.previewReply
+              in
+                case preMsg of
+                  ReplyPreview.APIMsg (API.ViewReplySubpart (Ok _)) ->
+                    ( { model | previewReply = previewReply, selected = SelectedNothing }
+                    , Cmd.batch
+                        [ Page.goTo pageInfo Page.Studio
+                        , Cmd.map ReplyPreviewMsg cmd
+                        ]
+                    )
+                  _ ->
+                    ( { model | previewReply = previewReply }
+                    , Cmd.map ReplyPreviewMsg cmd
+                    )
+
+            _ ->
+              (model, Cmd.none)
+        _ ->
+          (model, Cmd.none)
 
     CloseModal ->
       ( { model | selected = SelectedNothing }
@@ -462,7 +494,7 @@ view model =
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map ReplyPreviewMemberMsg (ReplyPreview.view id msg)
+                        Html.map ReplyPreviewMsg (ReplyPreview.view msg)
 
                   MessageMemberId id ->
                     case idMapLookup id model.inbox.messageMember of
@@ -483,7 +515,7 @@ view model =
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map ReplyPreviewSubpartMsg (ReplyPreview.view id msg)
+                        Html.map ReplyPreviewMsg (ReplyPreview.view msg)
 
       ] ++ Notification.view model.notification
 

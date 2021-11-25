@@ -50,6 +50,7 @@ type alias Model =
   , selected : Selected
   , notification : Notification
   , previewMessage : MessagePreview.Model
+  , previewReply : ReplyPreview.Model
   }
 
 initial : Model
@@ -61,6 +62,7 @@ initial =
   , selected = SelectedNothing
   , notification = Notification.Empty
   , previewMessage = MessagePreview.initial
+  , previewReply = ReplyPreview.initial
   }
 
 setup : Id Unit -> Cmd Msg
@@ -77,8 +79,7 @@ type Msg
   | PanelMemberMsg (Panel.Msg MemberId)
   | PanelSubpartMsg (Panel.Msg SubpartId)
   | MessagePreviewMsg MessagePreview.Msg
-  | ReplyPreviewMemberMsg (ReplyPreview.Msg Member)
-  | ReplyPreviewSubpartMsg (ReplyPreview.Msg Subpart)
+  | ReplyPreviewMsg ReplyPreview.Msg
   | Reset
   | CloseModal
 
@@ -138,17 +139,24 @@ update pageInfo msg model =
         _ ->
           (model, Cmd.none)
 
-    ReplyPreviewMemberMsg (ReplyPreview.MarkAsSeen id) ->
-      ( { model | selected = SelectedNothing }
-      , Cmd.map APIMsg <|
-        API.viewReplyMember id
-      )
-
-    ReplyPreviewSubpartMsg (ReplyPreview.MarkAsSeen id) ->
-      ( { model | selected = SelectedNothing }
-      , Cmd.map APIMsg <|
-        API.viewReplySubpart id
-      )
+    ReplyPreviewMsg preMsg ->
+      case model.selected of
+        SelectedMember (MemberReply mid) ->
+          let
+            (previewReply, cmd) = ReplyPreview.updateMember mid preMsg model.previewReply
+          in
+            ( { model | previewReply = previewReply }
+            , Cmd.map ReplyPreviewMsg cmd
+            )
+        SelectedSubpart (SubpartReply mid) ->
+          let
+            (previewReply, cmd) = ReplyPreview.updateSubpart mid preMsg model.previewReply
+          in
+            ( { model | previewReply = previewReply }
+            , Cmd.map ReplyPreviewMsg cmd
+            )
+        _ ->
+          (model, Cmd.none)
 
     Reset ->
       ( { model | notification = Notification.Empty }
@@ -292,7 +300,7 @@ view mid model =
                               [ Html.text "Error." ]
                             Just msg ->
                               List.singleton <|
-                              Html.map ReplyPreviewMemberMsg (ReplyPreview.view rid msg)
+                              Html.map ReplyPreviewMsg (ReplyPreview.view msg)
 
                   SelectedSubpart subpartId ->
                     Html.div [] <|
@@ -312,6 +320,6 @@ view mid model =
                               [ Html.text "Error." ]
                             Just msg ->
                               List.singleton <|
-                              Html.map ReplyPreviewSubpartMsg (ReplyPreview.view rid msg)
+                              Html.map ReplyPreviewMsg (ReplyPreview.view msg)
           ] ++
           Notification.view model.notification

@@ -85,16 +85,16 @@ updateWith makeCmd msg model =
 
     APIMsg apiMsg ->
       let
-        onSuccess = Notification.withResponse Reset model
+        onSuccess = Notification.withResponse ResetNotification model
       in
       case apiMsg of
         API.SendReplyMember response -> onSuccess response <| \_ ->
-          ( { model | notification = Notification.Success }
+          ( { initial | notification = Notification.Success }
           , Cmd.none
           )
 
         API.SendReplySubpart response -> onSuccess response <| \_ ->
-          ( { model | notification = Notification.Success }
+          ( { initial | notification = Notification.Success }
           , Cmd.none
           )
 
