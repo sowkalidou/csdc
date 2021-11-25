@@ -452,7 +452,7 @@ view model =
               [ Html.map MessagesMsg <| Panel.view model.panelMessages ]
           ]
 
-      , Modal.view model.personEditOpen PersonEditClose <| List.singleton <|
+      , Modal.view model.personEditOpen PersonEditClose <|
           Html.map PersonEditMsg <|
           Preview.make
             [ Html.h2
@@ -461,7 +461,7 @@ view model =
             , PersonForm.view model.personEdit
             ]
 
-      , Modal.view model.unitCreateOpen UnitCreateClose <| List.singleton <|
+      , Modal.view model.unitCreateOpen UnitCreateClose <|
           Html.map UnitCreateMsg <|
           Preview.make
             [ Html.h2
@@ -475,7 +475,7 @@ view model =
             SelectedNothing -> False
             _ -> True
         in
-          Modal.view isActive CloseModal <| List.singleton <|
+          Modal.view isActive CloseModal <|
             case model.selected of
               SelectedNothing ->
                 Html.div [] []

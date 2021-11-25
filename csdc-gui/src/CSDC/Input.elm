@@ -82,3 +82,40 @@ textarea field makeMsg =
       , Html.Events.onInput makeMsg
       ]
       []
+
+--------------------------------------------------------------------------------
+-- Text input
+
+dropdown : List (a, String) -> Field (Maybe a) b -> (Maybe a -> msg) -> Html msg
+dropdown items field makeMsg =
+  wrapper field <|
+    Html.div
+      [ Html.Attributes.class "dropdown"
+      , Html.Attributes.style "height" "26px"
+      , Html.Attributes.style "margin-top" "-4px"
+      ]
+      [ Html.div
+          [ Html.Attributes.class "dropdown-trigger"
+          ]
+          [ Html.span [] [ Html.text "Select" ]
+          , Html.span [] [ Html.text "\u{65088}" ]
+          ]
+      , Html.div
+          [ Html.Attributes.class "dropdown-menu"
+          , Html.Attributes.attribute "role" "menu"
+          ]
+          [ Html.div
+              [ Html.Attributes.class "dropdown-content has-text-right"
+              ]
+              (List.map (Html.map makeMsg << dropdownItem) items)
+          ]
+      ]
+
+dropdownItem : (a, String) -> Html (Maybe a)
+dropdownItem (a, label) =
+  Html.div
+    [ Html.Attributes.class "dropdown-item"
+    , Html.Events.onClick (Just a)
+    ]
+    [ Html.text label
+    ]

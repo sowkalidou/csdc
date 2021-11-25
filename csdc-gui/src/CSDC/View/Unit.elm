@@ -423,7 +423,7 @@ view mid model =
               [ Html.map MembersMsg <| Panel.view model.panelMembers ]
           ]
 
-      , Modal.view model.unitEditOpen UnitEditClose <| List.singleton <|
+      , Modal.view model.unitEditOpen UnitEditClose <|
           Html.map UnitEditMsg <|
           Preview.make
             [ Html.h2
@@ -432,7 +432,7 @@ view mid model =
             , UnitForm.view model.unitEdit
             ]
 
-      , Modal.view model.unitDeleteOpen UnitDeleteClose <| List.singleton <|
+      , Modal.view model.unitDeleteOpen UnitDeleteClose <|
           Preview.make
             [ Html.h2
                 []
@@ -451,7 +451,7 @@ view mid model =
             SelectedNothing -> False
             _ -> True
         in
-          Modal.view isActive CloseModal <| List.singleton <|
+          Modal.view isActive CloseModal <|
             case model.selected of
               SelectedNothing ->
                 Html.div [] []

@@ -160,7 +160,7 @@ view model =
               Nothing -> False
               _ -> True
         in
-          Modal.view isActive CloseModal <| List.singleton <|
+          Modal.view isActive CloseModal <|
             case model.panelUnits.selected of
               Nothing ->
                 Html.div [] []

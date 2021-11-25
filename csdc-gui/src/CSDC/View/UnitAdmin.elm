@@ -277,7 +277,7 @@ view mid model =
                 SelectedNothing -> False
                 _ -> True
             in
-              Modal.view isActive CloseModal <| List.singleton <|
+              Modal.view isActive CloseModal <|
                 case model.selected of
                   SelectedNothing ->
                     Html.div [] []

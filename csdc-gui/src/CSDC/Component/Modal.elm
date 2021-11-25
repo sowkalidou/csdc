@@ -6,7 +6,7 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 
-view : Bool -> msg -> List (Html msg) -> Html msg
+view : Bool -> msg -> Html msg -> Html msg
 view isActive close contents =
   Html.div
     [ if isActive
@@ -21,7 +21,7 @@ view isActive close contents =
     , Html.div
         [ Html.Attributes.class "modal-content"
         ]
-        contents
+        [ contents ]
     , Html.button
         [ Html.Attributes.class "modal-close is-large"
         , Html.Attributes.attribute "aria-label" "close"

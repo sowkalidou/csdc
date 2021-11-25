@@ -290,15 +290,12 @@ view model =
           [ Html.Attributes.class "column is-one-third" ]
           [ Html.map RightMsg <| Panel.view model.right ]
       ]
-  , let
-      isActive = case model.preview of
-        Nothing -> False
-        Just _ -> True
-    in
-      Modal.view isActive CloseModal <|
-        case model.preview of
-          Nothing -> []
-          Just unit -> [ UnitPreview.view unit.value (Unit unit.id) ]
+  , case model.preview of
+      Nothing ->
+        Html.div [] []
+      Just unit ->
+        Modal.view True CloseModal <|
+          UnitPreview.view unit.value (Unit unit.id)
   ] ++
   Notification.view model.notification
 
