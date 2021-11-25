@@ -22,12 +22,14 @@ CREATE TABLE members
   ( id serial PRIMARY KEY
   , person integer NOT NULL REFERENCES persons(id)
   , unit integer NOT NULL REFERENCES units(id)
+  , CONSTRAINT member_unique UNIQUE (person, unit)
   );
 
 CREATE TABLE subparts
   ( id serial PRIMARY KEY
   , child integer NOT NULL REFERENCES units(id)
   , parent integer NOT NULL REFERENCES units(id)
+  , CONSTRAINT subpart_unique UNIQUE (child, parent)
   );
 
 --------------------------------------------------------------------------------
@@ -46,8 +48,8 @@ CREATE TYPE message_status AS enum (
 
 CREATE TABLE messages_member
   ( id serial PRIMARY KEY
-  , mtype message_type NOT NULL
-  , mstatus message_status NOT NULL
+  , type message_type NOT NULL
+  , status message_status NOT NULL DEFAULT 'Waiting'
   , message text NOT NULL
   , person integer NOT NULL REFERENCES persons(id)
   , unit integer NOT NULL REFERENCES units(id)
@@ -55,8 +57,8 @@ CREATE TABLE messages_member
 
 CREATE TABLE messages_subpart
   ( id serial PRIMARY KEY
-  , mtype message_type NOT NULL
-  , mstatus message_status NOT NULL
+  , type message_type NOT NULL
+  , status message_status NOT NULL DEFAULT 'Waiting'
   , message text NOT NULL
   , child integer NOT NULL REFERENCES units(id)
   , parent integer NOT NULL REFERENCES units(id)
@@ -77,18 +79,16 @@ CREATE TYPE reply_status AS enum (
 
 CREATE TABLE replies_member
   ( id serial PRIMARY KEY
-  , rtype reply_type NOT NULL
-  , mtype message_type NOT NULL
-  , rstatus reply_status NOT NULL
+  , type reply_type NOT NULL
+  , status reply_status NOT NULL DEFAULT 'NotSeen'
   , reply text NOT NULL
   , message integer NOT NULL REFERENCES messages_member(id)
   );
 
 CREATE TABLE replies_subpart
   ( id serial PRIMARY KEY
-  , rtype reply_type NOT NULL
-  , mtype message_type NOT NULL
-  , rstatus reply_status NOT NULL
+  , type reply_type NOT NULL
+  , status reply_status NOT NULL DEFAULT 'NotSeen'
   , reply text NOT NULL
   , message integer NOT NULL REFERENCES messages_subpart(id)
   );

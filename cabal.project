@@ -2,3 +2,4 @@ packages:
   csdc-api
   csdc-auth
   csdc-base
+ghci-options: -O0

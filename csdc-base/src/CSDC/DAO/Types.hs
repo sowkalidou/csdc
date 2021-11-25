@@ -9,9 +9,11 @@ module CSDC.DAO.Types
   , Subpart (..)
     -- Messages
   , Message (..)
+  , NewMessage (..)
   , MessageStatus (..)
   , MessageType (..)
   , Reply (..)
+  , NewReply (..)
   , ReplyStatus (..)
   , ReplyType (..)
     -- GUI Types
@@ -83,6 +85,13 @@ data Message a = Message
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON (Message a)
 
+data NewMessage a = NewMessage
+  { newMessage_type :: MessageType
+  , newMessage_text :: Text
+  , newMessage_value :: a
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON (NewMessage a)
+
 data ReplyStatus = Seen | NotSeen
   deriving (Show, Eq, Ord, Generic)
   deriving (FromJSON, ToJSON) via JSON ReplyStatus
@@ -99,6 +108,13 @@ data Reply a = Reply
   , reply_id :: Id (Message a)
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON (Reply a)
+
+data NewReply a = NewReply
+  { newReply_type :: ReplyType
+  , newReply_text :: Text
+  , newReply_message :: Id (Message a)
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON (NewReply a)
 
 --------------------------------------------------------------------------------
 -- GUI Types

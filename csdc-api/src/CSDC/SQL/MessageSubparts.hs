@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module CSDC.SQL.MessageSubparts
   ( sendMessage
@@ -34,7 +35,7 @@ viewReply = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "UPDATE replies_subpart"
-      , "SET rstatus = 'Seen' :: reply_status"
+      , "SET status = 'Seen' :: reply_status"
       , "WHERE id = $1"
       ]
 
@@ -62,14 +63,13 @@ sendMessage :: Statement (Message Subpart) (Id (Message Subpart))
 sendMessage = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "INSERT INTO messages_subpart (mtype, mstatus, message, child, parent)"
-      , "VALUES ($1 :: message_type, $2 :: message_status, $3, $4, $5)"
+      [ "INSERT INTO messages_subpart (type, status, message, child, parent)"
+      , "VALUES ($1 :: message_type, 'Pending' :: message_status, $3, $4, $5)"
       , "RETURNING id"
       ]
 
     encoder =
       (contramap message_type Encoder.messageType) <>
-      (contramap message_status Encoder.messageStatus) <>
       (contramap message_text Encoder.text) <>
       (contramap (subpart_child . message_value) Encoder.id) <>
       (contramap (subpart_parent . message_value) Encoder.id)
@@ -81,7 +81,7 @@ updateMessage = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "UPDATE messages_member"
-      , "SET mstatus = $2 :: message_status"
+      , "SET status = $2 :: message_status"
       , "WHERE id = $1"
       ]
 
@@ -95,14 +95,13 @@ sendReply :: Statement (Reply Subpart) (Id (Reply Subpart))
 sendReply = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "INSERT INTO replies_subpart (rtype, mtype, rstatus, reply, message)"
-      , "VALUES ($1 :: reply_type, $2 :: message_type, $3 :: reply_status, $4, $5)"
+      [ "INSERT INTO replies_subpart (type, status, reply, message)"
+      , "VALUES ($1 :: reply_type, $2 :: reply_status, $3, $4)"
       , "RETURNING id"
       ]
 
     encoder =
       (contramap reply_type Encoder.replyType) <>
-      (contramap reply_mtype Encoder.messageType) <>
       (contramap reply_status Encoder.replyStatus) <>
       (contramap reply_text Encoder.text) <>
       (contramap reply_id Encoder.id)
@@ -113,7 +112,7 @@ select :: Statement (Id Unit) [(Id (Message Subpart), MessageInfo Subpart)]
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT m.id, m.mtype, m.mstatus, m.message, m.child, m.parent, u1.name, u2.name"
+      [ "SELECT m.id, m.type, m.status, m.message, m.child, m.parent, u1.name, u2.name"
       , "FROM"
       , "  messages_subpart m"
       , "JOIN"
@@ -125,25 +124,24 @@ select = Statement sql encoder decoder True
 
     encoder = Encoder.id
 
-    makeMessage uid ty tx st p u pn un =
-      (uid, MessageInfo ty tx st (Subpart p u) pn un)
-
-    decoder = Decoder.rowList $
-      makeMessage <$>
-        Decoder.id <*>
-        Decoder.messageType <*>
-        Decoder.messageStatus <*>
-        Decoder.text <*>
-        Decoder.id <*>
-        Decoder.id <*>
-        Decoder.text <*>
-        Decoder.text
+    decoder = Decoder.rowList $ do
+      uid <- Decoder.id
+      messageInfo_type <- Decoder.messageType
+      messageInfo_status <- Decoder.messageStatus
+      messageInfo_text <- Decoder.text
+      messageInfo_value <- do
+        subpart_child <- Decoder.id
+        subpart_parent <- Decoder.id
+        pure Subpart {..}
+      messageInfo_left <- Decoder.text
+      messageInfo_right <- Decoder.text
+      pure (uid, MessageInfo {..})
 
 messageReplies :: Statement [Id (Message Subpart)] [(Id (Reply Subpart), ReplyInfo Subpart)]
 messageReplies = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT r.id, r.rtype, r.mtype, r.reply, r.rstatus, m.mtype, m.mstatus, m.message, m.child, m.parent, u1.name, u2.name"
+      [ "SELECT r.id, r.type, m.type, r.reply, r.status, m.type, m.status, m.message, m.child, m.parent, u1.name, u2.name"
       , "FROM"
       , "  replies_subpart r"
       , "JOIN"
@@ -157,23 +155,21 @@ messageReplies = Statement sql encoder decoder True
 
     encoder = Encoder.idList
 
-    makeReply uid ty mty tx st m_ty m_tx m_st m_p m_u m_pn m_un =
-      ( uid
-      , ReplyInfo ty mty tx st $
-        MessageInfo m_ty m_tx m_st (Subpart m_p m_u) m_pn m_un
-      )
-
-    decoder = Decoder.rowList $
-      makeReply <$>
-        Decoder.id <*>
-        Decoder.replyType <*>
-        Decoder.messageType <*>
-        Decoder.text <*>
-        Decoder.replyStatus <*>
-        Decoder.messageType <*>
-        Decoder.messageStatus <*>
-        Decoder.text <*>
-        Decoder.id <*>
-        Decoder.id <*>
-        Decoder.text <*>
-        Decoder.text
+    decoder = Decoder.rowList $ do
+      uid <- Decoder.id
+      replyInfo_type <- Decoder.replyType
+      replyInfo_mtype <- Decoder.messageType
+      replyInfo_text <- Decoder.text
+      replyInfo_status <- Decoder.replyStatus
+      replyInfo_message <- do
+        messageInfo_type <- Decoder.messageType
+        messageInfo_status <- Decoder.messageStatus
+        messageInfo_text <- Decoder.text
+        messageInfo_value <- do
+          subpart_child <- Decoder.id
+          subpart_parent <- Decoder.id
+          pure Subpart {..}
+        messageInfo_left <- Decoder.text
+        messageInfo_right <- Decoder.text
+        pure MessageInfo {..}
+      pure (uid, ReplyInfo {..})

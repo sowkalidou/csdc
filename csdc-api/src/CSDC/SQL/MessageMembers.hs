@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module CSDC.SQL.MessageMembers
   ( sendMessage
@@ -36,7 +37,7 @@ viewReply = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "UPDATE replies_member"
-      , "SET rstatus = 'Seen' :: reply_status"
+      , "SET status = 'Seen' :: reply_status"
       , "WHERE id = $1"
       ]
 
@@ -64,7 +65,7 @@ sendMessage :: Statement (Message Member) (Id (Message Member))
 sendMessage = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "INSERT INTO messages_member (mtype, mstatus, message, person, unit)"
+      [ "INSERT INTO messages_member (type, status, message, person, unit)"
       , "VALUES ($1 :: message_type, $2 :: message_status, $3, $4, $5)"
       , "RETURNING id"
       ]
@@ -83,7 +84,7 @@ updateMessage = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "UPDATE messages_member"
-      , "SET mstatus = $2 :: message_status"
+      , "SET status = $2 :: message_status"
       , "WHERE id = $1"
       ]
 
@@ -98,14 +99,13 @@ sendReply :: Statement (Reply Member) (Id (Reply Member))
 sendReply = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "INSERT INTO replies_member (rtype, mtype, rstatus, reply, message)"
-      , "VALUES ($1 :: reply_type, $2 :: message_type, $3 :: reply_status, $4, $5)"
+      [ "INSERT INTO replies_member (type, status, reply, message)"
+      , "VALUES ($1 :: reply_type, $2 :: reply_status, $3, $4)"
       , "RETURNING id"
       ]
 
     encoder =
       (contramap reply_type Encoder.replyType) <>
-      (contramap reply_mtype Encoder.messageType) <>
       (contramap reply_status Encoder.replyStatus) <>
       (contramap reply_text Encoder.text) <>
       (contramap reply_id Encoder.id)
@@ -121,7 +121,7 @@ select :: Statement Filter [(Id (Message Member), MessageInfo Member)]
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT m.id, m.mtype, m.mstatus, m.message, m.person, m.unit, p.name, u.name"
+      [ "SELECT m.id, m.type, m.status, m.message, m.person, m.unit, p.name, u.name"
       , "FROM"
       , "  messages_member m"
       , "JOIN"
@@ -138,25 +138,24 @@ select = Statement sql encoder decoder True
       contramap filter_person Encoder.idNullable <>
       contramap filter_unit Encoder.idNullable
 
-    makeMessage uid ty tx st p u pn un =
-      (uid, MessageInfo ty tx st (Member p u) pn un)
-
-    decoder = Decoder.rowList $
-      makeMessage <$>
-        Decoder.id <*>
-        Decoder.messageType <*>
-        Decoder.messageStatus <*>
-        Decoder.text <*>
-        Decoder.id <*>
-        Decoder.id <*>
-        Decoder.text <*>
-        Decoder.text
+    decoder = Decoder.rowList $ do
+      uid <- Decoder.id
+      messageInfo_type <- Decoder.messageType
+      messageInfo_status <- Decoder.messageStatus
+      messageInfo_text <- Decoder.text
+      messageInfo_value <- do
+        member_person <- Decoder.id
+        member_unit <- Decoder.id
+        pure Member {..}
+      messageInfo_left <- Decoder.text
+      messageInfo_right <- Decoder.text
+      pure (uid, MessageInfo {..})
 
 messageReplies :: Statement [Id (Message Member)] [(Id (Reply Member), ReplyInfo Member)]
 messageReplies = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT r.id, r.rtype, r.mtype, r.reply, r.rstatus, m.mtype, m.mstatus, m.message, m.person, m.unit, p.name, u.name"
+      [ "SELECT r.id, r.type, m.type, r.reply, r.status, m.type, m.status, m.message, m.person, m.unit, p.name, u.name"
       , "FROM"
       , "  replies_member r"
       , "JOIN"
@@ -170,23 +169,21 @@ messageReplies = Statement sql encoder decoder True
 
     encoder = Encoder.idList
 
-    makeReply uid ty mty tx st m_ty m_tx m_st m_p m_u m_pn m_un =
-      ( uid
-      , ReplyInfo ty mty tx st $
-        MessageInfo m_ty m_tx m_st (Member m_p m_u) m_pn m_un
-      )
-
-    decoder = Decoder.rowList $
-      makeReply <$>
-        Decoder.id <*>
-        Decoder.replyType <*>
-        Decoder.messageType <*>
-        Decoder.text <*>
-        Decoder.replyStatus <*>
-        Decoder.messageType <*>
-        Decoder.messageStatus <*>
-        Decoder.text <*>
-        Decoder.id <*>
-        Decoder.id <*>
-        Decoder.text <*>
-        Decoder.text
+    decoder = Decoder.rowList $ do
+      uid <- Decoder.id
+      replyInfo_type <- Decoder.replyType
+      replyInfo_mtype <- Decoder.messageType
+      replyInfo_text <- Decoder.text
+      replyInfo_status <- Decoder.replyStatus
+      replyInfo_message <- do
+        messageInfo_type <- Decoder.messageType
+        messageInfo_status <- Decoder.messageStatus
+        messageInfo_text <- Decoder.text
+        messageInfo_value <- do
+          member_person <- Decoder.id
+          member_unit <- Decoder.id
+          pure Member {..}
+        messageInfo_left <- Decoder.text
+        messageInfo_right <- Decoder.text
+        pure MessageInfo {..}
+      pure (uid, ReplyInfo {..})
