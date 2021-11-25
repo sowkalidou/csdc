@@ -15,7 +15,7 @@ import Html.Events
 type Msg a = MarkAsSeen (Id (Reply a))
 
 view : Id (Reply a) -> ReplyInfo a -> Html (Msg a)
-view id (ReplyInfo msg) = Preview.make <|
+view id msg = Preview.make <|
   [ Html.h4 []
       [ Html.text <|
         ( case msg.mtype of

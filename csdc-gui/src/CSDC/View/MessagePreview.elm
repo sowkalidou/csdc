@@ -58,7 +58,7 @@ update msg model =
       )
 
 view : MessageInfo a -> Model -> Html (Msg a)
-view (MessageInfo msg) model = Preview.make <|
+view msg model = Preview.make <|
   [ Html.h4 []
       [ Html.text <|
         case msg.mtype of
@@ -66,7 +66,7 @@ view (MessageInfo msg) model = Preview.make <|
           Submission -> "Submission"
       ]
   ] ++
-  viewMessage (MessageInfo msg) ++
+  viewMessage msg ++
   [ Html.hr [] []
 
   , Html.p [] [ Html.i [] [ Html.text "Please answer below." ] ]
@@ -82,7 +82,7 @@ view (MessageInfo msg) model = Preview.make <|
   ]
 
 viewMessage : MessageInfo a -> List (Html msg)
-viewMessage (MessageInfo msg) =
+viewMessage msg =
   [ Html.p [] <|
       case msg.mtype of
         Invitation ->

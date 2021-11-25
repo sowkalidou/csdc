@@ -76,11 +76,11 @@ update pageInfo msg param model =
 
         Just unit ->
           let
-            message = Message
+            message =
              { mtype = Invitation
              , text = model.text
              , status = Waiting
-             , value = makeMember param.person unit
+             , value = { person = param.person, unit = unit }
              }
           in
             ( { model | notification = Notification.Processing }

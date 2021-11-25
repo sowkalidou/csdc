@@ -148,7 +148,7 @@ update pageInfo msg model =
           case inboxId of
             MessageMemberId id ->
               let
-                reply = Reply
+                reply =
                   { rtype = rtype
                   , mtype = mtype
                   , text = "Reply"
@@ -500,24 +500,28 @@ type InboxId
 inboxToItems : Inbox -> List (Panel.Item InboxId)
 inboxToItems inbox =
   let
-    fmm (id, MessageInfo m) =
+    fmm (id, m) =
       { index = MessageMemberId id
-      , title = "Invitation from XXX"
+      , title = "Invitation from " ++ m.right
       , description = m.text
       }
-    frm (id, ReplyInfo r) =
+    frm (id, r) =
       { index = ReplyMemberId id
-      , title = "Reply from XXX"
+      , title = case r.mtype of
+          Invitation -> "Reply from " ++ r.message.left
+          Submission -> "Reply from " ++ r.message.right
       , description = r.text
       }
-    fms (id, MessageInfo m) =
+    fms (id, m) =
       { index = MessageSubpartId id
-      , title = "Submission from XXX"
+      , title = "Submission from " ++ m.left
       , description = m.text
       }
-    frs (id, ReplyInfo r) =
+    frs (id, r) =
       { index = ReplySubpartId id
-      , title = "Reply from XXX"
+      , title = case r.mtype of
+          Invitation -> "Reply from " ++ r.message.left
+          Submission -> "Reply from " ++ r.message.right
       , description = r.text
       }
   in

@@ -43,7 +43,7 @@ validate : Model -> Result (List String) (Reply Member)
 validate model =
   let
     result =
-      Validation.valid makeReply
+      Validation.valid Reply
         |> Validation.andMap (Field.validate model.replyType)
         |> Validation.andMap (Field.validate model.messageType)
         |> Validation.andMap (Validation.valid "Reply")

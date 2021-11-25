@@ -176,25 +176,13 @@ decodeUnitInfo =
 --------------------------------------------------------------------------------
 -- Member
 
-type Member = Member
+type alias Member =
   { person : Id Person
   , unit: Id Unit
   }
 
-makeMember : Id Person -> Id Unit -> Member
-makeMember person unit = Member
-  { person = person
-  , unit = unit
-  }
-
-getMemberPerson : Member -> Id Person
-getMemberPerson (Member m) = m.person
-
-getMemberUnit : Member -> Id Unit
-getMemberUnit (Member m) = m.unit
-
 encodeMember : Member -> Value
-encodeMember (Member member) =
+encodeMember member =
   Encoder.object
     [ ("person", encodeId member.person)
     , ("unit", encodeId member.unit)
@@ -202,7 +190,7 @@ encodeMember (Member member) =
 
 decodeMember : Decoder Member
 decodeMember =
-  Decoder.map2 makeMember
+  Decoder.map2 Member
     (Decoder.field "person" decodeId)
     (Decoder.field "unit" decodeId)
 
@@ -271,24 +259,15 @@ encodeMessageType s =
     Invitation -> Encoder.string "Invitation"
     Submission -> Encoder.string "Submission"
 
-type Message a = Message
+type alias Message a =
   { mtype : MessageType
   , text : String
   , status : MessageStatus
   , value : a
   }
 
-makeMessage : MessageType -> String -> MessageStatus -> a -> Message a
-makeMessage mtype text status value =
-  Message
-    { mtype = mtype
-    , text = text
-    , status = status
-    , value = value
-    }
-
 encodeMessage : (a -> Value) -> Message a -> Value
-encodeMessage encode (Message m) =
+encodeMessage encode m =
   Encoder.object
     [ ("type", encodeMessageType m.mtype)
     , ("text", Encoder.string m.text)
@@ -298,13 +277,13 @@ encodeMessage encode (Message m) =
 
 decodeMessage : Decoder a -> Decoder (Message a)
 decodeMessage decode =
-  Decoder.map4 makeMessage
+  Decoder.map4 Message
     (Decoder.field "type" decodeMessageType)
     (Decoder.field "text" Decoder.string)
     (Decoder.field "status" decodeMessageStatus)
     (Decoder.field "value" decode)
 
-type MessageInfo a = MessageInfo
+type alias MessageInfo a =
   { mtype : MessageType
   , text : String
   , status : MessageStatus
@@ -316,17 +295,16 @@ type MessageInfo a = MessageInfo
 makeMessageInfo :
   MessageType -> String -> MessageStatus -> a -> String -> String -> MessageInfo a
 makeMessageInfo mtype text status value left right =
-  MessageInfo
-    { mtype = mtype
-    , text = text
-    , status = status
-    , value = value
-    , left = left
-    , right = right
-    }
+  { mtype = mtype
+  , text = text
+  , status = status
+  , value = value
+  , left = left
+  , right = right
+  }
 
 encodeMessageInfo : (a -> Value) -> MessageInfo a -> Value
-encodeMessageInfo encode (MessageInfo m) =
+encodeMessageInfo encode m =
   Encoder.object
     [ ("type", encodeMessageType m.mtype)
     , ("text", Encoder.string m.text)
@@ -387,7 +365,7 @@ encodeReplyType s =
     Accept -> Encoder.string "Accept"
     Reject -> Encoder.string "Reject"
 
-type Reply a = Reply
+type alias Reply a =
   { rtype : ReplyType
   , mtype : MessageType
   , text : String
@@ -395,18 +373,8 @@ type Reply a = Reply
   , id : Id (Message a)
   }
 
-makeReply : ReplyType -> MessageType -> String -> ReplyStatus -> Id (Message a) -> Reply a
-makeReply rtype mtype text status id =
-  Reply
-    { rtype = rtype
-    , mtype = mtype
-    , text = text
-    , status = status
-    , id = id
-    }
-
 encodeReply : Reply a -> Value
-encodeReply (Reply m) =
+encodeReply m =
   Encoder.object
     [ ("type", encodeReplyType m.rtype)
     , ("mtype", encodeMessageType m.mtype)
@@ -417,14 +385,14 @@ encodeReply (Reply m) =
 
 decodeReply : Decoder (Reply a)
 decodeReply =
-  Decoder.map5 makeReply
+  Decoder.map5 Reply
     (Decoder.field "type" decodeReplyType)
     (Decoder.field "mtype" decodeMessageType)
     (Decoder.field "text" Decoder.string)
     (Decoder.field "status" decodeReplyStatus)
     (Decoder.field "id" decodeId)
 
-type ReplyInfo a = ReplyInfo
+type alias ReplyInfo a =
   { rtype : ReplyType
   , mtype : MessageType
   , text : String
@@ -435,16 +403,15 @@ type ReplyInfo a = ReplyInfo
 makeReplyInfo :
   ReplyType -> MessageType -> String -> ReplyStatus -> MessageInfo a -> ReplyInfo a
 makeReplyInfo rtype mtype text status message =
-  ReplyInfo
-    { rtype = rtype
-    , mtype = mtype
-    , text = text
-    , status = status
-    , message = message
-    }
+  { rtype = rtype
+  , mtype = mtype
+  , text = text
+  , status = status
+  , message = message
+  }
 
 encodeReplyInfo : (a -> Value) -> ReplyInfo a -> Value
-encodeReplyInfo encode (ReplyInfo m) =
+encodeReplyInfo encode m =
   Encoder.object
     [ ("type", encodeReplyType m.rtype)
     , ("mtype", encodeMessageType m.mtype)

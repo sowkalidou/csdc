@@ -43,12 +43,12 @@ validate : Model -> Result (List String) (Message Member)
 validate model =
   let
     result =
-      Validation.valid makeMessage
+      Validation.valid Message
         |> Validation.andMap (Field.validate model.messageType)
         |> Validation.andMap (Validation.valid "Message")
         |> Validation.andMap (Field.validate model.messageStatus)
         |> Validation.andMap
-             ( Validation.valid makeMember
+             ( Validation.valid Member
                  |> Validation.andMap (Field.validate model.person)
                  |> Validation.andMap (Field.validate model.unit)
              )

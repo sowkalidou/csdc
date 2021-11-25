@@ -16,6 +16,7 @@ import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.View.UnitPreview as UnitPreview
+import CSDC.View.MessageCreate as MessageCreate
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
@@ -31,6 +32,7 @@ import Tuple exposing (pair)
 type alias Model =
   { person : Maybe PersonInfo
   , panelUnits : Panel.Model (Id Member)
+  , message : MessageCreate.Model
   , notification : Notification
   }
 
@@ -38,6 +40,7 @@ initial : Model
 initial =
   { person = Nothing
   , panelUnits = Panel.initial "Units"
+  , message = MessageCreate.initial
   , notification = Notification.Empty
   }
 

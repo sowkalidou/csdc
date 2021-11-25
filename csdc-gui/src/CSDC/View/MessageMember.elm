@@ -71,11 +71,11 @@ update pageInfo msg param model =
       case (model.person, model.unit) of
         (Just personInfo, Just unitInfo) ->
           let
-            message = Message
+            message =
              { mtype = param.messageType
              , text = model.text
              , status = Waiting
-             , value = makeMember personInfo.id unitInfo.id
+             , value = { person = personInfo.id, unit = unitInfo.id }
              }
           in
             ( { model | notification = Notification.Processing }

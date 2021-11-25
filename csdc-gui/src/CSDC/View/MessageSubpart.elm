@@ -88,7 +88,7 @@ update pageInfo msg param model =
               (model, Cmd.none)
             Just unit ->
               let
-                message = Message
+                message =
                  { mtype = param.messageType
                  , text = model.text
                  , status = Waiting

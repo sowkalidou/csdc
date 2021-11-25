@@ -167,12 +167,12 @@ update pageInfo msg model =
           let
             memberPairs =
               let
-                fmm (id, MessageInfo m) =
+                fmm (id, m) =
                   { index = MemberMessage id
                   , title = ""
                   , description = m.text
                   }
-                frm (id, ReplyInfo r) =
+                frm (id, r) =
                   { index = MemberReply id
                   , title = ""
                   , description = r.text
@@ -183,12 +183,12 @@ update pageInfo msg model =
 
             subpartPairs =
               let
-                fms (id, MessageInfo m) =
+                fms (id, m) =
                   { index = SubpartMessage id
                   , title = ""
                   , description = m.text
                   }
-                frs (id, ReplyInfo r) =
+                frs (id, r) =
                   { index = SubpartReply id
                   , title = ""
                   , description = r.text

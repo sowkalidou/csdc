@@ -104,12 +104,9 @@ isMember mid model =
 
 isMemberPending : Maybe PersonInfo -> Model -> Bool
 isMemberPending mid model =
-  let
-    getMessagePerson (MessageInfo m) = getMemberPerson m.value
-  in
   case mid of
     Just info ->
-      idMapAny (\m -> getMessagePerson m == info.id) model.inbox.messageMember
+      idMapAny (\m -> m.value.person == info.id) model.inbox.messageMember
     _ ->
       False
 

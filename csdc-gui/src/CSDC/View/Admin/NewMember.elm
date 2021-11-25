@@ -61,7 +61,7 @@ update msg model =
     Submit ->
       let
         result =
-          Validation.valid makeMember
+          Validation.valid Member
             |> Validation.andMap (Field.validate model.person)
             |> Validation.andMap (Field.validate model.unit)
       in
