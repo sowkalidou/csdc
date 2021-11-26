@@ -78,12 +78,12 @@ updateWith config = Form.update
   { initial = initial
   , update = update
   , reload = reload
-  , parse = parse
+  , parse = \_ -> parse
   , request = config.request
   , finish = config.finish
   }
 
-type alias Msg a = Form.Msg ModelMsg a
+type alias Msg a = Form.Msg ModelMsg () a
 
 type ModelMsg
   = SetName String
@@ -104,11 +104,9 @@ update msg model =
 --------------------------------------------------------------------------------
 -- View
 
-view : Model -> Html (Msg a)
+view : Model -> List (Html (Msg a))
 view model =
-  Html.div
-    [] <|
-    [ Input.text model.name (Form.ModelMsg << SetName)
-    , Input.textarea model.description (Form.ModelMsg << SetDescription)
-    , Input.button Form.Submit "Save"
-    ] ++ Notification.view model.notification
+  [ Input.text model.name (Form.ModelMsg << SetName)
+  , Input.textarea model.description (Form.ModelMsg << SetDescription)
+  , Input.button (Form.Submit ()) "Save"
+  ]

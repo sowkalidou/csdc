@@ -51,7 +51,7 @@ validate model =
 
 type Msg
   = InputMessage String
-  | APIMsg API.Msg
+  | APIMsg (API.Response ())
   | InputReplyType ReplyType
   | Submit
   | Reset
@@ -80,32 +80,16 @@ update msg model =
       , Cmd.none
       )
 
-    APIMsg apimsg ->
-      case apimsg of
-        API.InsertMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok _ ->
-              ( { initial | notification = Notification.Success }
-              , Notification.reset Reset
-              )
-
-        API.SendReplyMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok _ ->
-              ( { initial | notification = Notification.Success }
-              , Notification.reset Reset
-              )
-
-        _ ->
-          (model, Cmd.none)
+    APIMsg result ->
+      case result of
+        Err err ->
+          ( { model | notification = Notification.HttpError err }
+          , Cmd.none
+          )
+        Ok _ ->
+          ( { initial | notification = Notification.Success }
+          , Notification.reset Reset
+          )
 
     Reset ->
       ( { model | notification = Notification.Empty }

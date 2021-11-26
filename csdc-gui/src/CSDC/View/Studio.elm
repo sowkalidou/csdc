@@ -17,12 +17,12 @@ import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
 import CSDC.Form.Unit as UnitForm
 import CSDC.Form.Person as PersonForm
+import CSDC.Form.ReplySeen as ReplySeenForm
+import CSDC.Form.Reply as ReplyForm
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
-import CSDC.View.MessagePreview as MessagePreview
-import CSDC.View.ReplyPreview as ReplyPreview
 import CSDC.View.UnitPreview as UnitPreview
 import Form
 
@@ -51,8 +51,8 @@ type alias Model =
   , unitCreateOpen : Bool
   , personEdit : PersonForm.Model
   , personEditOpen : Bool
-  , previewMessage : MessagePreview.Model
-  , previewReply : ReplyPreview.Model
+  , previewMessage : ReplyForm.Model
+  , previewReply : ReplySeenForm.Model
   }
 
 initial : Model
@@ -67,8 +67,8 @@ initial =
   , unitCreateOpen = False
   , personEdit = PersonForm.initial
   , personEditOpen = False
-  , previewMessage = MessagePreview.initial
-  , previewReply = ReplyPreview.initial
+  , previewMessage = ReplyForm.initial
+  , previewReply = ReplySeenForm.initial
   }
 
 setup : Id Person -> Cmd Msg
@@ -86,8 +86,8 @@ type Msg
   = APIMsg API.Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | MessagesMsg (Panel.Msg InboxId)
-  | MessagePreviewMsg MessagePreview.Msg
-  | ReplyPreviewMsg ReplyPreview.Msg
+  | ReplyMsg ReplyForm.Msg
+  | ReplySeenMsg ReplySeenForm.Msg
   | UnitCreateMsg (UnitForm.Msg (Id Unit))
   | UnitCreateOpen
   | UnitCreateClose
@@ -203,86 +203,88 @@ update pageInfo msg model =
             , Cmd.map PersonEditMsg cmd
             )
 
-    MessagePreviewMsg preMsg ->
+    ReplyMsg preMsg ->
       case model.selected of
         SelectedInbox inboxId ->
           case inboxId of
             MessageMemberId id ->
               let
-                (previewMessage, cmd) = MessagePreview.updateMember id preMsg model.previewMessage
+                config =
+                  { request = \(rtype, reason) ->
+                      API.sendReplyMember { rtype = rtype, text = reason, message = id }
+                  , finish = Page.goTo pageInfo Page.Studio
+                  }
+
+                (previewMessage, cmd) = ReplyForm.updateWith config preMsg model.previewMessage
               in
-                case preMsg of
-                  MessagePreview.APIMsg (API.SendReplyMember (Ok _)) ->
-                    ( { model | previewMessage = previewMessage, selected = SelectedNothing }
-                    , Cmd.batch
-                        [ Page.goTo pageInfo Page.Studio
-                        , Cmd.map MessagePreviewMsg cmd
-                        ]
-                    )
-                  _ ->
-                    ( { model | previewMessage = previewMessage }
-                    , Cmd.map MessagePreviewMsg cmd
-                    )
+                ( { model
+                  | previewMessage = previewMessage
+                  , selected =
+                      if Form.isFinished preMsg then SelectedNothing else model.selected
+                  }
+                , Cmd.map ReplyMsg cmd
+                )
 
             MessageSubpartId id ->
               let
-                (previewMessage, cmd) = MessagePreview.updateSubpart id preMsg model.previewMessage
+                config =
+                  { request = \(rtype, reason) ->
+                      API.sendReplySubpart { rtype = rtype, text = reason, message = id }
+                  , finish = Page.goTo pageInfo Page.Studio
+                  }
+
+                (previewMessage, cmd) = ReplyForm.updateWith config preMsg model.previewMessage
               in
-                case preMsg of
-                  MessagePreview.APIMsg (API.SendReplySubpart (Ok _)) ->
-                    ( { model | previewMessage = previewMessage, selected = SelectedNothing }
-                    , Cmd.batch
-                        [ Page.goTo pageInfo Page.Studio
-                        , Cmd.map MessagePreviewMsg cmd
-                        ]
-                    )
-                  _ ->
-                    ( { model | previewMessage = previewMessage }
-                    , Cmd.map MessagePreviewMsg cmd
-                    )
+                ( { model
+                  | previewMessage = previewMessage
+                  , selected =
+                      if Form.isFinished preMsg then SelectedNothing else model.selected
+                  }
+                , Cmd.map ReplyMsg cmd
+                )
 
             _ ->
               (model, Cmd.none)
         _ ->
           (model, Cmd.none)
 
-    ReplyPreviewMsg preMsg ->
+    ReplySeenMsg preMsg ->
       case model.selected of
         SelectedInbox inboxId ->
           case inboxId of
             ReplyMemberId id ->
               let
-                (previewReply, cmd) = ReplyPreview.updateMember id preMsg model.previewReply
+                config =
+                  { request = API.viewReplyMember id
+                  , finish = Page.goTo pageInfo Page.Studio
+                  }
+
+                (previewReply, cmd) = ReplySeenForm.updateWith config preMsg model.previewReply
               in
-                case preMsg of
-                  ReplyPreview.APIMsg (API.ViewReplyMember (Ok _)) ->
-                    ( { model | previewReply = previewReply, selected = SelectedNothing }
-                    , Cmd.batch
-                        [ Page.goTo pageInfo Page.Studio
-                        , Cmd.map ReplyPreviewMsg cmd
-                        ]
-                    )
-                  _ ->
-                    ( { model | previewReply = previewReply }
-                    , Cmd.map ReplyPreviewMsg cmd
-                    )
+                ( { model
+                  | previewReply = previewReply
+                  , selected =
+                      if Form.isFinished preMsg then SelectedNothing else model.selected
+                  }
+                , Cmd.map ReplySeenMsg cmd
+                )
 
             ReplySubpartId id ->
               let
-                (previewReply, cmd) = ReplyPreview.updateSubpart id preMsg model.previewReply
+                config =
+                  { request = API.viewReplySubpart id
+                  , finish = Page.goTo pageInfo Page.Studio
+                  }
+
+                (previewReply, cmd) = ReplySeenForm.updateWith config preMsg model.previewReply
               in
-                case preMsg of
-                  ReplyPreview.APIMsg (API.ViewReplySubpart (Ok _)) ->
-                    ( { model | previewReply = previewReply, selected = SelectedNothing }
-                    , Cmd.batch
-                        [ Page.goTo pageInfo Page.Studio
-                        , Cmd.map ReplyPreviewMsg cmd
-                        ]
-                    )
-                  _ ->
-                    ( { model | previewReply = previewReply }
-                    , Cmd.map ReplyPreviewMsg cmd
-                    )
+                ( { model
+                  | previewReply = previewReply
+                  , selected =
+                      if Form.isFinished preMsg then SelectedNothing else model.selected
+                  }
+                , Cmd.map ReplySeenMsg cmd
+                )
 
             _ ->
               (model, Cmd.none)
@@ -324,17 +326,6 @@ update pageInfo msg model =
               ( { model | inbox = inbox, panelMessages = panelMessages }
               , Cmd.none
               )
-
-        API.SendReplyMember result -> onSuccess result <| \_ ->
-            case model.info of
-              Nothing ->
-                ( model
-                , Cmd.none
-                )
-              Just info ->
-                ( model
-                , setup info.id
-                )
 
         API.ViewReplyMember result -> onSuccess result <| \_ ->
             case model.info of
@@ -429,21 +420,11 @@ view model =
 
       , Modal.view model.personEditOpen PersonEditClose <|
           Html.map PersonEditMsg <|
-          Preview.make
-            [ Html.h2
-                []
-                [ Html.text "Edit Profile" ]
-            , PersonForm.view model.personEdit
-            ]
+          Form.viewWith "Edit Profile" PersonForm.view model.personEdit
 
       , Modal.view model.unitCreateOpen UnitCreateClose <|
           Html.map UnitCreateMsg <|
-          Preview.make
-            [ Html.h2
-                []
-                [ Html.text "Create Unit" ]
-            , UnitForm.view model.unitCreate
-            ]
+          Form.viewWith "Create Unit" UnitForm.view model.unitCreate
 
       , let
           isActive = case model.selected of
@@ -469,28 +450,52 @@ view model =
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map ReplyPreviewMsg (ReplyPreview.view msg)
+                        let
+                          title = case msg.mtype of
+                            Invitation -> "Invitation Reply"
+                            Submission -> "Submission Reply"
+                        in
+                          Html.map ReplySeenMsg <|
+                          Form.viewWith title (ReplySeenForm.view msg) model.previewReply
 
                   MessageMemberId id ->
                     case idMapLookup id model.inbox.messageMember of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map MessagePreviewMsg (MessagePreview.view msg model.previewMessage)
+                        let
+                          title = case msg.mtype of
+                            Invitation -> "Invitation"
+                            Submission -> "Submission"
+                        in
+                          Html.map ReplyMsg <|
+                          Form.viewWith title (ReplyForm.view msg) model.previewMessage
 
                   MessageSubpartId id ->
                     case idMapLookup id model.inbox.messageSubpart of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map MessagePreviewMsg (MessagePreview.view msg model.previewMessage)
+                        let
+                          title = case msg.mtype of
+                            Invitation -> "Invitation"
+                            Submission -> "Submission"
+                        in
+                          Html.map ReplyMsg <|
+                          Form.viewWith title (ReplyForm.view msg) model.previewMessage
 
                   ReplySubpartId id ->
                     case idMapLookup id model.inbox.replySubpart of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
-                        Html.map ReplyPreviewMsg (ReplyPreview.view msg)
+                        let
+                          title = case msg.mtype of
+                            Invitation -> "Invitation Reply"
+                            Submission -> "Submission Reply"
+                        in
+                          Html.map ReplySeenMsg <|
+                          Form.viewWith title (ReplySeenForm.view msg) model.previewReply
 
       ] ++ Notification.view model.notification
 

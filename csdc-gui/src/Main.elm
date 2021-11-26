@@ -13,8 +13,6 @@ import CSDC.View.Explorer as Explorer
 import CSDC.View.InvitationMember as InvitationMember
 import CSDC.View.MessageMember as MessageMember
 import CSDC.View.MessageSubpart as MessageSubpart
-import CSDC.View.MessagePreview as MessagePreview
-import CSDC.View.ReplyPreview as ReplyPreview
 import CSDC.View.Studio as Studio
 import CSDC.View.Person as Person
 import CSDC.View.Unit as Unit

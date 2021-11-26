@@ -1,34 +1,36 @@
 module Form exposing (..)
 
+import CSDC.Component.Preview as Preview
 import CSDC.Notification as Notification exposing (Notification, Has)
 import CSDC.API as API
+import Html exposing (Html)
 import Delay
 
-type Msg msg b
+type Msg msg r b
   = ModelMsg msg
-  | Submit
+  | Submit r
   | Response (API.Response b)
   | ResetNotification
   | Finish b
 
-isFinished : Msg msg b -> Bool
+isFinished : Msg msg r b -> Bool
 isFinished msg =
   case msg of
     Finish _ -> True
     _ -> False
 
-type alias Config model msg a b =
+type alias Config model msg a b r =
   { initial : Has model
   , update : msg -> Has model -> (Has model, Cmd msg)
   , reload : Has model -> Has model
-  , parse : Has model -> Maybe a
+  , parse : r -> Has model -> Maybe a
   , request : a -> Cmd (API.Response b)
-  , finish : b -> Cmd (Msg msg b)
+  , finish : b -> Cmd (Msg msg r b)
   }
 
 update :
-  Config model msg a b ->
-  Msg msg b -> Has model -> (Has model, Cmd (Msg msg b))
+  Config model msg a b r ->
+  Msg msg r b -> Has model -> (Has model, Cmd (Msg msg r b))
 update config formMsg model =
   case formMsg of
     ModelMsg msg ->
@@ -37,19 +39,21 @@ update config formMsg model =
       in
         (updated, Cmd.map ModelMsg cmd)
 
-    Submit ->
+    Submit r ->
       let
         reloaded = config.reload model
       in
-        case config.parse reloaded of
+        case config.parse r reloaded of
           Nothing ->
-            ( { model
+            ( { reloaded
               | notification = Notification.Error ["All fields should be filled"]
               }
             , Cmd.none
             )
           Just a ->
-            ( { model | notification = Notification.Processing }
+            ( { reloaded
+              | notification = Notification.Processing
+              }
             , Cmd.map Response <| config.request a
             )
 
@@ -67,3 +71,9 @@ update config formMsg model =
       , Cmd.none
       )
 
+viewWith : String -> (Has model -> List (Html msg)) -> Has model -> Html msg
+viewWith title view model =
+  Preview.make <|
+  [ Html.h2 [] [ Html.text title ] ] ++
+  view model ++
+  Notification.view model.notification

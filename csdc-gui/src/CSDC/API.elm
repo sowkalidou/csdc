@@ -16,6 +16,9 @@ decodeNull : D.Decoder ()
 decodeNull =
   D.map (\_ -> ()) (D.array D.int)
 
+ignoreResult : Result e a -> Result e ()
+ignoreResult = Result.map (\_ -> ())
+
 --------------------------------------------------------------------------------
 -- Msg
 
@@ -43,10 +46,8 @@ type Msg
   | InsertSubpart (Response (Id Subpart))
   | DeleteSubpart (Response ())
   | SendMessageMember (Response (Id (Message Member)))
-  | SendReplyMember (Response (Id (Reply Member)))
   | ViewReplyMember (Response ())
   | SendMessageSubpart (Response (Id (Message Subpart)))
-  | SendReplySubpart (Response (Id (Reply Subpart)))
   | ViewReplySubpart (Response ())
   | PersonInbox (Response Inbox)
   | UnitInbox (Id Unit) (Response Inbox)
@@ -232,20 +233,20 @@ sendMessageMember msg =
     , expect = Http.expectJson SendMessageMember decodeId
     }
 
-sendReplyMember : NewReply Member -> Cmd Msg
+sendReplyMember : NewReply Member -> Cmd (Response ())
 sendReplyMember reply =
   Http.post
     { url = baseUrl ++ "message/member/reply"
     , body = Http.jsonBody <| encodeNewReply reply
-    , expect = Http.expectJson SendReplyMember decodeId
+    , expect = Http.expectJson ignoreResult decodeId
     }
 
-viewReplyMember : Id (Reply Member) -> Cmd Msg
+viewReplyMember : Id (Reply Member) -> Cmd (Response ())
 viewReplyMember id =
   Http.post
     { url = baseUrl ++ "message/member/view"
     , body = Http.jsonBody <| encodeId id
-    , expect = Http.expectJson ViewReplyMember decodeNull
+    , expect = Http.expectJson identity decodeNull
     }
 
 sendMessageSubpart : NewMessage Subpart -> Cmd Msg
@@ -256,20 +257,20 @@ sendMessageSubpart msg =
     , expect = Http.expectJson SendMessageSubpart decodeId
     }
 
-sendReplySubpart : NewReply Subpart -> Cmd Msg
+sendReplySubpart : NewReply Subpart -> Cmd (Response ())
 sendReplySubpart reply =
   Http.post
     { url = baseUrl ++ "message/subpart/reply"
     , body = Http.jsonBody <| encodeNewReply reply
-    , expect = Http.expectJson SendReplySubpart decodeId
+    , expect = Http.expectJson ignoreResult decodeId
     }
 
-viewReplySubpart : Id (Reply Subpart) -> Cmd Msg
+viewReplySubpart : Id (Reply Subpart) -> Cmd (Response ())
 viewReplySubpart id =
   Http.post
     { url = baseUrl ++ "message/subpart/view"
     , body = Http.jsonBody <| encodeId id
-    , expect = Http.expectJson ViewReplySubpart decodeNull
+    , expect = Http.expectJson identity decodeNull
     }
 
 personInbox : Id Person -> Cmd Msg

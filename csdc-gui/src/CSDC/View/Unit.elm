@@ -410,12 +410,7 @@ view mid model =
 
       , Modal.view model.unitEditOpen UnitEditClose <|
           Html.map UnitEditMsg <|
-          Preview.make
-            [ Html.h2
-                []
-                [ Html.text "Edit Profile" ]
-            , UnitForm.view model.unitEdit
-            ]
+          Form.viewWith "Edit Profile" UnitForm.view model.unitEdit
 
       , Modal.view model.unitDeleteOpen UnitDeleteClose <|
           Preview.make
