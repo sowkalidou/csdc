@@ -32,7 +32,7 @@ serveUserAPI = getUser
 type PersonAPI =
        CaptureId Person :> GetJSON (Maybe Person)
   :<|> PostJSON Person (Id Person)
-  :<|> CaptureId Person :> PostJSON Person ()
+  :<|> CaptureId Person :> PostJSON PersonUpdate ()
   :<|> CaptureId Person :> DeleteJSON ()
   :<|> CaptureId Person :> "info" :> GetJSON (Maybe PersonInfo)
   :<|> CaptureId Person :> "units" :> GetJSON (IdMap Member Unit)

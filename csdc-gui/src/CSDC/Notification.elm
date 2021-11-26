@@ -3,6 +3,7 @@ module CSDC.Notification exposing
   , view
   , reset
   , withResponse
+  , Has
   )
 
 import Delay
@@ -31,7 +32,7 @@ view notification =
         [ Html.text "Success!" ]
 
       Error msgs ->
-        [ Html.text "Error: " ] ++ List.map Html.text msgs
+        List.map (\t -> Html.div [] [ Html.text t ]) msgs
 
       HttpError err ->
         case err of

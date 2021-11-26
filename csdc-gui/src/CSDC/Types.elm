@@ -100,13 +100,24 @@ encodePerson person =
     , ("description", Encoder.string person.description)
     ]
 
-
 decodePerson : Decoder Person
 decodePerson =
   Decoder.map3 Person
     (Decoder.field "name" Decoder.string)
     (Decoder.field "orcid" Decoder.string)
     (Decoder.field "description" Decoder.string)
+
+type alias PersonUpdate =
+  { name : String
+  , description : String
+  }
+
+encodePersonUpdate : PersonUpdate -> Value
+encodePersonUpdate person =
+  Encoder.object
+    [ ("name", Encoder.string person.name)
+    , ("description", Encoder.string person.description)
+    ]
 
 type alias PersonInfo =
   { id : Id Person

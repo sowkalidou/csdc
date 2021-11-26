@@ -24,6 +24,7 @@ import CSDC.Types exposing (..)
 import CSDC.View.MessagePreview as MessagePreview
 import CSDC.View.ReplyPreview as ReplyPreview
 import CSDC.View.UnitPreview as UnitPreview
+import Form
 
 import Html exposing (Html)
 import Html.Attributes
@@ -199,34 +200,21 @@ update pageInfo msg model =
 
     PersonEditMsg personMsg ->
       case model.info of
-        Nothing ->
-          ( model
-          , Cmd.none
-          )
+        Nothing -> (model, Cmd.none)
         Just person ->
-          case personMsg of
-            PersonForm.APIMsg (API.UpdatePerson result) ->
-              let
-                initialPersonEdit = PersonForm.initial
-
-                onSuccess = Notification.withResponse PersonForm.ResetNotification model.personEdit
-
-                (personEdit, cmd) = onSuccess result <| \_ ->
-                  ( initialPersonEdit
-                  , Page.goTo pageInfo Page.Studio
-                  )
-              in
-                ( { model | personEdit = personEdit, personEditOpen = False }
-                , Cmd.map PersonEditMsg cmd
-                )
-
-            _ ->
-              let
-                (personEdit, cmd) = PersonForm.update (API.updatePerson person.id) person.person.orcid personMsg model.personEdit
-              in
-                ( { model | personEdit = personEdit }
-                , Cmd.map PersonEditMsg cmd
-                )
+          let
+            config =
+              { id = person.id
+              , finish = Page.goTo pageInfo Page.Studio
+              }
+            (personEdit, cmd) = PersonForm.updateWith config personMsg model.personEdit
+          in
+            ( { model
+              | personEdit = personEdit
+              , personEditOpen = not (Form.isFinished personMsg)
+              }
+            , Cmd.map PersonEditMsg cmd
+            )
 
     MessagePreviewMsg preMsg ->
       case model.selected of

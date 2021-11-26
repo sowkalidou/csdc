@@ -111,7 +111,7 @@ selectPerson i = runSQL $ SQL.query SQL.Persons.select i
 insertPerson :: Person -> Action user (Id (Person))
 insertPerson p = runSQL $ SQL.query SQL.Persons.insert p
 
-updatePerson :: Id Person -> Person -> Action user ()
+updatePerson :: Id Person -> PersonUpdate -> Action user ()
 updatePerson i p = runSQL $ SQL.query SQL.Persons.update (i,p)
 
 deletePerson :: Id Person -> Action user ()

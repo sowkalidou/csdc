@@ -25,7 +25,6 @@ type Msg
   | UnitsPerson (Response (IdMap Member Unit))
   | SelectPerson (Id Person) (Response Person)
   | InsertPerson (Response (Id Person))
-  | UpdatePerson (Response ())
   | DeletePerson (Response ())
   | RootUnit (Response (Id Unit))
   | GetUnitInfo (Response UnitInfo)
@@ -93,12 +92,12 @@ insertPerson person =
     , expect = Http.expectJson InsertPerson decodeId
     }
 
-updatePerson : Id Person -> Person -> Cmd Msg
+updatePerson : Id Person -> PersonUpdate -> Cmd (Response ())
 updatePerson id person =
   Http.post
     { url = baseUrl ++ "person/" ++ idToString id
-    , body = Http.jsonBody (encodePerson person)
-    , expect = Http.expectJson UpdatePerson decodeNull
+    , body = Http.jsonBody (encodePersonUpdate person)
+    , expect = Http.expectJson identity decodeNull
     }
 
 deletePerson : Id Person -> Cmd Msg

@@ -9,7 +9,7 @@ module CSDC.SQL.Persons
   , selectORCID
   ) where
 
-import CSDC.DAO.Types (Person (..))
+import CSDC.DAO.Types (Person (..), PersonUpdate (..))
 import CSDC.Data.Id (Id (..))
 
 import qualified CSDC.Auth.ORCID as ORCID
@@ -83,20 +83,19 @@ insertAt = Statement sql encoder decoder True
 
     decoder = Decoder.noResult
 
-update :: Statement (Id Person, Person) ()
+update :: Statement (Id Person, PersonUpdate) ()
 update = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "UPDATE persons"
-      , "SET name = $2, description = $3, orcid = $4"
+      , "SET name = $2, description = $3"
       , "WHERE id = $1"
       ]
 
     encoder =
       (contramap fst Encoder.id) <>
-      (contramap (person_name . snd) Encoder.text) <>
-      (contramap (person_description . snd) Encoder.text) <>
-      (contramap (person_orcid . snd) Encoder.orcidId)
+      (contramap (personUpdate_name . snd) Encoder.text) <>
+      (contramap (personUpdate_description . snd) Encoder.text)
 
     decoder = Decoder.noResult
 

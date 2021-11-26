@@ -3,6 +3,7 @@
 module CSDC.DAO.Types
   ( -- Entities
     Person (..)
+  , PersonUpdate (..)
   , Unit (..)
     -- Relations
   , Member (..)
@@ -43,6 +44,12 @@ data Person = Person
   , person_orcid :: ORCID.Id
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Person
+
+data PersonUpdate = PersonUpdate
+  { personUpdate_name :: Text
+  , personUpdate_description :: Text
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON PersonUpdate
 
 data Unit = Unit
   { unit_name :: Text
