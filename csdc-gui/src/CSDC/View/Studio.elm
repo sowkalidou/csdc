@@ -88,7 +88,7 @@ type Msg
   | MessagesMsg (Panel.Msg InboxId)
   | MessagePreviewMsg MessagePreview.Msg
   | ReplyPreviewMsg ReplyPreview.Msg
-  | UnitCreateMsg UnitForm.Msg
+  | UnitCreateMsg (UnitForm.Msg (Id Unit))
   | UnitCreateOpen
   | UnitCreateClose
   | PersonEditMsg PersonForm.Msg
@@ -150,34 +150,21 @@ update pageInfo msg model =
 
     UnitCreateMsg unitMsg ->
       case model.info of
-        Nothing ->
-          ( model
-          , Cmd.none
-          )
+        Nothing -> (model, Cmd.none)
         Just person ->
-          case unitMsg of
-            UnitForm.APIMsg (API.CreateUnit result) ->
-              let
-                initialUnitCreate = UnitForm.initial
-
-                onSuccess = Notification.withResponse UnitForm.ResetNotification model.unitCreate
-
-                (unitCreate, cmd) = onSuccess result <| \id ->
-                  ( initialUnitCreate
-                  , Page.goTo pageInfo (Page.Unit id)
-                  )
-              in
-                ( { model | unitCreate = unitCreate, unitCreateOpen = False }
-                , Cmd.map UnitCreateMsg cmd
-                )
-
-            _ ->
-              let
-                (unitCreate, cmd) = UnitForm.update API.createUnit person.id unitMsg model.unitCreate
-              in
-                ( { model | unitCreate = unitCreate }
-                , Cmd.map UnitCreateMsg cmd
-                )
+          let
+            config =
+              { request = API.createUnit
+              , finish = \id -> Page.goTo pageInfo (Page.Unit id)
+              }
+            (unitCreate, cmd) = UnitForm.updateWith config unitMsg model.unitCreate
+          in
+            ( { model
+              | unitCreate = unitCreate
+              , unitCreateOpen = not (Form.isFinished unitMsg)
+              }
+            , Cmd.map UnitCreateMsg cmd
+            )
 
     PersonEditOpen ->
       case model.info of

@@ -2,8 +2,8 @@ module CSDC.Form.Unit exposing
   ( Model
   , initial
   , fromUnit
-  , Msg (..)
-  , update
+  , Msg
+  , updateWith
   , view
   )
 
@@ -12,11 +12,15 @@ import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Types exposing (..)
 import CSDC.Input as Input
 import Field exposing (Field)
+import Form
 import Validation
 
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
+
+--------------------------------------------------------------------------------
+-- Model
 
 type alias Model =
   { name : Field String String
@@ -45,15 +49,48 @@ reload model =
   , description = Field.reload model.description
   }
 
-type Msg
+-- Also unit update...
+parse : Model -> Maybe NewUnit
+parse model =
+  let
+    result =
+      Validation.andThen (Field.validate model.name) <| \name ->
+      Validation.andThen (Field.validate model.description) <| \description ->
+      Validation.valid
+        { name = name
+        , description = description
+        }
+  in
+    case Validation.validate result of
+      Err _ -> Nothing
+      Ok unit -> Just unit
+
+--------------------------------------------------------------------------------
+-- Update
+
+type alias Config a =
+  { request : NewUnit -> Cmd (API.Response a)
+  , finish : a -> Cmd (Msg a)
+  }
+
+updateWith : Config a -> Msg a -> Model -> (Model, Cmd (Msg a))
+updateWith config = Form.update
+  { initial = initial
+  , update = update
+  , reload = reload
+  , parse = parse
+  , request = config.request
+  , finish = config.finish
+  }
+
+type alias Msg a = Form.Msg ModelMsg a
+
+type ModelMsg
   = SetName String
   | SetDescription String
-  | ResetNotification
-  | Save
-  | APIMsg API.Msg
 
-update : (Unit -> Cmd API.Msg) -> Id Person -> Msg -> Model -> (Model, Cmd Msg)
-update makeAPIMsg chair msg model =
+update : ModelMsg -> Model -> (Model, Cmd ModelMsg)
+update msg model =
   case msg of
     SetName val ->
       ( { model | name = Field.set val model.name }
@@ -63,42 +100,15 @@ update makeAPIMsg chair msg model =
       ( { model | description = Field.set val model.description }
       , Cmd.none
       )
-    ResetNotification ->
-      ( { model | notification = Notification.Empty }
-      , Cmd.none
-      )
-    Save ->
-      let
-        reloaded = reload model
 
-        result =
-          Validation.andThen (Field.validate model.name) <| \name ->
-          Validation.andThen (Field.validate model.description) <| \description ->
-          Validation.valid
-            { name = name
-            , description = description
-            , chair = chair
-            }
-      in
-        case Validation.validate result of
-          Err _ ->
-            ( reloaded
-            , Cmd.none
-            )
+--------------------------------------------------------------------------------
+-- View
 
-          Ok unit ->
-            ( reloaded
-            , Cmd.map APIMsg (makeAPIMsg unit)
-            )
-
-    -- To be managed by the form caller
-    APIMsg _ -> (model, Cmd.none)
-
-view : Model -> Html Msg
+view : Model -> Html (Msg a)
 view model =
   Html.div
     [] <|
-    [ Input.text model.name SetName
-    , Input.textarea model.description SetDescription
-    , Input.button Save "Save"
+    [ Input.text model.name (Form.ModelMsg << SetName)
+    , Input.textarea model.description (Form.ModelMsg << SetDescription)
+    , Input.button Form.Submit "Save"
     ] ++ Notification.view model.notification

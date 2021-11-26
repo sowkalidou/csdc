@@ -33,8 +33,6 @@ type Msg
   | GetUnitParents (Response (IdMap Subpart (WithId Unit)))
   | CreateUnit (Response (Id Unit))
   | SelectUnit (Id Unit) (Response Unit)
-  | InsertUnit (Response (Id Unit))
-  | UpdateUnit (Response ())
   | DeleteUnit (Response ())
   | SelectMemberPerson (Response (IdMap Member Member))
   | SelectMemberUnit (Response (IdMap Member Member))
@@ -141,12 +139,12 @@ getUnitParents id =
     , expect = Http.expectJson GetUnitParents (decodeIdMap (decodeWithId decodeUnit))
     }
 
-createUnit : Unit -> Cmd Msg
+createUnit : NewUnit -> Cmd (Response (Id Unit))
 createUnit unit =
   Http.post
     { url = baseUrl ++ "unit/create"
-    , body = Http.jsonBody (encodeUnit unit)
-    , expect = Http.expectJson CreateUnit decodeId
+    , body = Http.jsonBody (encodeNewUnit unit)
+    , expect = Http.expectJson identity decodeId
     }
 
 selectUnit : Id Unit -> Cmd Msg
@@ -156,20 +154,12 @@ selectUnit id =
     , expect = Http.expectJson (SelectUnit id) decodeUnit
     }
 
-insertUnit : Unit -> Cmd Msg
-insertUnit unit =
-  Http.post
-    { url = baseUrl ++ "unit"
-    , body = Http.jsonBody (encodeUnit unit)
-    , expect = Http.expectJson InsertUnit decodeId
-    }
-
-updateUnit : Id Unit -> Unit -> Cmd Msg
+updateUnit : Id Unit -> UnitUpdate -> Cmd (Response ())
 updateUnit id unit =
   Http.post
     { url = baseUrl ++ "unit/" ++ idToString id
-    , body = Http.jsonBody (encodeUnit unit)
-    , expect = Http.expectJson UpdateUnit decodeNull
+    , body = Http.jsonBody (encodeUnitUpdate unit)
+    , expect = Http.expectJson identity decodeNull
     }
 
 deleteUnit : Id Unit -> Cmd Msg

@@ -8,7 +8,7 @@ module CSDC.SQL.Units
   , delete
   ) where
 
-import CSDC.DAO.Types (Unit (..))
+import CSDC.DAO.Types (Unit (..), UnitUpdate (..))
 import CSDC.Data.Id (Id (..))
 
 import qualified CSDC.SQL.Decoder as Decoder
@@ -68,20 +68,19 @@ insertAt = Statement sql encoder decoder True
 
     decoder = Decoder.noResult
 
-update :: Statement (Id Unit, Unit) ()
+update :: Statement (Id Unit, UnitUpdate) ()
 update = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "UPDATE units"
-      , "SET name = $2, description = $3, chair = $4"
+      , "SET name = $2, description = $3"
       , "WHERE id = $1"
       ]
 
     encoder =
       (contramap fst Encoder.id) <>
-      (contramap (unit_name . snd) Encoder.text) <>
-      (contramap (unit_description . snd) Encoder.text) <>
-      (contramap (unit_chair . snd) Encoder.id)
+      (contramap (unitUpdate_name . snd) Encoder.text) <>
+      (contramap (unitUpdate_description . snd) Encoder.text)
 
     decoder = Decoder.noResult
 

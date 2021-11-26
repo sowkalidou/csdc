@@ -10,7 +10,6 @@ import CSDC.View.Admin.NewMember as NewMember
 import CSDC.View.Admin.NewMessage as NewMessage
 import CSDC.View.Admin.NewPerson as NewPerson
 import CSDC.View.Admin.NewReply as NewReply
-import CSDC.View.Admin.NewUnit as NewUnit
 import CSDC.View.Admin.NewSubpart as NewSubpart
 
 import Browser
@@ -34,7 +33,6 @@ type alias Model =
   , newPerson : NewPerson.Model
   , newReply : NewReply.Model
   , newSubpart : NewSubpart.Model
-  , newUnit : NewUnit.Model
   }
 
 initial : Model
@@ -44,7 +42,6 @@ initial =
   , newPerson = NewPerson.initial
   , newReply = NewReply.initial
   , newSubpart = NewSubpart.initial
-  , newUnit = NewUnit.initial
   }
 
 --------------------------------------------------------------------------------
@@ -56,19 +53,10 @@ type Msg
   | NewPersonMsg NewPerson.Msg
   | NewReplyMsg NewReply.Msg
   | NewSubpartMsg NewSubpart.Msg
-  | NewUnitMsg NewUnit.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    NewUnitMsg m ->
-      let
-        (newUnit, cmd) = NewUnit.update m model.newUnit
-      in
-        ( { model | newUnit = newUnit }
-        , Cmd.map NewUnitMsg cmd
-        )
-
     NewPersonMsg m ->
       let
         (newPerson, cmd) = NewPerson.update m model.newPerson
@@ -115,7 +103,6 @@ update msg model =
 view : Model -> List (Element Msg)
 view model =
   [ Element.map NewPersonMsg <| NewPerson.view model.newPerson
-  , Element.map NewUnitMsg <| NewUnit.view model.newUnit
   , Element.map NewMemberMsg <| NewMember.view model.newMember
   , Element.map NewSubpartMsg <| NewSubpart.view model.newSubpart
   , Element.map NewMessageMsg <| NewMessage.view model.newMessage

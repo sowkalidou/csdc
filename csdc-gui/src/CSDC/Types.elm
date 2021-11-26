@@ -167,6 +167,30 @@ decodeUnit =
     (Decoder.field "description" Decoder.string)
     (Decoder.field "chair" decodeId)
 
+type alias NewUnit =
+  { name : String
+  , description : String
+  }
+
+encodeNewUnit : NewUnit -> Value
+encodeNewUnit unit =
+  Encoder.object
+    [ ("name", Encoder.string unit.name)
+    , ("description", Encoder.string unit.description)
+    ]
+
+type alias UnitUpdate =
+  { name : String
+  , description : String
+  }
+
+encodeUnitUpdate : UnitUpdate -> Value
+encodeUnitUpdate unit =
+  Encoder.object
+    [ ("name", Encoder.string unit.name)
+    , ("description", Encoder.string unit.description)
+    ]
+
 type alias UnitInfo =
   { id : Id Unit
   , unit : Unit

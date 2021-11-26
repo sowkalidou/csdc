@@ -23,7 +23,7 @@ import CSDC.Page as Page
 import CSDC.Types exposing (..)
 import CSDC.View.PersonPreview as PersonPreview
 import CSDC.View.UnitPreview as UnitPreview
-
+import Form
 
 import Html exposing (Html)
 import Html.Attributes
@@ -122,7 +122,7 @@ type Msg
   | MessageSubpart (Id Person) (Id Unit) MessageType
   | ViewAdmin (Id Unit)
   | CloseModal
-  | UnitEditMsg UnitForm.Msg
+  | UnitEditMsg (UnitForm.Msg ())
   | UnitEditOpen
   | UnitEditClose
   | UnitDeleteConfirm
@@ -224,29 +224,19 @@ update pageInfo msg model =
           , Cmd.none
           )
         Just unit ->
-          case unitMsg of
-            UnitForm.APIMsg (API.UpdateUnit result) ->
-              let
-                initialUnitEdit = UnitForm.initial
-
-                onSuccess = Notification.withResponse UnitForm.ResetNotification model.unitEdit
-
-                (unitEdit, cmd) = onSuccess result <| \_ ->
-                  ( initialUnitEdit
-                  , Page.goTo pageInfo (Page.Unit unit.id)
-                  )
-              in
-                ( { model | unitEdit = unitEdit, unitEditOpen = False }
-                , Cmd.map UnitEditMsg cmd
-                )
-
-            _ ->
-              let
-                (unitEdit, cmd) = UnitForm.update (API.updateUnit unit.id) unit.unit.chair unitMsg model.unitEdit
-              in
-                ( { model | unitEdit = unitEdit }
-                , Cmd.map UnitEditMsg cmd
-                )
+          let
+            config =
+              { request = API.updateUnit unit.id
+              , finish = \_ -> Page.goTo pageInfo (Page.Unit unit.id)
+              }
+            (unitEdit, cmd) = UnitForm.updateWith config unitMsg model.unitEdit
+          in
+            ( { model
+              | unitEdit = unitEdit
+              , unitEditOpen = not (Form.isFinished unitMsg)
+              }
+            , Cmd.map UnitEditMsg cmd
+            )
 
     UnitDeleteOpen ->
       ( { model | unitDeleteOpen = True }
@@ -313,11 +303,6 @@ update pageInfo msg model =
               }
             , Cmd.none
             )
-
-        API.UpdateUnit result -> onSuccess result <| \unit ->
-          ( { model | notification = Notification.Success }
-          , Cmd.none
-          )
 
         API.UnitInbox _ result -> onSuccess result <| \inbox ->
           ( { model | inbox = inbox }

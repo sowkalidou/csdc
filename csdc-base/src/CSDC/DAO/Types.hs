@@ -5,6 +5,8 @@ module CSDC.DAO.Types
     Person (..)
   , PersonUpdate (..)
   , Unit (..)
+  , NewUnit (..)
+  , UnitUpdate (..)
     -- Relations
   , Member (..)
   , Subpart (..)
@@ -57,6 +59,18 @@ data Unit = Unit
   , unit_chair :: Id Person
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Unit
+
+data NewUnit = NewUnit
+  { newUnit_name :: Text
+  , newUnit_description :: Text
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON NewUnit
+
+data UnitUpdate = UnitUpdate
+  { unitUpdate_name :: Text
+  , unitUpdate_description :: Text
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON UnitUpdate
 
 --------------------------------------------------------------------------------
 -- Fundamental relations

@@ -52,14 +52,14 @@ servePersonAPI =
 type UnitAPI =
        "root" :> Get '[JSON] (Id Unit)
   :<|> CaptureId Unit :> GetJSON (Maybe Unit)
-  :<|> PostJSON Unit (Id Unit)
-  :<|> CaptureId Unit :> PostJSON Unit ()
+  :<|> PostJSON NewUnit (Id Unit)
+  :<|> CaptureId Unit :> PostJSON UnitUpdate ()
   :<|> CaptureId Unit :> DeleteJSON ()
   :<|> CaptureId Unit :> "info" :> GetJSON (Maybe UnitInfo)
   :<|> CaptureId Unit :> "members" :> GetJSON (IdMap Member (WithId Person))
   :<|> CaptureId Unit :> "children" :> GetJSON (IdMap Subpart (WithId Unit))
   :<|> CaptureId Unit :> "parents" :> GetJSON (IdMap Subpart (WithId Unit))
-  :<|> "create" :> PostJSON Unit (Id Unit)
+  :<|> "create" :> PostJSON NewUnit (Id Unit)
 
 serveUnitAPI :: Server UnitAPI
 serveUnitAPI =

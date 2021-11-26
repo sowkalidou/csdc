@@ -123,10 +123,17 @@ deletePerson i = runSQL $ SQL.query SQL.Persons.delete i
 selectUnit :: Id Unit -> Action user (Maybe Unit)
 selectUnit i = runSQL $ SQL.query SQL.Units.select i
 
-insertUnit :: Unit -> Action user (Id (Unit))
-insertUnit p = runSQL $ SQL.query SQL.Units.insert p
+insertUnit :: NewUnit -> ActionAuth (Id (Unit))
+insertUnit u = do
+  user <- getUser
+  let unit = Unit
+        { unit_name = newUnit_name u
+        , unit_description = newUnit_description u
+        , unit_chair = user
+        }
+  runSQL $ SQL.query SQL.Units.insert unit
 
-updateUnit :: Id Unit -> Unit -> Action user ()
+updateUnit :: Id Unit -> UnitUpdate -> Action user ()
 updateUnit i p = runSQL $ SQL.query SQL.Units.update (i,p)
 
 deleteUnit :: Id Unit -> Action user ()
@@ -234,11 +241,12 @@ selectPersonORCID i = runSQL $ SQL.query SQL.Persons.selectORCID i
 rootUnit :: Action user (Id Unit)
 rootUnit = pure rootUnitId
 
-createUnit :: Unit -> Action user (Id Unit)
-createUnit unit@(Unit {unit_chair}) = do
+createUnit :: NewUnit -> ActionAuth (Id Unit)
+createUnit unit = do
+  pid <- getUser
   uid <- insertUnit unit
   let member = Member
-        { member_person = unit_chair
+        { member_person = pid
         , member_unit = uid
         }
   _ <- insertMember member
