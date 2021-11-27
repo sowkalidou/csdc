@@ -32,7 +32,7 @@ import Tuple exposing (pair)
 
 type alias Model =
   { person : Maybe PersonInfo
-  , panelUnits : Panel.Model (Id Member)
+  , panelUnits : Panel.Model (Id Unit)
   , messageCreate : MessageForm.Model
   , messageCreateOpen : Bool
   , notification : Notification
@@ -54,10 +54,10 @@ setup id = Cmd.map APIMsg <| API.getPersonInfo id
 -- Update
 
 type Msg
-  = APIMsg API.Msg
-  | UnitsMsg (Panel.Msg (Id Member))
+  = APIMsg (API.Response PersonInfo)
+  | UnitsMsg (Panel.Msg (Id Unit))
   | ViewSelected (Id Unit)
-  | MessageCreateMsg (MessageForm.Msg Member)
+  | MessageCreateMsg (MessageForm.Msg NewMember)
   | MessageCreateOpen
   | MessageCreateClose
   | Reset
@@ -114,28 +114,22 @@ update pageInfo msg model =
       , Cmd.none
       )
 
-    APIMsg apimsg ->
-      let onSuccess = Notification.withResponse Reset model in
-      case apimsg of
-        API.GetPersonInfo result -> onSuccess result <| \info ->
-          let
-            pairs =
-              idMapToList info.members |>
-              List.map (\(uid,unit) ->
-                { index = uid
-                , title = unit.value.name
-                , description = unit.value.description
-                }
-              )
+    APIMsg result -> Notification.withResponse Reset model result <| \info ->
+      let
+        pairs =
+          info.members |>
+          List.map (\unitMember ->
+            { index = unitMember.id
+            , title = unitMember.unit.name
+            , description = unitMember.unit.description
+            }
+          )
 
-            panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
-          in
-            ( { model | person = Just info, panelUnits = panelUnits }
-            , Cmd.none
-            )
-
-        _ ->
-          (model, Cmd.none)
+        panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
+      in
+        ( { model | person = Just info, panelUnits = panelUnits }
+        , Cmd.none
+        )
 
 --------------------------------------------------------------------------------
 -- View
@@ -201,9 +195,9 @@ view model =
               Nothing ->
                 Html.div [] []
               Just id ->
-                case idMapLookup id person.members of
+                case lookupById id person.members of
                   Nothing ->
                     Html.text "Error."
-                  Just unit ->
-                    UnitPreview.view unit.value (ViewSelected unit.id)
+                  Just personMember ->
+                    UnitPreview.view personMember.unit (ViewSelected personMember.id)
       ] ++ Notification.view model.notification

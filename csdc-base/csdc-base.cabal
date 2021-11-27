@@ -21,7 +21,6 @@ library
   exposed-modules:
     CSDC.Aeson
     CSDC.Data.Id
-    CSDC.Data.IdMap
     CSDC.Data.RIO
     CSDC.Error
     CSDC.DAO.Types
@@ -34,7 +33,8 @@ library
     http-api-data,
     lens,
     mtl,
-    text
+    text,
+    time
   hs-source-dirs:
     src
   default-extensions:

@@ -39,8 +39,8 @@ import Tuple exposing (pair)
 
 type Selected
   = SelectedNothing
-  | SelectedPerson (Id Member)
-  | SelectedUnit (Id Subpart)
+  | SelectedPerson (Id Person)
+  | SelectedUnit (Id Unit)
 
 type ViewSelected
   = ViewSelectedPerson (Id Person)
@@ -48,8 +48,8 @@ type ViewSelected
 
 type alias Model =
   { info : Maybe UnitInfo
-  , panelChildren : Panel.Model (Id Subpart)
-  , panelMembers : Panel.Model (Id Member)
+  , panelChildren : Panel.Model (Id Unit)
+  , panelMembers : Panel.Model (Id Person)
   , notification : Notification
   , selected : Selected
   , invited : Maybe (Id Unit)
@@ -88,8 +88,8 @@ initial =
 setup : Id Unit -> Cmd Msg
 setup id =
   Cmd.batch
-    [ Cmd.map APIMsg <| API.getUnitInfo id
-    , Cmd.map APIMsg <| API.unitInbox id
+    [ Cmd.map GetUnitInfo <| API.getUnitInfo id
+    , Cmd.map UnitInbox <| API.unitInbox id
     ]
 
 canEdit : Maybe PersonInfo -> Model -> Bool
@@ -100,7 +100,7 @@ canEdit mid model =
       case model.info of
         Nothing -> False
         Just info ->
-          case idMapFind (\w -> w.id == info.unit.chair) info.members of
+          case lookup (\w -> w.id == info.unit.chair) info.members of
             Nothing -> False
             Just member -> pinfo.id == member.id
 
@@ -111,7 +111,7 @@ isMember mid model =
       case model.info of
         Nothing -> Nothing
         Just info ->
-          if idMapAny (\user -> user.id == pinfo.id) info.members
+          if List.any (\unitMember -> unitMember.id == pinfo.id) info.members
           then Nothing
           else Just { id = pinfo.id, value = pinfo.person }
     _ ->
@@ -121,7 +121,7 @@ isMemberPending : Maybe PersonInfo -> Model -> Bool
 isMemberPending mid model =
   case mid of
     Just info ->
-      idMapAny (\m -> m.value.person == info.id) model.inbox.messageMember
+      List.any (\m -> m.value.person == info.id) model.inbox.messageMember
     _ ->
       False
 
@@ -129,9 +129,10 @@ isMemberPending mid model =
 -- Update
 
 type Msg
-  = APIMsg API.Msg
-  | SubpartsMsg (Panel.Msg (Id Subpart))
-  | MembersMsg (Panel.Msg (Id Member))
+  = GetUnitInfo (API.Response UnitInfo)
+  | UnitInbox (API.Response Inbox)
+  | SubpartsMsg (Panel.Msg (Id Unit))
+  | MembersMsg (Panel.Msg (Id Person))
   | View ViewSelected
   | ViewAdmin (Id Unit)
   | CloseModal
@@ -144,13 +145,16 @@ type Msg
   | SubmissionMemberMsg SubmissionMemberForm.Msg
   | SubmissionMemberOpen
   | SubmissionMemberClose
-  | SubpartCreateMsg (MessageForm.Msg Subpart)
+  | SubpartCreateMsg (MessageForm.Msg NewSubpart)
   | SubpartCreateOpen MessageType
   | SubpartCreateClose
   | Reset
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
+  let
+    onSuccess = Notification.withResponse Reset model
+  in
   case msg of
     SubpartsMsg m ->
       case m of
@@ -341,53 +345,45 @@ update pageInfo msg model =
       , Cmd.none
       )
 
-    APIMsg apimsg ->
+    GetUnitInfo result -> onSuccess result <| \info ->
       let
-        onSuccess = Notification.withResponse Reset model
-      in
-      case apimsg of
-        API.GetUnitInfo result -> onSuccess result <| \info ->
-          let
-            pairsMembers =
-              idMapToList info.members |>
-              List.map (\(id,withid) ->
-                { index = id
-                , title = withid.value.name
-                , description = withid.value.description
-                }
-              )
-
-            panelMembers =
-              Panel.update (Panel.SetItems pairsMembers) model.panelMembers
-
-            pairsChildren =
-              idMapToList info.children |>
-              List.map (\(id,withid) ->
-                { index = id
-                , title = withid.value.name
-                , description = withid.value.description
-                }
-              )
-
-            panelChildren =
-              Panel.update (Panel.SetItems pairsChildren) model.panelChildren
-          in
-            ( { model
-              | info = Just info
-              , panelMembers = panelMembers
-              , panelChildren = panelChildren
-              , selected = SelectedNothing
-              }
-            , Cmd.none
-            )
-
-        API.UnitInbox _ result -> onSuccess result <| \inbox ->
-          ( { model | inbox = inbox }
-          , Cmd.none
+        pairsMembers =
+          info.members |>
+          List.map (\unitMember ->
+            { index = unitMember.id
+            , title = unitMember.person.name
+            , description = unitMember.person.description
+            }
           )
 
-        _ ->
-          (model, Cmd.none)
+        panelMembers =
+          Panel.update (Panel.SetItems pairsMembers) model.panelMembers
+
+        pairsChildren =
+          info.children |>
+          List.map (\unitSubpart ->
+            { index = unitSubpart.id
+            , title = unitSubpart.unit.name
+            , description = unitSubpart.unit.description
+            }
+          )
+
+        panelChildren =
+          Panel.update (Panel.SetItems pairsChildren) model.panelChildren
+      in
+        ( { model
+          | info = Just info
+          , panelMembers = panelMembers
+          , panelChildren = panelChildren
+          , selected = SelectedNothing
+          }
+        , Cmd.none
+        )
+
+    UnitInbox result -> onSuccess result <| \inbox ->
+      ( { model | inbox = inbox }
+      , Cmd.none
+      )
 
 --------------------------------------------------------------------------------
 -- View
@@ -449,9 +445,9 @@ view mid model =
                       []
                       [ Html.strong [] [ Html.text "Chair: " ]
                       , Html.text <|
-                          case idMapFind (\w -> w.id == info.unit.chair) info.members of
+                          case lookup (\unitMember -> unitMember.id == info.unit.chair) info.members of
                             Nothing -> "Loading..."
-                            Just withid -> withid.value.name
+                            Just unitMember -> unitMember.person.name
                       ]
                   , Html.div
                       [ Html.Attributes.style "white-space" "pre-wrap"
@@ -518,19 +514,19 @@ view mid model =
                 Html.div [] []
 
               SelectedPerson id ->
-                case idMapLookup id info.members of
+                case lookupById id info.members of
                   Nothing ->
                     Html.div [] [ Html.text "Loading..." ]
-                  Just person ->
-                    PersonPreview.view person.value <|
-                    View (ViewSelectedPerson person.id)
+                  Just unitMember ->
+                    PersonPreview.view unitMember.person <|
+                    View (ViewSelectedPerson unitMember.id)
 
               SelectedUnit id ->
-                case idMapLookup id info.children of
+                case lookupById id info.children of
                   Nothing ->
                     Html.div [] [ Html.text "Loading..." ]
-                  Just subunit ->
-                    UnitPreview.view subunit.value <|
-                    View (ViewSelectedUnit subunit.id)
+                  Just unitSubpart ->
+                    UnitPreview.view unitSubpart.unit <|
+                    View (ViewSelectedUnit unitSubpart.id)
 
       ] ++ Notification.view model.notification

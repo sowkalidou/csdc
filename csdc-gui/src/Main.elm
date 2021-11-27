@@ -8,7 +8,6 @@ import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Page exposing (Page)
 import CSDC.Types exposing (..)
-import CSDC.View.Admin as Admin
 import CSDC.View.Explorer as Explorer
 import CSDC.View.Studio as Studio
 import CSDC.View.Person as Person
@@ -52,7 +51,6 @@ type alias Model =
   , url: Url.Url
   , page : Page
   , info : Maybe PersonInfo
-  , admin : Admin.Model
   , viewPerson : Person.Model
   , viewUnit : Unit.Model
   , viewUnitAdmin : UnitAdmin.Model
@@ -71,7 +69,6 @@ init _ url key =
       , page = page
       , info = Nothing
       , explorer = Explorer.initial
-      , admin = Admin.initial
       , studio = Studio.initial
       , viewPerson = Person.initial
       , viewUnit = Unit.initial
@@ -89,20 +86,20 @@ init _ url key =
 type Msg
   = UrlChanged Url.Url
   | LinkClicked Browser.UrlRequest
-  | AdminMsg Admin.Msg
   | MenuMsg Menu.Msg
   | ExplorerMsg Explorer.Msg
   | PersonMsg Person.Msg
   | UnitMsg Unit.Msg
   | UnitAdminMsg UnitAdmin.Msg
   | StudioMsg Studio.Msg
-  | APIMsg API.Msg
+  | RootPerson (API.Response (Id Person))
+  | GetPersonInfo (API.Response PersonInfo)
 
 routeCmd : Page -> Cmd Msg
 routeCmd page =
   case page of
     Page.Studio ->
-      Cmd.map APIMsg API.rootPerson
+      Cmd.map RootPerson API.rootPerson
     Page.Explorer ->
       Cmd.map ExplorerMsg Explorer.setup
     Page.Unit uid ->
@@ -111,8 +108,6 @@ routeCmd page =
       Cmd.map UnitAdminMsg (UnitAdmin.setup uid)
     Page.Person uid ->
       Cmd.map PersonMsg (Person.setup uid)
-    Page.Admin ->
-      Cmd.none
 
 route : Page.Info -> (Page, Cmd Msg)
 route info =
@@ -144,14 +139,6 @@ update msg model =
         (page, cmd) = route { key = model.key, url = url }
       in
         ( { model | page = page, url = url }, cmd )
-
-    AdminMsg m ->
-      let
-        (admin, cmd) = Admin.update m model.admin
-      in
-        ( { model | admin = admin }
-        , Cmd.map AdminMsg cmd
-        )
 
     MenuMsg (Menu.SetItem menu) ->
       let
@@ -201,35 +188,30 @@ update msg model =
         , Cmd.map UnitAdminMsg cmd
         )
 
-    APIMsg m ->
-      case m of
-        API.RootPerson result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok id ->
-              ( model
-              , Cmd.batch
-                  [ Cmd.map StudioMsg <| Studio.setup id
-                  , Cmd.map APIMsg <| API.getPersonInfo id
-                  ]
-              )
+    RootPerson result ->
+      case result of
+        Err err ->
+          ( { model | notification = Notification.HttpError err }
+          , Cmd.none
+          )
+        Ok id ->
+          ( model
+          , Cmd.batch
+              [ Cmd.map StudioMsg <| Studio.setup id
+              , Cmd.map GetPersonInfo <| API.getPersonInfo id
+              ]
+          )
 
-        API.GetPersonInfo result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok info ->
-              ( { model | info = Just info }
-              , Cmd.none
-              )
-
-
-        _ -> (model, Cmd.none)
+    GetPersonInfo result ->
+      case result of
+        Err err ->
+          ( { model | notification = Notification.HttpError err }
+          , Cmd.none
+          )
+        Ok info ->
+          ( { model | info = Just info }
+          , Cmd.none
+          )
 
 --------------------------------------------------------------------------------
 -- Subscriptions
@@ -305,8 +287,3 @@ mainPanel model =
       Page.UnitAdmin _ ->
         List.map (Html.map UnitAdminMsg) <|
         UnitAdmin.view model.info model.viewUnitAdmin
-
-      Page.Admin ->
-        wrapElements <|
-        List.map (Element.map AdminMsg) <|
-        Admin.view model.admin

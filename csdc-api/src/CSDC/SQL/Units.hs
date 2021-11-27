@@ -5,7 +5,6 @@ module CSDC.SQL.Units
   ( select
   , selectByChair
   , insert
-  , insertAt
   , update
   , delete
   ) where
@@ -25,26 +24,27 @@ select :: Statement (Id Unit) (Maybe Unit)
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT name, description, chair"
+      [ "SELECT name, description, chair, created_at"
       , "FROM units"
       , "WHERE id = $1"
       ]
 
     encoder = Encoder.id
 
-    decoder = Decoder.rowMaybe $
-      Unit <$>
-        Decoder.text <*>
-        Decoder.text <*>
-        Decoder.id
+    decoder = Decoder.rowMaybe $ do
+      unit_name <- Decoder.text
+      unit_description <- Decoder.text
+      unit_chair <- Decoder.id
+      unit_createdAt <- Decoder.timestamptz
+      pure Unit {..}
 
 selectByChair :: Statement (Id Person) [WithId Unit]
 selectByChair = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, name, description, chair"
+      [ "SELECT id, name, description, chair, created_at"
       , "FROM units"
-      , "WHERE id = $1"
+      , "WHERE chair = $1"
       ]
 
     encoder = Encoder.id
@@ -55,6 +55,7 @@ selectByChair = Statement sql encoder decoder True
         unit_name <- Decoder.text
         unit_description <- Decoder.text
         unit_chair <- Decoder.id
+        unit_createdAt <- Decoder.timestamptz
         pure Unit {..}
       pure WithId {..}
 
@@ -73,22 +74,6 @@ insert = Statement sql encoder decoder True
       (contramap unit_chair Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
-
-insertAt :: Statement (Id Unit, Unit) ()
-insertAt = Statement sql encoder decoder True
-  where
-    sql = ByteString.unlines
-      [ "INSERT INTO units (id, name, description, chair)"
-      , "VALUES ($1, $2, $3, $4)"
-      ]
-
-    encoder =
-      (contramap fst Encoder.id) <>
-      (contramap (unit_name . snd) Encoder.text) <>
-      (contramap (unit_description . snd) Encoder.text) <>
-      (contramap (unit_chair . snd) Encoder.id)
-
-    decoder = Decoder.noResult
 
 update :: Statement (Id Unit, UnitUpdate) ()
 update = Statement sql encoder decoder True

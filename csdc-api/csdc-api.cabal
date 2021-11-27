@@ -33,6 +33,7 @@ common dependencies
     servant,
     servant-server,
     text,
+    time,
     wai-app-static
 
 common extensions

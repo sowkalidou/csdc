@@ -24,7 +24,6 @@ type Page
   | Studio
   | Person (Id Person)
   | Unit (Id Unit)
-  | Admin
   | UnitAdmin (Id Unit)
 
 type alias Info =
@@ -55,7 +54,6 @@ toFragments page =
     Studio -> ["studio"]
     Person uid -> ["person", toFragmentId uid]
     Unit uid -> ["unit", toFragmentId uid]
-    Admin -> ["admin"]
     UnitAdmin uid -> ["unit-admin", toFragmentId uid]
 
 toFragmentId : Id a -> String
@@ -88,7 +86,6 @@ fromFragments l =
       default <|
       Maybe.map Unit
         (fromFragmentId uid)
-    ["admin"] -> Admin
     ["unit-admin",uid] ->
       default <|
       Maybe.map UnitAdmin

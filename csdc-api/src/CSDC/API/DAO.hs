@@ -21,55 +21,45 @@ type CaptureId a = Capture "id" (Id a)
 --------------------------------------------------------------------------------
 -- User API
 
-type UserAPI = GetJSON (Id Person)
+type UserAPI =
+       GetJSON (Id Person)
+  :<|> "units" :> GetJSON [WithId Unit]
 
 serveUserAPI :: Server UserAPI
-serveUserAPI = getUser
+serveUserAPI =
+       getUser
+  :<|> getUnitsWhoseChairIsUser
 
 --------------------------------------------------------------------------------
 -- Person API
 
 type PersonAPI =
-       CaptureId Person :> GetJSON (Maybe Person)
-  :<|> PostJSON Person (Id Person)
-  :<|> CaptureId Person :> PostJSON PersonUpdate ()
-  :<|> CaptureId Person :> DeleteJSON ()
+       CaptureId Person :> PostJSON PersonUpdate ()
   :<|> CaptureId Person :> "info" :> GetJSON (Maybe PersonInfo)
-  :<|> "units" :> GetJSON [WithId Unit]
 
 servePersonAPI :: Server PersonAPI
 servePersonAPI =
-       selectPerson
-  :<|> insertPerson
-  :<|> updatePerson
-  :<|> deletePerson
+       updatePerson
   :<|> getPersonInfo
-  :<|> selectUnitsWhoseChairIsUser
 
 --------------------------------------------------------------------------------
 -- Unit API
 
 type UnitAPI =
-       "root" :> Get '[JSON] (Id Unit)
-  :<|> CaptureId Unit :> GetJSON (Maybe Unit)
-  :<|> PostJSON NewUnit (Id Unit)
+       CaptureId Unit :> GetJSON (Maybe Unit)
   :<|> CaptureId Unit :> PostJSON UnitUpdate ()
   :<|> CaptureId Unit :> DeleteJSON ()
   :<|> CaptureId Unit :> "info" :> GetJSON (Maybe UnitInfo)
-  :<|> CaptureId Unit :> "members" :> GetJSON (IdMap Member (WithId Person))
-  :<|> CaptureId Unit :> "children" :> GetJSON (IdMap Subpart (WithId Unit))
-  :<|> CaptureId Unit :> "parents" :> GetJSON (IdMap Subpart (WithId Unit))
-  :<|> "create" :> PostJSON NewUnit (Id Unit)
+  :<|> CaptureId Unit :> "children" :> GetJSON [UnitSubpart]
+  :<|> CaptureId Unit :> "parents" :> GetJSON [UnitSubpart]
+  :<|> PostJSON NewUnit (Id Unit)
 
 serveUnitAPI :: Server UnitAPI
 serveUnitAPI =
-       rootUnit
-  :<|> selectUnit
-  :<|> insertUnit
+       selectUnit
   :<|> updateUnit
   :<|> deleteUnit
   :<|> getUnitInfo
-  :<|> getUnitMembers
   :<|> getUnitChildren
   :<|> getUnitParents
   :<|> createUnit
@@ -78,41 +68,33 @@ serveUnitAPI =
 -- Member API
 
 type MemberAPI =
-       "person" :> CaptureId Person :> GetJSON (IdMap Member Member)
-  :<|> "unit" :> CaptureId Unit :> GetJSON (IdMap Member Member)
-  :<|> PostJSON Member (Id Member)
+       PostJSON NewMember (Id Member)
   :<|> CaptureId Member :> DeleteJSON ()
 
 serveMemberAPI :: Server MemberAPI
 serveMemberAPI =
-       selectMembersByPerson
-  :<|> selectMembersByUnit
-  :<|> insertMember
+       insertMember
   :<|> deleteMember
 
 --------------------------------------------------------------------------------
 -- Subpart API
 
 type SubpartAPI =
-       "child" :> CaptureId Unit :> GetJSON (IdMap Subpart Subpart)
-  :<|> "parent" :> CaptureId Unit :> GetJSON (IdMap Subpart Subpart)
-  :<|> PostJSON Subpart (Id Subpart)
+       PostJSON NewSubpart (Id Subpart)
   :<|> CaptureId Subpart :> DeleteJSON ()
 
 serveSubpartAPI :: Server SubpartAPI
 serveSubpartAPI =
-       selectSubpartsByChild
-  :<|> selectSubpartsByParent
-  :<|> insertSubpart
+       insertSubpart
   :<|> deleteSubpart
 
 --------------------------------------------------------------------------------
 -- Message API
 
 type MessageMemberAPI =
-       "send" :> PostJSON (NewMessage Member) (Id (Message Member))
-  :<|> "reply" :> PostJSON (NewReply Member) (Id (Reply Member))
-  :<|> "view" :> PostJSON (Id (Reply Member)) ()
+       "send" :> PostJSON (NewMessage NewMember) (Id (Message NewMember))
+  :<|> "reply" :> PostJSON (NewReply NewMember) (Id (Reply NewMember))
+  :<|> "view" :> PostJSON (Id (Reply NewMember)) ()
 
 serveMessageMemberAPI :: Server MessageMemberAPI
 serveMessageMemberAPI =
@@ -121,9 +103,9 @@ serveMessageMemberAPI =
   :<|> viewReplyMember
 
 type MessageSubpartAPI =
-       "send" :> PostJSON (NewMessage Subpart) (Id (Message Subpart))
-  :<|> "reply" :> PostJSON (NewReply Subpart) (Id (Reply Subpart))
-  :<|> "view" :> PostJSON (Id (Reply Subpart)) ()
+       "send" :> PostJSON (NewMessage NewSubpart) (Id (Message NewSubpart))
+  :<|> "reply" :> PostJSON (NewReply NewSubpart) (Id (Reply NewSubpart))
+  :<|> "view" :> PostJSON (Id (Reply NewSubpart)) ()
 
 serveMessageSubpartAPI :: Server MessageSubpartAPI
 serveMessageSubpartAPI =

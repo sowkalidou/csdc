@@ -1,6 +1,7 @@
 module CSDC.SQL.Decoder
   ( -- * Base types
     text
+  , timestamptz
     -- * Local types
   , id
   , orcidId
@@ -21,6 +22,7 @@ import Prelude hiding (id)
 import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.Text (Text)
+import Data.Time (UTCTime)
 import Hasql.Decoders (Row, column, nonNullable)
 
 import qualified Hasql.Decoders as Decoders
@@ -30,6 +32,9 @@ import qualified Hasql.Decoders as Decoders
 
 text :: Row Text
 text = column (nonNullable Decoders.text)
+
+timestamptz :: Row UTCTime
+timestamptz = column (nonNullable Decoders.timestamptz)
 
 --------------------------------------------------------------------------------
 -- Local types

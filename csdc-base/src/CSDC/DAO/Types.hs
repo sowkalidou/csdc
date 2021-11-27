@@ -1,40 +1,51 @@
 {-# LANGUAGE StrictData #-}
 
 module CSDC.DAO.Types
-  ( -- Entities
+  ( -- Person
     Person (..)
+  , NewPerson (..)
   , PersonUpdate (..)
+    -- Units
   , Unit (..)
   , NewUnit (..)
   , UnitUpdate (..)
-    -- Relations
+    -- Member
   , Member (..)
+  , NewMember (..)
+    -- Subpart
   , Subpart (..)
+  , NewSubpart (..)
     -- Messages
   , Message (..)
   , NewMessage (..)
   , MessageStatus (..)
   , MessageType (..)
+    -- Reply
   , Reply (..)
   , NewReply (..)
   , ReplyStatus (..)
   , ReplyType (..)
     -- GUI Types
+  , PersonMember (..)
   , PersonInfo (..)
+  , UnitMember (..)
+  , UnitSubpart (..)
   , UnitInfo (..)
   , Inbox (..)
   , MessageInfo (..)
   , ReplyInfo (..)
+    -- Reexport
+  , Id (..)
   ) where
 
 import CSDC.Aeson (JSON (..))
-import CSDC.Data.Id (Id, WithId)
-import CSDC.Data.IdMap (IdMap)
+import CSDC.Data.Id (Id (..))
 
 import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Text (Text)
+import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 
 --------------------------------------------------------------------------------
@@ -44,8 +55,16 @@ data Person = Person
   { person_name :: Text
   , person_description :: Text
   , person_orcid :: ORCID.Id
+  , person_createdAt :: UTCTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Person
+
+data NewPerson = NewPerson
+  { newPerson_name :: Text
+  , newPerson_description :: Text
+  , newPerson_orcid :: ORCID.Id
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON NewPerson
 
 data PersonUpdate = PersonUpdate
   { personUpdate_name :: Text
@@ -57,6 +76,7 @@ data Unit = Unit
   { unit_name :: Text
   , unit_description :: Text
   , unit_chair :: Id Person
+  , unit_createdAt :: UTCTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Unit
 
@@ -78,14 +98,28 @@ data UnitUpdate = UnitUpdate
 data Member = Member
   { member_person :: Id Person
   , member_unit :: Id Unit
+  , member_createdAt :: UTCTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Member
+
+data NewMember = NewMember
+  { newMember_person :: Id Person
+  , newMember_unit :: Id Unit
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON NewMember
 
 data Subpart = Subpart
   { subpart_child :: Id Unit
   , subpart_parent :: Id Unit
+  , subpart_createdAt :: UTCTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Subpart
+
+data NewSubpart = NewSubpart
+  { newSubpart_child :: Id Unit
+  , newSubpart_parent :: Id Unit
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON NewSubpart
 
 --------------------------------------------------------------------------------
 -- Messages
@@ -103,6 +137,7 @@ data Message a = Message
   , message_text :: Text
   , message_status :: MessageStatus
   , message_value :: a
+  , message_createdAt :: UTCTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON (Message a)
 
@@ -127,6 +162,7 @@ data Reply a = Reply
   , reply_text :: Text
   , reply_status :: ReplyStatus
   , reply_id :: Id (Message a)
+  , reply_createdAt :: UTCTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON (Reply a)
 
@@ -140,24 +176,46 @@ data NewReply a = NewReply
 --------------------------------------------------------------------------------
 -- GUI Types
 
+data PersonMember = PersonMember
+  { personMember_member :: Id Member
+  , personMember_id :: Id Unit
+  , personMember_unit :: Unit
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON PersonMember
+
 data PersonInfo = PersonInfo
   { personInfo_id :: Id Person
   , personInfo_person :: Person
-  , personInfo_members :: IdMap Member (WithId Unit)
+  , personInfo_members :: [PersonMember]
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON PersonInfo
+
+data UnitMember = UnitMember
+  { unitMember_member :: Id Member
+  , unitMember_id :: Id Person
+  , unitMember_person :: Person
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON UnitMember
+
+data UnitSubpart = UnitSubpart
+  { unitSubpart_subpart :: Id Subpart
+  , unitSubpart_id :: Id Unit
+  , unitSubpart_unit :: Unit
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON UnitSubpart
 
 data UnitInfo = UnitInfo
   { unitInfo_id :: Id Unit
   , unitInfo_unit :: Unit
-  , unitInfo_members :: IdMap Member (WithId Person)
-  , unitInfo_children :: IdMap Subpart (WithId Unit)
-  , unitInfo_parents :: IdMap Subpart (WithId Unit)
+  , unitInfo_members :: [UnitMember]
+  , unitInfo_children :: [UnitSubpart]
+  , unitInfo_parents :: [UnitSubpart]
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON UnitInfo
 
 data MessageInfo a = MessageInfo
-  { messageInfo_type :: MessageType
+  { messageInfo_id :: Id (Message a)
+  , messageInfo_type :: MessageType
   , messageInfo_status :: MessageStatus
   , messageInfo_text :: Text
   , messageInfo_value :: a
@@ -167,7 +225,8 @@ data MessageInfo a = MessageInfo
     deriving (FromJSON, ToJSON) via JSON (MessageInfo a)
 
 data ReplyInfo a = ReplyInfo
-  { replyInfo_type :: ReplyType
+  { replyInfo_id :: Id (Reply a)
+  , replyInfo_type :: ReplyType
   , replyInfo_mtype :: MessageType
   , replyInfo_text :: Text
   , replyInfo_status :: ReplyStatus
@@ -176,9 +235,9 @@ data ReplyInfo a = ReplyInfo
     deriving (FromJSON, ToJSON) via JSON (ReplyInfo a)
 
 data Inbox = Inbox
-  { inbox_messageMember :: IdMap (Message Member) (MessageInfo Member)
-  , inbox_replyMember :: IdMap (Reply Member) (ReplyInfo Member)
-  , inbox_messageSubpart :: IdMap (Message Subpart) (MessageInfo Subpart)
-  , inbox_replySubpart :: IdMap (Reply Subpart) (ReplyInfo Subpart)
+  { inbox_messageMember :: [MessageInfo NewMember]
+  , inbox_replyMember :: [ReplyInfo NewMember]
+  , inbox_messageSubpart :: [MessageInfo NewSubpart]
+  , inbox_replySubpart :: [ReplyInfo NewSubpart]
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Inbox

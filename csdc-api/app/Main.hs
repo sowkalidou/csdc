@@ -44,8 +44,6 @@ main = do
           context <- activate config secret
           putStrLn "Applying migrations..."
           migrate context
-          putStrLn "Doing startup checks..."
-          DAO.run (context_dao context) DAO.check
           putStrLn "Server ready."
           mainWith context
 

@@ -48,7 +48,7 @@ initial =
   }
 
 setup : Cmd Msg
-setup = Cmd.map (APIMsg Root) API.rootUnit
+setup = Cmd.map UnitsPerson API.unitsPerson
 
 --------------------------------------------------------------------------------
 -- Update
@@ -57,27 +57,32 @@ type Component
   = Left
   | Center
   | Right
-  | Root
 
 type Msg
   = LeftMsg (Panel.Msg (Id Unit))
   | CenterMsg (Panel.Msg (Id Unit))
   | RightMsg (Panel.Msg (Id Unit))
-  | APIMsg Component API.Msg
   | Unit (Id Unit)
   | CloseModal
   | Reset
   | Focus
   | FocusResult (Result Dom.Error ())
+  | UnitsPerson (API.Response (List (WithId Unit)))
+  | GetUnitParents (API.Response (List UnitSubpart))
+  | GetUnitChildren (API.Response (List UnitSubpart))
+  | SelectUnit Component (Id Unit) (API.Response Unit)
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
+  let
+   onSuccess = Notification.withResponse Reset model
+  in
   case msg of
     CenterMsg m ->
       ( { model | center = Panel.update m model.center }
       , case m of
           Panel.SetSelected (Just id) ->
-            Cmd.map (APIMsg Center) (API.selectUnit id)
+            Cmd.map (SelectUnit Center id) (API.selectUnit id)
           _ ->
             Cmd.none
       )
@@ -100,7 +105,7 @@ update pageInfo msg model =
                   (Panel.SetItems model.center.items)
                   model.right
             }
-          , Cmd.map (APIMsg Left) (API.selectUnit id)
+          , Cmd.map (SelectUnit Left id) (API.selectUnit id)
           )
 
         _ ->
@@ -125,7 +130,7 @@ update pageInfo msg model =
                   (Panel.SetItems []) model.right
             }
           , Cmd.batch
-              [ Cmd.map (APIMsg Right) (API.selectUnit id)
+              [ Cmd.map (SelectUnit Right id) (API.selectUnit id)
               , Delay.after 0.1 Delay.Second Focus
               ]
           )
@@ -167,106 +172,88 @@ update pageInfo msg model =
           _ -> Cmd.none
       )
 
-    APIMsg component m ->
-      let onSuccess = Notification.withResponse Reset model in
-      case m of
-        API.RootUnit res -> onSuccess res <| \id ->
-          case model.selected of
-            Nothing ->
-              ( model
-              , Cmd.map (APIMsg Root) <| API.selectUnit id
-              )
-            Just _ ->
-              ( model, Cmd.none )
+    UnitsPerson res -> onSuccess res <| \units ->
+      let
+        toItem w =
+          { index = w.id
+          , title = w.value.name
+          , description = w.value.description
+          }
+        dict = List.map toItem units
+        center = Panel.update (Panel.SetItems dict) model.center
+      in
+        ( { model | center = center }
+        , Cmd.none
+        )
 
-        API.SelectUnit id res -> onSuccess res <| \unit ->
-          case component of
-            Root ->
-              let
-                dict =
-                  [ { index = id
-                    , title = unit.name
-                    , description = unit.description
-                    }
-                  ]
-                center = Panel.update (Panel.SetItems dict) model.center
-              in
-                ( { model | center = center }
-                , Cmd.none
-                )
-
-            -- When the message comes from the center:
-            --
-            -- - change selected
-            -- - display preview
-            -- - launch commands for parents and children
-            --
-            Center ->
-              let
-                center =
-                  Panel.update (Panel.SetSelected (Just id)) model.center
-
-                selected = Just id
-
-                -- The preview only shows after clicking a second time in the
-                -- same unit, after it is selected
-                preview =
-                  if model.selected == Just id
-                  then Just { id = id, value = unit }
-                  else Nothing
-              in
-                ( { model | center = center, selected = selected, preview = preview }
-                , Cmd.map (APIMsg Center) <|
-                  Cmd.batch
-                    [ API.getUnitChildren id
-                    , API.getUnitParents id
-                    ]
-                )
-
-            Left ->
-              let
-                center =
-                  Panel.update (Panel.SetSelected (Just id)) model.center
-
-                selected = Just id
-              in
-                ( { model | center = center, selected = selected }
-                , Cmd.map (APIMsg Center) <| API.getUnitParents id
-                )
-
-            Right ->
-              let
-                center =
-                  Panel.update (Panel.SetSelected (Just id)) model.center
-
-                selected = Just id
-              in
-                ( { model | center = center, selected = selected }
-                , Cmd.map (APIMsg Center) <| API.getUnitChildren id
-                )
-
-        API.GetUnitChildren res -> onSuccess res <| \units ->
+    SelectUnit component id res -> onSuccess res <| \unit ->
+      case component of
+        -- When the message comes from the center:
+        --
+        -- - change selected
+        -- - display preview
+        -- - launch commands for parents and children
+        --
+        Center ->
           let
-            pairs = toItems units
-            right = Panel.update (Panel.SetItems pairs) model.right
+            center =
+              Panel.update (Panel.SetSelected (Just id)) model.center
+
+            selected = Just id
+
+            -- The preview only shows after clicking a second time in the
+            -- same unit, after it is selected
+            preview =
+              if model.selected == Just id
+              then Just { id = id, value = unit }
+              else Nothing
           in
-            ( { model | right = right }
-            , Cmd.none
+            ( { model | center = center, selected = selected, preview = preview }
+            , Cmd.batch
+                [ Cmd.map GetUnitChildren <| API.getUnitChildren id
+                , Cmd.map GetUnitParents <| API.getUnitParents id
+                ]
             )
 
-        API.GetUnitParents res -> onSuccess res <| \units ->
+        Left ->
           let
-            pairs = toItems units
-            left = Panel.update (Panel.SetItems pairs) model.left
+            center =
+              Panel.update (Panel.SetSelected (Just id)) model.center
+
+            selected = Just id
           in
-            ( { model | left = left }
-            , Cmd.none
+            ( { model | center = center, selected = selected }
+            , Cmd.map GetUnitParents <| API.getUnitParents id
             )
 
-        _ ->
-          ( model
-          , Cmd.none
-          )
+        Right ->
+          let
+            center =
+              Panel.update (Panel.SetSelected (Just id)) model.center
+
+            selected = Just id
+          in
+            ( { model | center = center, selected = selected }
+            , Cmd.map GetUnitChildren <| API.getUnitChildren id
+            )
+
+    GetUnitChildren res -> onSuccess res <| \units ->
+      let
+        pairs = toItems units
+        right = Panel.update (Panel.SetItems pairs) model.right
+      in
+        ( { model | right = right }
+        , Cmd.none
+        )
+
+    GetUnitParents res -> onSuccess res <| \units ->
+      let
+        pairs = toItems units
+        left = Panel.update (Panel.SetItems pairs) model.left
+      in
+        ( { model | left = left }
+        , Cmd.none
+        )
 
 --------------------------------------------------------------------------------
 -- View
@@ -302,13 +289,13 @@ view model =
 --------------------------------------------------------------------------------
 -- Helpers
 
-toItems : IdMap a (WithId Unit) -> List (Panel.Item (Id Unit))
+toItems : List UnitSubpart -> List (Panel.Item (Id Unit))
 toItems =
   let
-    toPair (_, withId) =
-      { index = withId.id
-      , title = withId.value.name
-      , description = withId.value.description
+    toItem unitSubpart =
+      { index = unitSubpart.id
+      , title = unitSubpart.unit.name
+      , description = unitSubpart.unit.description
       }
   in
-    List.map toPair << idMapToList
+    List.map toItem

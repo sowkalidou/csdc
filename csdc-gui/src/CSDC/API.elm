@@ -20,71 +20,27 @@ ignoreResult : Result e a -> Result e ()
 ignoreResult = Result.map (\_ -> ())
 
 --------------------------------------------------------------------------------
--- Msg
-
-type Msg
-  = RootPerson (Response UserId)
-  | GetPersonInfo (Response PersonInfo)
-  | SelectPerson (Id Person) (Response Person)
-  | InsertPerson (Response (Id Person))
-  | DeletePerson (Response ())
-  | RootUnit (Response (Id Unit))
-  | GetUnitInfo (Response UnitInfo)
-  | GetUnitMembers (Response (IdMap Member (WithId Person)))
-  | GetUnitChildren (Response (IdMap Subpart (WithId Unit)))
-  | GetUnitParents (Response (IdMap Subpart (WithId Unit)))
-  | CreateUnit (Response (Id Unit))
-  | SelectUnit (Id Unit) (Response Unit)
-  | SelectMemberPerson (Response (IdMap Member Member))
-  | SelectMemberUnit (Response (IdMap Member Member))
-  | InsertMember (Response (Id Member))
-  | DeleteMember (Response ())
-  | SelectSubpartChild (Response (IdMap Subpart Subpart))
-  | SelectSubpartParent (Response (IdMap Subpart Subpart))
-  | InsertSubpart (Response (Id Subpart))
-  | DeleteSubpart (Response ())
-  | ViewReplyMember (Response ())
-  | ViewReplySubpart (Response ())
-  | PersonInbox (Response Inbox)
-  | UnitInbox (Id Unit) (Response Inbox)
-
---------------------------------------------------------------------------------
 -- Person
 
-rootPerson : Cmd Msg
+rootPerson : Cmd (Response (Id Person))
 rootPerson =
   Http.get
     { url = baseUrl ++ "user"
-    , expect = Http.expectJson RootPerson decodeId
+    , expect = Http.expectJson identity decodeId
     }
 
-getPersonInfo : Id Person -> Cmd Msg
+getPersonInfo : Id Person -> Cmd (Response PersonInfo)
 getPersonInfo id =
   Http.get
     { url = baseUrl ++ "person/" ++ idToString id ++ "/info"
-    , expect = Http.expectJson GetPersonInfo decodePersonInfo
+    , expect = Http.expectJson identity decodePersonInfo
     }
 
 unitsPerson : Cmd (Response (List (WithId Unit)))
 unitsPerson =
   Http.get
-    { url = baseUrl ++ "person/units"
+    { url = baseUrl ++ "user/units"
     , expect = Http.expectJson identity (D.list (decodeWithId decodeUnit))
-    }
-
-selectPerson : Id Person -> Cmd Msg
-selectPerson id =
-  Http.get
-    { url = baseUrl ++ "person/" ++ idToString id
-    , expect = Http.expectJson (SelectPerson id) decodePerson
-    }
-
-insertPerson : Person -> Cmd Msg
-insertPerson person =
-  Http.post
-    { url = baseUrl ++ "person"
-    , body = Http.jsonBody (encodePerson person)
-    , expect = Http.expectJson InsertPerson decodeId
     }
 
 updatePerson : Id Person -> PersonUpdate -> Cmd (Response ())
@@ -95,60 +51,43 @@ updatePerson id person =
     , expect = Http.expectJson identity decodeNull
     }
 
-deletePerson : Id Person -> Cmd Msg
-deletePerson = delete "person" DeletePerson
-
 --------------------------------------------------------------------------------
 -- Unit
 
-rootUnit : Cmd Msg
-rootUnit =
-  Http.get
-    { url = baseUrl ++ "unit/root"
-    , expect = Http.expectJson RootUnit decodeId
-    }
-
-getUnitInfo : Id Unit -> Cmd Msg
+getUnitInfo : Id Unit -> Cmd (Response UnitInfo)
 getUnitInfo id =
   Http.get
     { url = baseUrl ++ "unit/" ++ idToString id ++ "/info"
-    , expect = Http.expectJson GetUnitInfo decodeUnitInfo
+    , expect = Http.expectJson identity decodeUnitInfo
     }
 
-getUnitMembers : Id Unit -> Cmd Msg
-getUnitMembers id =
-  Http.get
-    { url = baseUrl ++ "unit/" ++ idToString id ++ "/members"
-    , expect = Http.expectJson GetUnitMembers (decodeIdMap (decodeWithId decodePerson))
-    }
-
-getUnitChildren : Id Unit -> Cmd Msg
+getUnitChildren : Id Unit -> Cmd (Response (List UnitSubpart))
 getUnitChildren id =
   Http.get
     { url = baseUrl ++ "unit/" ++ idToString id ++ "/children"
-    , expect = Http.expectJson GetUnitChildren (decodeIdMap (decodeWithId decodeUnit))
+    , expect = Http.expectJson identity (D.list decodeUnitSubpart)
     }
 
-getUnitParents : Id Unit -> Cmd Msg
+getUnitParents : Id Unit -> Cmd (Response (List UnitSubpart))
 getUnitParents id =
   Http.get
     { url = baseUrl ++ "unit/" ++ idToString id ++ "/parents"
-    , expect = Http.expectJson GetUnitParents (decodeIdMap (decodeWithId decodeUnit))
+    , expect = Http.expectJson identity (D.list decodeUnitSubpart)
     }
 
 createUnit : NewUnit -> Cmd (Response (Id Unit))
 createUnit unit =
   Http.post
-    { url = baseUrl ++ "unit/create"
+    { url = baseUrl ++ "unit"
     , body = Http.jsonBody (encodeNewUnit unit)
     , expect = Http.expectJson identity decodeId
     }
 
-selectUnit : Id Unit -> Cmd Msg
+selectUnit : Id Unit -> Cmd (Response Unit)
 selectUnit id =
   Http.get
     { url = baseUrl ++ "unit/" ++ idToString id
-    , expect = Http.expectJson (SelectUnit id) decodeUnit
+    , expect = Http.expectJson identity decodeUnit
     }
 
 updateUnit : Id Unit -> UnitUpdate -> Cmd (Response ())
@@ -165,71 +104,43 @@ deleteUnit = delete "unit" identity
 --------------------------------------------------------------------------------
 -- Member
 
-selectMemberPerson : Id Person -> Cmd Msg
-selectMemberPerson id =
-  Http.get
-    { url = baseUrl ++ "member/person/" ++ idToString id
-    , expect = Http.expectJson SelectMemberPerson (decodeIdMap decodeMember)
-    }
-
-selectMemberUnit : Id Unit -> Cmd Msg
-selectMemberUnit id =
-  Http.get
-    { url = baseUrl ++ "member/unit/" ++ idToString id
-    , expect = Http.expectJson SelectMemberUnit (decodeIdMap decodeMember)
-    }
-
-insertMember : Member -> Cmd Msg
+insertMember : NewMember -> Cmd (Response (Id Member))
 insertMember member =
   Http.post
     { url = baseUrl ++ "member"
-    , body = Http.jsonBody (encodeMember member)
-    , expect = Http.expectJson InsertMember decodeId
+    , body = Http.jsonBody (encodeNewMember member)
+    , expect = Http.expectJson identity decodeId
     }
 
-deleteMember : Id Member -> Cmd Msg
-deleteMember = delete "member" DeleteMember
+deleteMember : Id Member -> Cmd (Response ())
+deleteMember = delete "member" identity
 
 --------------------------------------------------------------------------------
 -- Subpart
 
-selectSubpartChild : Id Unit -> Cmd Msg
-selectSubpartChild id =
-  Http.get
-    { url = baseUrl ++ "subpart/child/" ++ idToString id
-    , expect = Http.expectJson SelectSubpartChild (decodeIdMap decodeSubpart)
-    }
-
-selectSubpartParent : Id Unit -> Cmd Msg
-selectSubpartParent id =
-  Http.get
-    { url = baseUrl ++ "subpart/parent/" ++ idToString id
-    , expect = Http.expectJson SelectSubpartParent (decodeIdMap decodeSubpart)
-    }
-
-insertSubpart : Subpart -> Cmd Msg
+insertSubpart : NewSubpart -> Cmd (Response (Id Subpart))
 insertSubpart subpart =
   Http.post
     { url = baseUrl ++ "subpart"
-    , body = Http.jsonBody (encodeSubpart subpart)
-    , expect = Http.expectJson InsertSubpart decodeId
+    , body = Http.jsonBody (encodeNewSubpart subpart)
+    , expect = Http.expectJson identity decodeId
     }
 
-deleteSubpart : Id Subpart -> Cmd Msg
-deleteSubpart = delete "subpart" DeleteSubpart
+deleteSubpart : Id Subpart -> Cmd (Response ())
+deleteSubpart = delete "subpart" identity
 
 --------------------------------------------------------------------------------
 -- Message
 
-sendMessageMember : NewMessage Member -> Cmd (Response (Id (Message Member)))
+sendMessageMember : NewMessage NewMember -> Cmd (Response (Id (Message NewMember)))
 sendMessageMember msg =
   Http.post
     { url = baseUrl ++ "message/member/send"
-    , body = Http.jsonBody <| encodeNewMessage encodeMember msg
+    , body = Http.jsonBody <| encodeNewMessage encodeNewMember msg
     , expect = Http.expectJson identity decodeId
     }
 
-sendReplyMember : NewReply Member -> Cmd (Response ())
+sendReplyMember : NewReply NewMember -> Cmd (Response ())
 sendReplyMember reply =
   Http.post
     { url = baseUrl ++ "message/member/reply"
@@ -237,7 +148,7 @@ sendReplyMember reply =
     , expect = Http.expectJson ignoreResult decodeId
     }
 
-viewReplyMember : Id (Reply Member) -> Cmd (Response ())
+viewReplyMember : Id (Reply NewMember) -> Cmd (Response ())
 viewReplyMember id =
   Http.post
     { url = baseUrl ++ "message/member/view"
@@ -245,15 +156,15 @@ viewReplyMember id =
     , expect = Http.expectJson identity decodeNull
     }
 
-sendMessageSubpart : NewMessage Subpart -> Cmd (Response (Id (Message Subpart)))
+sendMessageSubpart : NewMessage NewSubpart -> Cmd (Response (Id (Message NewSubpart)))
 sendMessageSubpart msg =
   Http.post
     { url = baseUrl ++ "message/subpart/send"
-    , body = Http.jsonBody <| encodeNewMessage encodeSubpart msg
+    , body = Http.jsonBody <| encodeNewMessage encodeNewSubpart msg
     , expect = Http.expectJson identity decodeId
     }
 
-sendReplySubpart : NewReply Subpart -> Cmd (Response ())
+sendReplySubpart : NewReply NewSubpart -> Cmd (Response ())
 sendReplySubpart reply =
   Http.post
     { url = baseUrl ++ "message/subpart/reply"
@@ -261,7 +172,7 @@ sendReplySubpart reply =
     , expect = Http.expectJson ignoreResult decodeId
     }
 
-viewReplySubpart : Id (Reply Subpart) -> Cmd (Response ())
+viewReplySubpart : Id (Reply NewSubpart) -> Cmd (Response ())
 viewReplySubpart id =
   Http.post
     { url = baseUrl ++ "message/subpart/view"
@@ -269,18 +180,18 @@ viewReplySubpart id =
     , expect = Http.expectJson identity decodeNull
     }
 
-personInbox : Id Person -> Cmd Msg
+personInbox : Id Person -> Cmd (Response Inbox)
 personInbox id =
   Http.get
     { url = baseUrl ++ "message/inbox/person/" ++ idToString id
-    , expect = Http.expectJson PersonInbox decodeInbox
+    , expect = Http.expectJson identity decodeInbox
     }
 
-unitInbox : Id Unit -> Cmd Msg
+unitInbox : Id Unit -> Cmd (Response Inbox)
 unitInbox id =
   Http.get
     { url = baseUrl ++ "message/inbox/unit/" ++ idToString id
-    , expect = Http.expectJson (UnitInbox id) decodeInbox
+    , expect = Http.expectJson identity decodeInbox
     }
 
 --------------------------------------------------------------------------------

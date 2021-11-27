@@ -1,18 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module CSDC.SQL.Subparts
-  ( selectL
-  , selectR
+  ( selectByChild
+  , selectByParent
   , insert
   , delete
   , deleteUnit
   ) where
 
-import CSDC.DAO.Types (Unit, Subpart (..))
-import CSDC.Data.Id (Id (..))
-import CSDC.Data.IdMap (IdMap')
+import CSDC.DAO.Types
 
-import qualified CSDC.Data.IdMap as IdMap
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder
 
@@ -21,51 +19,53 @@ import Hasql.Statement (Statement (..))
 
 import qualified Data.ByteString.Char8 as ByteString
 
-selectL :: Statement (Id Unit) (IdMap' Subpart)
-selectL = Statement sql encoder decoder True
+selectByChild :: Statement (Id Unit) [UnitSubpart]
+selectByChild = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, child, parent"
+      [ "SELECT subparts.id, parent, units.name, units.description, units.chair, units.created_at"
       , "FROM subparts"
+      , "JOIN units ON units.id = child"
       , "WHERE child = $1"
       ]
 
     encoder = Encoder.id
 
-    pair uid person unit =
-      (uid, Subpart person unit)
+    decoder = Decoder.rowList $ do
+      unitSubpart_subpart <- Decoder.id
+      unitSubpart_id <- Decoder.id
+      unitSubpart_unit <- do
+        unit_name <- Decoder.text
+        unit_description <- Decoder.text
+        unit_chair <- Decoder.id
+        unit_createdAt <- Decoder.timestamptz
+        pure Unit {..}
+      pure UnitSubpart {..}
 
-    decoder =
-      fmap IdMap.fromList $
-      Decoder.rowList $
-      pair <$>
-        Decoder.id <*>
-        Decoder.id <*>
-        Decoder.id
-
-selectR :: Statement (Id Unit) (IdMap' Subpart)
-selectR = Statement sql encoder decoder True
+selectByParent :: Statement (Id Unit) [UnitSubpart]
+selectByParent = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, child, parent"
+      [ "SELECT subparts.id, parent, units.name, units.description, units.chair, units.created_at"
       , "FROM subparts"
+      , "JOIN units ON units.id = parent"
       , "WHERE parent = $1"
       ]
 
     encoder = Encoder.id
 
-    pair uid child parent =
-      (uid, Subpart child parent)
+    decoder = Decoder.rowList $ do
+      unitSubpart_subpart <- Decoder.id
+      unitSubpart_id <- Decoder.id
+      unitSubpart_unit <- do
+        unit_name <- Decoder.text
+        unit_description <- Decoder.text
+        unit_chair <- Decoder.id
+        unit_createdAt <- Decoder.timestamptz
+        pure Unit {..}
+      pure UnitSubpart {..}
 
-    decoder =
-      fmap IdMap.fromList $
-      Decoder.rowList $
-      pair <$>
-        Decoder.id <*>
-        Decoder.id <*>
-        Decoder.id
-
-insert :: Statement Subpart (Id Subpart)
+insert :: Statement NewSubpart (Id Subpart)
 insert = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
@@ -75,8 +75,8 @@ insert = Statement sql encoder decoder True
       ]
 
     encoder =
-      (contramap subpart_child Encoder.id) <>
-      (contramap subpart_parent Encoder.id)
+      (contramap newSubpart_child Encoder.id) <>
+      (contramap newSubpart_parent Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
 

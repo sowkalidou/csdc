@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
 
@@ -8,7 +7,6 @@ import CSDC.Auth.User (User (..))
 import CSDC.Prelude
 
 import qualified CSDC.Auth.ORCID as ORCID
-import qualified CSDC.Data.IdMap as IdMap
 import qualified CSDC.SQL as SQL
 import qualified CSDC.SQL.Members as SQL.Members
 import qualified CSDC.SQL.MessageMembers as SQL.MessageMembers
@@ -18,9 +16,9 @@ import qualified CSDC.SQL.Subparts as SQL.Subparts
 import qualified CSDC.SQL.Units as SQL.Units
 
 import Control.Exception (Exception, throwIO)
-import Control.Monad (forM)
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
+import Data.Time (getCurrentTime)
 
 --------------------------------------------------------------------------------
 -- Context
@@ -53,24 +51,14 @@ run :: MonadIO m => Context user -> Action user a -> m a
 run ctx (Action act) = liftIO $
   runReaderT act ctx
 
-withToken :: UserToken -> ActionAuth a -> Action () a
+withToken :: UserToken -> ActionAuth a -> Action user a
 withToken token (Action (ReaderT act)) = do
   pid <- getUserFromToken token
   Action $ ReaderT $ \ctx -> act $ ctx { context_user = pid }
 
-check :: Action user ()
-check = do
-  selectUnit rootUnitId >>= \case
-    Nothing -> do
-      let person = Person "President" "" (ORCID.Id "")
-      runSQL $ SQL.query SQL.Persons.insertAt (rootPersonId,person)
-      let unit = Unit "CSDC" "" rootPersonId
-      runSQL $ SQL.query SQL.Units.insertAt (rootUnitId,unit)
-      let member = Member rootPersonId rootUnitId
-      _ <- runSQL $ SQL.query SQL.Members.insert member
-      pure ()
-    Just _ ->
-      pure ()
+withPerson :: Id Person -> ActionAuth a -> Action user a
+withPerson pid (Action (ReaderT act)) =
+  Action $ ReaderT $ \ctx -> act $ ctx { context_user = pid }
 
 runSQL :: SQL.Action a -> Action user a
 runSQL act = do
@@ -84,15 +72,15 @@ runSQL act = do
 --------------------------------------------------------------------------------
 -- User
 
-getUserFromToken :: UserToken -> Action () (Id Person)
+getUserFromToken :: UserToken -> Action user (Id Person)
 getUserFromToken (User token) =
   selectPersonORCID (ORCID.token_orcid token) >>= \case
     Nothing ->
       let
-        person = Person
-          { person_name = ORCID.token_name token
-          , person_orcid = ORCID.token_orcid token
-          , person_description = ""
+        person = NewPerson
+          { newPerson_name = ORCID.token_name token
+          , newPerson_orcid = ORCID.token_orcid token
+          , newPerson_description = ""
           }
       in
         insertPerson person
@@ -108,7 +96,7 @@ getUser = asks context_user
 selectPerson :: Id Person -> Action user (Maybe Person)
 selectPerson i = runSQL $ SQL.query SQL.Persons.select i
 
-insertPerson :: Person -> Action user (Id (Person))
+insertPerson :: NewPerson -> Action user (Id (Person))
 insertPerson p = runSQL $ SQL.query SQL.Persons.insert p
 
 updatePerson :: Id Person -> PersonUpdate -> Action user ()
@@ -126,10 +114,12 @@ selectUnit i = runSQL $ SQL.query SQL.Units.select i
 insertUnit :: NewUnit -> ActionAuth (Id (Unit))
 insertUnit u = do
   user <- getUser
+  now <- liftIO getCurrentTime
   let unit = Unit
         { unit_name = newUnit_name u
         , unit_description = newUnit_description u
         , unit_chair = user
+        , unit_createdAt = now -- will be ignored
         }
   runSQL $ SQL.query SQL.Units.insert unit
 
@@ -145,13 +135,7 @@ deleteUnit i = runSQL $ do
 --------------------------------------------------------------------------------
 -- Member
 
-selectMembersByPerson :: Id Person -> Action user (IdMap Member Member)
-selectMembersByPerson i = runSQL $ SQL.query SQL.Members.selectL i
-
-selectMembersByUnit :: Id Unit -> Action user (IdMap Member Member)
-selectMembersByUnit i = runSQL $ SQL.query SQL.Members.selectR i
-
-insertMember :: Member -> Action user (Id Member)
+insertMember :: NewMember -> Action user (Id Member)
 insertMember r = runSQL $ SQL.query SQL.Members.insert r
 
 deleteMember :: Id Member -> Action user ()
@@ -160,25 +144,19 @@ deleteMember i = runSQL $ SQL.query SQL.Members.delete i
 --------------------------------------------------------------------------------
 -- Subpart
 
-selectSubpartsByChild :: Id Unit -> Action user (IdMap Subpart Subpart)
-selectSubpartsByChild i = runSQL $ SQL.query SQL.Subparts.selectL i
-
-selectSubpartsByParent :: Id Unit -> Action user (IdMap Subpart Subpart)
-selectSubpartsByParent i = runSQL $ SQL.query SQL.Subparts.selectR i
-
-insertSubpart :: Subpart -> Action user (Id Subpart)
+insertSubpart :: NewSubpart -> Action user (Id Subpart)
 insertSubpart r = runSQL $ SQL.query SQL.Subparts.insert r
 
 deleteSubpart :: Id Subpart -> Action user ()
 deleteSubpart i = runSQL $ SQL.query SQL.Subparts.delete i
 
 --------------------------------------------------------------------------------
--- Message Member
+-- Message NewMember
 
-sendMessageMember :: NewMessage Member -> Action user (Id (Message Member))
+sendMessageMember :: NewMessage NewMember -> Action user (Id (Message NewMember))
 sendMessageMember m = runSQL $ SQL.query SQL.MessageMembers.sendMessage m
 
-sendReplyMember :: NewReply Member -> Action user (Id (Reply Member))
+sendReplyMember :: NewReply NewMember -> Action user (Id (Reply NewMember))
 sendReplyMember r = do
   rid <- runSQL $ SQL.query SQL.MessageMembers.sendReply r
   let
@@ -199,16 +177,16 @@ sendReplyMember r = do
       pure ()
   pure rid
 
-viewReplyMember :: Id (Reply Member) -> Action user ()
+viewReplyMember :: Id (Reply NewMember) -> Action user ()
 viewReplyMember i = runSQL $ SQL.query SQL.MessageMembers.viewReply i
 
 --------------------------------------------------------------------------------
--- Message Subpart
+-- Message NewSubpart
 
-sendMessageSubpart :: NewMessage Subpart -> Action user (Id (Message Subpart))
+sendMessageSubpart :: NewMessage NewSubpart -> Action user (Id (Message NewSubpart))
 sendMessageSubpart m = runSQL $ SQL.query SQL.MessageSubparts.sendMessage m
 
-sendReplySubpart :: NewReply Subpart -> Action user (Id (Reply Subpart))
+sendReplySubpart :: NewReply NewSubpart -> Action user (Id (Reply NewSubpart))
 sendReplySubpart r = do
   rid <- runSQL $ SQL.query SQL.MessageSubparts.sendReply r
   let
@@ -229,7 +207,7 @@ sendReplySubpart r = do
       pure ()
   pure rid
 
-viewReplySubpart :: Id (Reply Subpart) -> Action user ()
+viewReplySubpart :: Id (Reply NewSubpart) -> Action user ()
 viewReplySubpart i = runSQL $ SQL.query SQL.MessageSubparts.viewReply i
 
 --------------------------------------------------------------------------------
@@ -238,106 +216,80 @@ viewReplySubpart i = runSQL $ SQL.query SQL.MessageSubparts.viewReply i
 selectPersonORCID :: ORCID.Id -> Action user (Maybe (Id Person))
 selectPersonORCID i = runSQL $ SQL.query SQL.Persons.selectORCID i
 
-rootUnit :: Action user (Id Unit)
-rootUnit = pure rootUnitId
-
 createUnit :: NewUnit -> ActionAuth (Id Unit)
 createUnit unit = do
   pid <- getUser
   uid <- insertUnit unit
-  let member = Member
-        { member_person = pid
-        , member_unit = uid
+  let member = NewMember
+        { newMember_person = pid
+        , newMember_unit = uid
         }
   _ <- insertMember member
   return uid
 
 inboxPerson :: Id Person -> Action user Inbox
 inboxPerson pid = do
-  messagesAll <- runSQL $
+  allMessageMembers <- runSQL $
     SQL.query SQL.MessageMembers.select $
     SQL.MessageMembers.Filter (Just pid) Nothing
-  let mids = fmap fst messagesAll
-  repliesAll <- runSQL $
-    SQL.query SQL.MessageMembers.messageReplies mids
+
+  allReplyMembers <- runSQL $
+    SQL.query SQL.MessageMembers.messageReplies $ fmap messageInfo_id allMessageMembers
+
   let
     predMessage m =
       messageInfo_status m == Waiting &&
       messageInfo_type m == Invitation
 
-    messageMember =
-      IdMap.filter predMessage $
-      IdMap.fromList messagesAll
-
     predReply r =
       replyInfo_status r == NotSeen &&
       replyInfo_mtype r == Submission
 
-    replyMember =
-      IdMap.filter predReply $
-      IdMap.fromList repliesAll
-
   pure Inbox
-    { inbox_messageMember = messageMember
-    , inbox_replyMember = replyMember
-    , inbox_messageSubpart = IdMap.empty
-    , inbox_replySubpart = IdMap.empty
+    { inbox_messageMember = filter predMessage allMessageMembers
+    , inbox_replyMember = filter predReply allReplyMembers
+    , inbox_messageSubpart = []
+    , inbox_replySubpart = []
     }
 
 inboxUnit :: Id Unit -> Action user Inbox
 inboxUnit uid = do
-  messagesSubpartAll <- runSQL $
+  allMessageSubparts <- runSQL $
     SQL.query SQL.MessageSubparts.select uid
 
-  repliesSubpartAll <- runSQL $
+  allReplySubparts <- runSQL $
     SQL.query SQL.MessageSubparts.messageReplies $
-    fmap fst messagesSubpartAll
+    fmap messageInfo_id allMessageSubparts
 
   let
     predMessageSubpart m =
       messageInfo_status m == Waiting
 
-    messagesSubpart =
-      IdMap.filter predMessageSubpart $
-      IdMap.fromList messagesSubpartAll
-
     predReplySubpart r =
       replyInfo_status r == NotSeen
 
-    repliesSubpart =
-      IdMap.filter predReplySubpart $
-      IdMap.fromList repliesSubpartAll
-
-  messagesMemberAll <- runSQL $
+  allMessageMembers <- runSQL $
     SQL.query SQL.MessageMembers.select $
     SQL.MessageMembers.Filter Nothing (Just uid)
 
-  repliesMemberAll <- runSQL $
+  allReplyMembers <- runSQL $
     SQL.query SQL.MessageMembers.messageReplies $
-    fmap fst messagesMemberAll
+    fmap messageInfo_id allMessageMembers
 
   let
     predMessageMember m =
       messageInfo_status m == Waiting &&
       messageInfo_type m == Submission
 
-    messageMember =
-      IdMap.filter predMessageMember $
-      IdMap.fromList messagesMemberAll
-
     predReplyMember r =
       replyInfo_status r == NotSeen &&
       replyInfo_mtype r == Invitation
 
-    replyMember =
-      IdMap.filter predReplyMember $
-      IdMap.fromList repliesMemberAll
-
   pure Inbox
-    { inbox_messageMember = messageMember
-    , inbox_replyMember = replyMember
-    , inbox_messageSubpart = messagesSubpart
-    , inbox_replySubpart = repliesSubpart
+    { inbox_messageMember = filter predMessageMember allMessageMembers
+    , inbox_replyMember = filter predReplyMember allReplyMembers
+    , inbox_messageSubpart = filter predMessageSubpart allMessageSubparts
+    , inbox_replySubpart = filter predReplySubpart allReplySubparts
     }
 
 getPersonInfo :: Id Person -> Action user (Maybe PersonInfo)
@@ -345,18 +297,21 @@ getPersonInfo uid =
   selectPerson uid >>= \case
     Nothing -> pure Nothing
     Just person -> do
-      membersList <- selectMembersByPerson uid
-      pairs <- forM membersList $ \(Member _ unitId) ->
-        fmap (WithId unitId) <$> selectUnit unitId
-      case sequence pairs of
-        Nothing ->
-          pure Nothing
-        Just members ->
-          pure $ Just PersonInfo
-            { personInfo_id = uid
-            , personInfo_person = person
-            , personInfo_members = members
-            }
+      members <- runSQL $ SQL.query SQL.Members.selectByPerson uid
+      pure $ Just PersonInfo
+        { personInfo_id = uid
+        , personInfo_person = person
+        , personInfo_members = members
+        }
+
+getUnitMembers :: Id Unit -> Action user [UnitMember]
+getUnitMembers uid = runSQL $ SQL.query SQL.Members.selectByUnit uid
+
+getUnitChildren :: Id Unit -> Action user [UnitSubpart]
+getUnitChildren uid = runSQL $ SQL.query SQL.Subparts.selectByParent uid
+
+getUnitParents :: Id Unit -> Action user [UnitSubpart]
+getUnitParents uid = runSQL $ SQL.query SQL.Subparts.selectByChild uid
 
 getUnitInfo :: Id Unit -> Action user (Maybe UnitInfo)
 getUnitInfo uid =
@@ -374,43 +329,7 @@ getUnitInfo uid =
         , unitInfo_parents = parents
         }
 
-selectUnitsWhoseChairIsUser :: ActionAuth [WithId Unit]
-selectUnitsWhoseChairIsUser = do
+getUnitsWhoseChairIsUser :: ActionAuth [WithId Unit]
+getUnitsWhoseChairIsUser = do
   uid <- getUser
   runSQL $ SQL.query SQL.Units.selectByChair uid
-
-getUnitMembers :: Id Unit -> Action user (IdMap Member (WithId Person))
-getUnitMembers uid = do
-  members <- selectMembersByUnit uid
-  pairs <- forM members $ \(Member personId _) ->
-    fmap (WithId personId) <$> selectPerson personId
-  case sequence pairs of
-    Nothing -> pure IdMap.empty
-    Just m -> pure m
-
-getUnitChildren :: Id Unit -> Action user (IdMap Subpart (WithId Unit))
-getUnitChildren uid = do
-  subparts <- selectSubpartsByParent uid
-  pairs <- forM subparts $ \(Subpart childId _) ->
-    fmap (WithId childId) <$> selectUnit childId
-  case sequence pairs of
-    Nothing -> pure IdMap.empty
-    Just m -> pure m
-
-getUnitParents :: Id Unit -> Action user (IdMap Subpart (WithId Unit))
-getUnitParents uid = do
-  subparts <- selectSubpartsByChild uid
-  pairs <- forM subparts $ \(Subpart _ parentId) ->
-    fmap (WithId parentId) <$> selectUnit parentId
-  case sequence pairs of
-    Nothing -> pure IdMap.empty
-    Just m -> pure m
-
---------------------------------------------------------------------------------
--- Helpers
-
-rootUnitId :: Id Unit
-rootUnitId = Id 0
-
-rootPersonId :: Id Person
-rootPersonId = Id 0

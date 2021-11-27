@@ -38,7 +38,7 @@ reload model =
   | reason = Field.reload model.reason
   }
 
-parse : Member -> Model -> Maybe (NewMessage Member)
+parse : NewMember -> Model -> Maybe (NewMessage NewMember)
 parse member model =
   let
     validation =
@@ -70,7 +70,7 @@ updateWith config = Form.update
   , finish = \_ -> config.finish
   }
 
-type alias Msg = Form.Msg ModelMsg Member (Id (Message Member))
+type alias Msg = Form.Msg ModelMsg NewMember (Id (Message NewMember))
 
 type ModelMsg
   = SetReason String
@@ -86,7 +86,7 @@ update msg model =
 --------------------------------------------------------------------------------
 -- View
 
-view : Member -> Model -> List (Html Msg)
+view : NewMember -> Model -> List (Html Msg)
 view member model =
   [ Html.p [] [ Html.i [] [ Html.text "Please write a message below." ] ]
   , Input.textarea model.reason SetReason

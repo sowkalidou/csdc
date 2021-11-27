@@ -1,18 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module CSDC.SQL.Members
-  ( selectL
-  , selectR
+  ( selectByPerson
+  , selectByUnit
   , insert
   , delete
   , deleteUnit
   ) where
 
-import CSDC.DAO.Types (Person, Unit, Member (..))
-import CSDC.Data.Id (Id (..))
-import CSDC.Data.IdMap (IdMap')
+import CSDC.DAO.Types
 
-import qualified CSDC.Data.IdMap as IdMap
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder
 
@@ -21,51 +19,53 @@ import Hasql.Statement (Statement (..))
 
 import qualified Data.ByteString.Char8 as ByteString
 
-selectL :: Statement (Id Person) (IdMap' Member)
-selectL = Statement sql encoder decoder True
+selectByPerson :: Statement (Id Person) [PersonMember]
+selectByPerson = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, person, unit"
+      [ "SELECT members.id, unit, units.name, units.description, units.chair, units.created_at"
       , "FROM members"
+      , "JOIN units ON units.id = unit"
       , "WHERE person = $1"
       ]
 
     encoder = Encoder.id
 
-    pair uid person unit =
-      (uid, Member person unit)
+    decoder = Decoder.rowList $ do
+      personMember_member <- Decoder.id
+      personMember_id <- Decoder.id
+      personMember_unit <- do
+        unit_name <- Decoder.text
+        unit_description <- Decoder.text
+        unit_chair <- Decoder.id
+        unit_createdAt <- Decoder.timestamptz
+        pure Unit {..}
+      pure PersonMember {..}
 
-    decoder =
-      fmap IdMap.fromList $
-      Decoder.rowList $
-      pair <$>
-        Decoder.id <*>
-        Decoder.id <*>
-        Decoder.id
-
-selectR :: Statement (Id Unit) (IdMap' Member)
-selectR = Statement sql encoder decoder True
+selectByUnit :: Statement (Id Unit) [UnitMember]
+selectByUnit = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, person, unit"
+      [ "SELECT members.id, person, persons.name, persons.description, persons.orcid, persons.created_at"
       , "FROM members"
+      , "JOIN persons ON persons.id = person"
       , "WHERE unit = $1"
       ]
 
     encoder = Encoder.id
 
-    pair uid child parent =
-      (uid, Member child parent)
+    decoder = Decoder.rowList $ do
+      unitMember_member <- Decoder.id
+      unitMember_id <- Decoder.id
+      unitMember_person <- do
+        person_name <- Decoder.text
+        person_description <- Decoder.text
+        person_orcid <- Decoder.orcidId
+        person_createdAt <- Decoder.timestamptz
+        pure Person {..}
+      pure UnitMember {..}
 
-    decoder =
-      fmap IdMap.fromList $
-      Decoder.rowList $
-      pair <$>
-        Decoder.id <*>
-        Decoder.id <*>
-        Decoder.id
-
-insert :: Statement Member (Id Member)
+insert :: Statement NewMember (Id Member)
 insert = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
@@ -75,8 +75,8 @@ insert = Statement sql encoder decoder True
       ]
 
     encoder =
-      (contramap member_person Encoder.id) <>
-      (contramap member_unit Encoder.id)
+      (contramap newMember_person Encoder.id) <>
+      (contramap newMember_unit Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
 

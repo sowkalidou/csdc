@@ -26,7 +26,6 @@ import String
 type Model
   = Explorer
   | Studio
-  | Admin
 
 initial : Model
 initial = Studio
@@ -36,14 +35,12 @@ toPage model =
   case model of
     Explorer -> Page.Explorer
     Studio -> Page.Studio
-    Admin -> Page.Admin
 
 fromPage : Page.Page -> Maybe Model
 fromPage page =
   case page of
     Page.Explorer -> Just Explorer
     Page.Studio -> Just Studio
-    Page.Admin -> Just Admin
     _ -> Nothing
 
 --------------------------------------------------------------------------------
@@ -96,10 +93,6 @@ view model =
     , list
         [ item model "Studio" Studio
         , item model "Explorer" Explorer
-        ]
-    , title "Administration"
-    , list
-        [ item model "Admin" Admin
         ]
     ]
 

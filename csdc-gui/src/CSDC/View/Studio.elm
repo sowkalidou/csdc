@@ -37,12 +37,12 @@ import Tuple exposing (pair)
 
 type Selected
   = SelectedNothing
-  | SelectedUnit (Id Member)
+  | SelectedUnit (Id Unit)
   | SelectedInbox InboxId
 
 type alias Model =
   { info : Maybe PersonInfo
-  , panelUnits : Panel.Model (Id Member)
+  , panelUnits : Panel.Model (Id Unit)
   , panelMessages : Panel.Model InboxId
   , notification : Notification
   , inbox : Inbox
@@ -73,18 +73,18 @@ initial =
 
 setup : Id Person -> Cmd Msg
 setup id =
-  Cmd.map APIMsg <|
   Cmd.batch
-    [ API.getPersonInfo id
-    , API.personInbox id
+    [ Cmd.map GetPersonInfo <| API.getPersonInfo id
+    , Cmd.map PersonInbox <| API.personInbox id
     ]
 
 --------------------------------------------------------------------------------
 -- Update
 
 type Msg
-  = APIMsg API.Msg
-  | UnitsMsg (Panel.Msg (Id Member))
+  = GetPersonInfo (API.Response PersonInfo)
+  | PersonInbox (API.Response Inbox)
+  | UnitsMsg (Panel.Msg (Id Unit))
   | MessagesMsg (Panel.Msg InboxId)
   | ReplyMsg ReplyForm.Msg
   | ReplySeenMsg ReplySeenForm.Msg
@@ -100,6 +100,9 @@ type Msg
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
+  let
+    onSuccess = Notification.withResponse Reset model
+  in
   case msg of
     Reset ->
       ({ model | notification = Notification.Empty }, Cmd.none)
@@ -296,50 +299,31 @@ update pageInfo msg model =
       , Cmd.none
       )
 
-    APIMsg apimsg ->
+    GetPersonInfo result -> onSuccess result <| \info ->
       let
-        onSuccess = Notification.withResponse Reset model
+        pairs =
+          info.members |>
+          List.map (\personMember ->
+            { index = personMember.id
+            , title = personMember.unit.name
+            , description = personMember.unit.description
+            }
+          )
+
+        panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
       in
-      case apimsg of
-        API.GetPersonInfo result -> onSuccess result <| \info ->
-            let
-              pairs =
-                idMapToList info.members |>
-                List.map (\(uid,unit) ->
-                  { index = uid
-                  , title = unit.value.name
-                  , description = unit.value.description
-                  }
-                )
+        ( { model | info = Just info, panelUnits = panelUnits }
+        , Cmd.none
+        )
 
-              panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
-            in
-              ( { model | info = Just info, panelUnits = panelUnits }
-              , Cmd.none
-              )
-
-        API.PersonInbox result -> onSuccess result <| \inbox ->
-            let
-              panelMessages =
-                Panel.update (Panel.SetItems <| inboxToItems inbox) model.panelMessages
-            in
-              ( { model | inbox = inbox, panelMessages = panelMessages }
-              , Cmd.none
-              )
-
-        API.ViewReplyMember result -> onSuccess result <| \_ ->
-            case model.info of
-              Nothing ->
-                ( model
-                , Cmd.none
-                )
-              Just info ->
-                ( model
-                , setup info.id
-                )
-
-        _ ->
-          (model, Cmd.none)
+    PersonInbox result -> onSuccess result <| \inbox ->
+      let
+        panelMessages =
+          Panel.update (Panel.SetItems <| inboxToItems inbox) model.panelMessages
+      in
+        ( { model | inbox = inbox, panelMessages = panelMessages }
+        , Cmd.none
+        )
 
 --------------------------------------------------------------------------------
 -- View
@@ -437,16 +421,16 @@ view model =
                 Html.div [] []
 
               SelectedUnit id ->
-                case idMapLookup id info.members of
+                case lookupById id info.members of
                   Nothing ->
                     Html.text "Error."
-                  Just unit ->
-                    UnitPreview.view unit.value (View unit.id)
+                  Just personMember ->
+                    UnitPreview.view personMember.unit (View personMember.id)
 
               SelectedInbox inboxId ->
                 case inboxId of
                   ReplyMemberId id ->
-                    case idMapLookup id model.inbox.replyMember of
+                    case lookupById id model.inbox.replyMember of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
@@ -459,7 +443,7 @@ view model =
                           Form.viewWith title (ReplySeenForm.view msg) model.previewReply
 
                   MessageMemberId id ->
-                    case idMapLookup id model.inbox.messageMember of
+                    case lookupById id model.inbox.messageMember of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
@@ -472,7 +456,7 @@ view model =
                           Form.viewWith title (ReplyForm.view msg) model.previewMessage
 
                   MessageSubpartId id ->
-                    case idMapLookup id model.inbox.messageSubpart of
+                    case lookupById id model.inbox.messageSubpart of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
@@ -485,7 +469,7 @@ view model =
                           Form.viewWith title (ReplyForm.view msg) model.previewMessage
 
                   ReplySubpartId id ->
-                    case idMapLookup id model.inbox.replySubpart of
+                    case lookupById id model.inbox.replySubpart of
                       Nothing ->
                         Html.text "Error."
                       Just msg ->
@@ -503,40 +487,40 @@ view model =
 -- Helpers
 
 type InboxId
-  = MessageMemberId (Id (Message Member))
-  | ReplyMemberId (Id (Reply Member))
-  | MessageSubpartId (Id (Message Subpart))
-  | ReplySubpartId (Id (Reply Subpart))
+  = MessageMemberId (Id (Message NewMember))
+  | ReplyMemberId (Id (Reply NewMember))
+  | MessageSubpartId (Id (Message NewSubpart))
+  | ReplySubpartId (Id (Reply NewSubpart))
 
 inboxToItems : Inbox -> List (Panel.Item InboxId)
 inboxToItems inbox =
   let
-    fmm (id, m) =
-      { index = MessageMemberId id
+    fmm m =
+      { index = MessageMemberId m.id
       , title = "Invitation from " ++ m.right
       , description = m.text
       }
-    frm (id, r) =
-      { index = ReplyMemberId id
+    frm r =
+      { index = ReplyMemberId r.id
       , title = case r.mtype of
           Invitation -> "Reply from " ++ r.message.left
           Submission -> "Reply from " ++ r.message.right
       , description = r.text
       }
-    fms (id, m) =
-      { index = MessageSubpartId id
+    fms m =
+      { index = MessageSubpartId m.id
       , title = "Submission from " ++ m.left
       , description = m.text
       }
-    frs (id, r) =
-      { index = ReplySubpartId id
+    frs r =
+      { index = ReplySubpartId r.id
       , title = case r.mtype of
           Invitation -> "Reply from " ++ r.message.left
           Submission -> "Reply from " ++ r.message.right
       , description = r.text
       }
   in
-    List.map fmm (idMapToList inbox.messageMember) ++
-    List.map frm (idMapToList inbox.replyMember) ++
-    List.map fms (idMapToList inbox.messageSubpart) ++
-    List.map frs (idMapToList inbox.replySubpart)
+    List.map fmm inbox.messageMember ++
+    List.map frm inbox.replyMember ++
+    List.map fms inbox.messageSubpart ++
+    List.map frs inbox.replySubpart

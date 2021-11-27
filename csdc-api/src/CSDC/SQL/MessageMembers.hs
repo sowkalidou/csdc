@@ -13,18 +13,6 @@ module CSDC.SQL.MessageMembers
   ) where
 
 import CSDC.DAO.Types
-  ( Message (..)
-  , NewMessage (..)
-  , MessageInfo (..)
-  , MessageStatus
-  , Reply (..)
-  , NewReply (..)
-  , ReplyInfo (..)
-  , Person
-  , Unit
-  , Member (..)
-  )
-import CSDC.Data.Id (Id (..))
 
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder
@@ -34,7 +22,7 @@ import Hasql.Statement (Statement (..))
 
 import qualified Data.ByteString.Char8 as ByteString
 
-viewReply :: Statement (Id (Reply Member)) ()
+viewReply :: Statement (Id (Reply NewMember)) ()
 viewReply = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
@@ -47,7 +35,7 @@ viewReply = Statement sql encoder decoder True
 
     decoder = Decoder.noResult
 
-selectMember :: Statement (Id (Message Member)) (Maybe Member)
+selectMember :: Statement (Id (Message NewMember)) (Maybe NewMember)
 selectMember =  Statement sql encoder decoder True
   where
     sql = ByteString.unlines
@@ -59,11 +47,11 @@ selectMember =  Statement sql encoder decoder True
     encoder = Encoder.id
 
     decoder = Decoder.rowMaybe $
-      Member <$>
+      NewMember <$>
         Decoder.id <*>
         Decoder.id
 
-sendMessage :: Statement (NewMessage Member) (Id (Message Member))
+sendMessage :: Statement (NewMessage NewMember) (Id (Message NewMember))
 sendMessage = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
@@ -75,12 +63,12 @@ sendMessage = Statement sql encoder decoder True
     encoder =
       (contramap newMessage_type Encoder.messageType) <>
       (contramap newMessage_text Encoder.text) <>
-      (contramap (member_person . newMessage_value) Encoder.id) <>
-      (contramap (member_unit . newMessage_value) Encoder.id)
+      (contramap (newMember_person . newMessage_value) Encoder.id) <>
+      (contramap (newMember_unit . newMessage_value) Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
 
-updateMessage :: Statement (Id (Message Member), MessageStatus) ()
+updateMessage :: Statement (Id (Message NewMember), MessageStatus) ()
 updateMessage = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
@@ -96,7 +84,7 @@ updateMessage = Statement sql encoder decoder True
     decoder = Decoder.noResult
 
 
-sendReply :: Statement (NewReply Member) (Id (Reply Member))
+sendReply :: Statement (NewReply NewMember) (Id (Reply NewMember))
 sendReply = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
@@ -117,7 +105,7 @@ data Filter = Filter
   , filter_unit :: Maybe (Id Unit)
   }
 
-select :: Statement Filter [(Id (Message Member), MessageInfo Member)]
+select :: Statement Filter [MessageInfo NewMember]
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
@@ -139,23 +127,23 @@ select = Statement sql encoder decoder True
       contramap filter_unit Encoder.idNullable
 
     decoder = Decoder.rowList $ do
-      uid <- Decoder.id
+      messageInfo_id <- Decoder.id
       messageInfo_type <- Decoder.messageType
       messageInfo_status <- Decoder.messageStatus
       messageInfo_text <- Decoder.text
       messageInfo_value <- do
-        member_person <- Decoder.id
-        member_unit <- Decoder.id
-        pure Member {..}
+        newMember_person <- Decoder.id
+        newMember_unit <- Decoder.id
+        pure NewMember {..}
       messageInfo_left <- Decoder.text
       messageInfo_right <- Decoder.text
-      pure (uid, MessageInfo {..})
+      pure MessageInfo {..}
 
-messageReplies :: Statement [Id (Message Member)] [(Id (Reply Member), ReplyInfo Member)]
+messageReplies :: Statement [Id (Message NewMember)] [ReplyInfo NewMember]
 messageReplies = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT r.id, r.type, m.type, r.reply, r.status, m.type, m.status, m.message, m.person, m.unit, p.name, u.name"
+      [ "SELECT r.id, r.type, m.type, r.reply, r.status, m.id, m.type, m.status, m.message, m.person, m.unit, p.name, u.name"
       , "FROM"
       , "  replies_member r"
       , "JOIN"
@@ -170,20 +158,21 @@ messageReplies = Statement sql encoder decoder True
     encoder = Encoder.idList
 
     decoder = Decoder.rowList $ do
-      uid <- Decoder.id
+      replyInfo_id <- Decoder.id
       replyInfo_type <- Decoder.replyType
       replyInfo_mtype <- Decoder.messageType
       replyInfo_text <- Decoder.text
       replyInfo_status <- Decoder.replyStatus
       replyInfo_message <- do
+        messageInfo_id <- Decoder.id
         messageInfo_type <- Decoder.messageType
         messageInfo_status <- Decoder.messageStatus
         messageInfo_text <- Decoder.text
         messageInfo_value <- do
-          member_person <- Decoder.id
-          member_unit <- Decoder.id
-          pure Member {..}
+          newMember_person <- Decoder.id
+          newMember_unit <- Decoder.id
+          pure NewMember {..}
         messageInfo_left <- Decoder.text
         messageInfo_right <- Decoder.text
         pure MessageInfo {..}
-      pure (uid, ReplyInfo {..})
+      pure ReplyInfo {..}
