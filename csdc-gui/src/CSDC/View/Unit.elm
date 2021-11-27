@@ -17,6 +17,8 @@ import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
 import CSDC.Form.Unit as UnitForm
 import CSDC.Form.UnitDelete as UnitDeleteForm
+import CSDC.Form.Message as MessageForm
+import CSDC.Form.SubmissionMember as SubmissionMemberForm
 import CSDC.Input as Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
@@ -56,6 +58,11 @@ type alias Model =
   , unitEditOpen : Bool
   , unitDelete : UnitDeleteForm.Model
   , unitDeleteOpen : Bool
+  , submissionMember : SubmissionMemberForm.Model
+  , submissionMemberOpen : Bool
+  , subpartCreate : MessageForm.Model
+  , subpartCreateOpen : Bool
+  , subpartCreateType : MessageType
   }
 
 initial : Model
@@ -71,6 +78,11 @@ initial =
   , unitEditOpen = False
   , unitDelete = UnitDeleteForm.initial
   , unitDeleteOpen = False
+  , submissionMember = SubmissionMemberForm.initial
+  , submissionMemberOpen = False
+  , subpartCreate = MessageForm.initial
+  , subpartCreateOpen = False
+  , subpartCreateType = Invitation
   }
 
 setup : Id Unit -> Cmd Msg
@@ -121,8 +133,6 @@ type Msg
   | SubpartsMsg (Panel.Msg (Id Subpart))
   | MembersMsg (Panel.Msg (Id Member))
   | View ViewSelected
-  | MessageMember (Id Person) (Id Unit) MessageType
-  | MessageSubpart (Id Person) (Id Unit) MessageType
   | ViewAdmin (Id Unit)
   | CloseModal
   | UnitEditMsg (UnitForm.Msg ())
@@ -131,6 +141,12 @@ type Msg
   | UnitDeleteMsg UnitDeleteForm.Msg
   | UnitDeleteOpen
   | UnitDeleteClose
+  | SubmissionMemberMsg SubmissionMemberForm.Msg
+  | SubmissionMemberOpen
+  | SubmissionMemberClose
+  | SubpartCreateMsg (MessageForm.Msg Subpart)
+  | SubpartCreateOpen MessageType
+  | SubpartCreateClose
   | Reset
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
@@ -177,16 +193,6 @@ update pageInfo msg model =
           ( initial
           , Page.goTo pageInfo (Page.Unit id)
           )
-
-    MessageMember pid uid mtype ->
-      ( model
-      , Cmd.none -- Page.goTo pageInfo (Page.MessageMember pid uid mtype)
-      )
-
-    MessageSubpart pid uid mtype ->
-      ( model
-      , Page.goTo pageInfo (Page.MessageSubpart pid uid mtype)
-      )
 
     ViewAdmin _ ->
       case model.info of
@@ -272,6 +278,64 @@ update pageInfo msg model =
             , Cmd.map UnitDeleteMsg cmd
             )
 
+    SubmissionMemberOpen ->
+      ( { model | submissionMemberOpen = True }
+      , Cmd.none
+      )
+
+    SubmissionMemberClose ->
+      ( { model | submissionMemberOpen = False }
+      , Cmd.none
+      )
+
+    SubmissionMemberMsg subpartMsg ->
+      case model.info of
+        Nothing -> (model, Cmd.none)
+        Just unit ->
+          let
+            config =
+              { finish = Cmd.none
+              }
+            (submissionMember, cmd) = SubmissionMemberForm.updateWith config subpartMsg model.submissionMember
+          in
+            ( { model
+              | submissionMember = submissionMember
+              , submissionMemberOpen = not (Form.isFinished subpartMsg)
+              }
+            , Cmd.map SubmissionMemberMsg cmd
+            )
+
+    SubpartCreateOpen mtype ->
+      ( { model
+        | subpartCreateOpen = True
+        , subpartCreateType = mtype
+        }
+      , Cmd.map SubpartCreateMsg MessageForm.setup
+      )
+
+    SubpartCreateClose ->
+      ( { model | subpartCreateOpen = False }
+      , Cmd.none
+      )
+
+    SubpartCreateMsg subpartMsg ->
+      case model.info of
+        Nothing -> (model, Cmd.none)
+        Just unit ->
+          let
+            config =
+              { request = API.sendMessageSubpart
+              , finish = Cmd.none
+              }
+            (subpartCreate, cmd) = MessageForm.updateWith config subpartMsg model.subpartCreate
+          in
+            ( { model
+              | subpartCreate = subpartCreate
+              , subpartCreateOpen = not (Form.isFinished subpartMsg)
+              }
+            , Cmd.map SubpartCreateMsg cmd
+            )
+
     Reset ->
       ( { model | notification = Notification.Empty }
       , Cmd.none
@@ -322,13 +386,6 @@ update pageInfo msg model =
           , Cmd.none
           )
 
-        API.SendMessageSubpart result -> onSuccess result <| \_ ->
-          ( model
-          , case model.info of
-              Nothing -> Cmd.none
-              Just info -> Cmd.map APIMsg <| API.unitInbox info.id
-          )
-
         _ ->
           (model, Cmd.none)
 
@@ -358,10 +415,10 @@ view mid model =
                       [ case mid of
                           Just pinfo ->
                             [ { label = "Invitation for this unit"
-                              , message = MessageSubpart pinfo.id info.id Invitation
+                              , message = SubpartCreateOpen Invitation
                               }
                             , { label = "Submission to this unit"
-                              , message = MessageSubpart pinfo.id info.id Submission
+                              , message = SubpartCreateOpen Submission
                               }
                             ]
                           _ ->
@@ -383,7 +440,7 @@ view mid model =
                           Nothing -> []
                           Just wid ->
                             [ { label = "Become a member"
-                              , message = MessageMember wid.id info.id Submission
+                              , message = SubmissionMemberOpen
                               }
                             ]
                       ]
@@ -423,6 +480,32 @@ view mid model =
       , Modal.view model.unitDeleteOpen UnitDeleteClose <|
           Html.map UnitDeleteMsg <|
           Form.viewWith "Delete Unit" UnitDeleteForm.view model.unitDelete
+
+      , Modal.view model.submissionMemberOpen SubmissionMemberClose <|
+          Html.map SubmissionMemberMsg <|
+          case mid of
+            Just person ->
+              let
+                member = { person = person.id, unit = info.id }
+              in
+                Form.viewWith "Send Submission"(SubmissionMemberForm.view member) model.submissionMember
+            Nothing ->
+              Html.text "Error"
+
+      , Modal.view model.subpartCreateOpen SubpartCreateClose <|
+          Html.map SubpartCreateMsg <|
+          let
+            make =
+              case model.subpartCreateType of
+                Invitation -> \uid -> { child = info.id, parent = uid }
+                Submission -> \uid -> { child = uid, parent = info.id }
+
+            title =
+              case model.subpartCreateType of
+                Invitation -> "Send Invitation"
+                Submission -> "Send Submission"
+          in
+            Form.viewWith title (MessageForm.view model.subpartCreateType make) model.subpartCreate
 
       , let
           isActive = case model.selected of

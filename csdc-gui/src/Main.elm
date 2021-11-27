@@ -11,7 +11,6 @@ import CSDC.Types exposing (..)
 import CSDC.View.Admin as Admin
 import CSDC.View.Explorer as Explorer
 import CSDC.View.InvitationMember as InvitationMember
-import CSDC.View.MessageSubpart as MessageSubpart
 import CSDC.View.Studio as Studio
 import CSDC.View.Person as Person
 import CSDC.View.Unit as Unit
@@ -59,7 +58,6 @@ type alias Model =
   , viewUnit : Unit.Model
   , viewUnitAdmin : UnitAdmin.Model
   , invitationMember : InvitationMember.Model
-  , messageSubpart : MessageSubpart.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
   , notification : Notification
@@ -81,7 +79,6 @@ init _ url key =
       , viewUnit = Unit.initial
       , viewUnitAdmin = UnitAdmin.initial
       , invitationMember = InvitationMember.initial
-      , messageSubpart = MessageSubpart.initial
       , notification = Notification.Empty
       }
     , case page of
@@ -102,7 +99,6 @@ type Msg
   | UnitMsg Unit.Msg
   | UnitAdminMsg UnitAdmin.Msg
   | InvitationMemberMsg InvitationMember.Param InvitationMember.Msg
-  | MessageSubpartMsg MessageSubpart.Param MessageSubpart.Msg
   | StudioMsg Studio.Msg
   | APIMsg API.Msg
 
@@ -121,8 +117,6 @@ routeCmd page =
       Cmd.map PersonMsg (Person.setup uid)
     Page.InvitationMember pid ->
       Cmd.none
-    Page.MessageSubpart pid uid mtype ->
-      Cmd.map (MessageSubpartMsg { messageType = mtype }) (MessageSubpart.setup pid uid)
     Page.Admin ->
       Cmd.none
 
@@ -219,14 +213,6 @@ update msg model =
       in
         ( { model | invitationMember = invitationMember }
         , Cmd.map (InvitationMemberMsg p) cmd
-        )
-
-    MessageSubpartMsg p m ->
-      let
-        (messageSubpart, cmd) = MessageSubpart.update pageInfo m p model.messageSubpart
-      in
-        ( { model | messageSubpart = messageSubpart }
-        , Cmd.map (MessageSubpartMsg p) cmd
         )
 
     APIMsg m ->
@@ -350,12 +336,3 @@ mainPanel model =
               List.map (Element.map toMsg) <|
               [ InvitationMember.view param model.invitationMember ]
           _ -> []
-
-      Page.MessageSubpart _ _ mtype ->
-        wrapElements <|
-        let
-          param = { messageType = mtype }
-          toMsg = MessageSubpartMsg param
-        in
-          List.map (Element.map toMsg) <|
-          [ MessageSubpart.view param model.messageSubpart ]

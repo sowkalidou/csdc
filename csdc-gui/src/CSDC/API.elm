@@ -43,9 +43,7 @@ type Msg
   | SelectSubpartParent (Response (IdMap Subpart Subpart))
   | InsertSubpart (Response (Id Subpart))
   | DeleteSubpart (Response ())
-  | SendMessageMember (Response (Id (Message Member)))
   | ViewReplyMember (Response ())
-  | SendMessageSubpart (Response (Id (Message Subpart)))
   | ViewReplySubpart (Response ())
   | PersonInbox (Response Inbox)
   | UnitInbox (Id Unit) (Response Inbox)
@@ -247,12 +245,12 @@ viewReplyMember id =
     , expect = Http.expectJson identity decodeNull
     }
 
-sendMessageSubpart : NewMessage Subpart -> Cmd Msg
+sendMessageSubpart : NewMessage Subpart -> Cmd (Response (Id (Message Subpart)))
 sendMessageSubpart msg =
   Http.post
     { url = baseUrl ++ "message/subpart/send"
     , body = Http.jsonBody <| encodeNewMessage encodeSubpart msg
-    , expect = Http.expectJson SendMessageSubpart decodeId
+    , expect = Http.expectJson identity decodeId
     }
 
 sendReplySubpart : NewReply Subpart -> Cmd (Response ())

@@ -27,7 +27,6 @@ type Page
   | Admin
   | UnitAdmin (Id Unit)
   | InvitationMember (Id Person)
-  | MessageSubpart (Id Person) (Id Unit) MessageType
 
 type alias Info =
   { key : Nav.Key
@@ -62,12 +61,6 @@ toFragments page =
     InvitationMember pid ->
       [ "invitation-member"
       , toFragmentId pid
-      ]
-    MessageSubpart mid uid mtype ->
-      [ "message-subpart"
-      , toFragmentId mid
-      , toFragmentId uid
-      , toFragmentMessageType mtype
       ]
 
 toFragmentId : Id a -> String
@@ -110,12 +103,6 @@ fromFragments l =
       default <|
       Maybe.map InvitationMember
         (fromFragmentId pid)
-    ["message-subpart",mid,uid,mtype] ->
-      default <|
-      Maybe.map3 MessageSubpart
-        (fromFragmentId mid)
-        (fromFragmentId uid)
-        (fromFragmentMessageType mtype)
     _ -> Studio
 
 fromFragmentId : String -> Maybe (Id a)

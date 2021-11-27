@@ -6,6 +6,7 @@ CREATE TABLE persons
   , name text NOT NULL
   , description text NOT NULL
   , orcid text NOT NULL
+  , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 
 CREATE TABLE units
@@ -13,6 +14,7 @@ CREATE TABLE units
   , name text NOT NULL
   , description text NOT NULL
   , chair integer NOT NULL REFERENCES persons(id)
+  , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 
 --------------------------------------------------------------------------------
@@ -22,6 +24,7 @@ CREATE TABLE members
   ( id serial PRIMARY KEY
   , person integer NOT NULL REFERENCES persons(id)
   , unit integer NOT NULL REFERENCES units(id)
+  , created_at timestamptz NOT NULL DEFAULT NOW()
   , CONSTRAINT member_unique UNIQUE (person, unit)
   );
 
@@ -29,6 +32,7 @@ CREATE TABLE subparts
   ( id serial PRIMARY KEY
   , child integer NOT NULL REFERENCES units(id)
   , parent integer NOT NULL REFERENCES units(id)
+  , created_at timestamptz NOT NULL DEFAULT NOW()
   , CONSTRAINT subpart_unique UNIQUE (child, parent)
   );
 
@@ -53,6 +57,7 @@ CREATE TABLE messages_member
   , message text NOT NULL
   , person integer NOT NULL REFERENCES persons(id)
   , unit integer NOT NULL REFERENCES units(id)
+  , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 
 CREATE TABLE messages_subpart
@@ -62,6 +67,7 @@ CREATE TABLE messages_subpart
   , message text NOT NULL
   , child integer NOT NULL REFERENCES units(id)
   , parent integer NOT NULL REFERENCES units(id)
+  , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 
 --------------------------------------------------------------------------------
@@ -83,6 +89,7 @@ CREATE TABLE replies_member
   , status reply_status NOT NULL DEFAULT 'NotSeen'
   , reply text NOT NULL
   , message integer NOT NULL REFERENCES messages_member(id)
+  , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 
 CREATE TABLE replies_subpart
@@ -91,4 +98,5 @@ CREATE TABLE replies_subpart
   , status reply_status NOT NULL DEFAULT 'NotSeen'
   , reply text NOT NULL
   , message integer NOT NULL REFERENCES messages_subpart(id)
+  , created_at timestamptz NOT NULL DEFAULT NOW()
   );

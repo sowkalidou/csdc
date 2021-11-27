@@ -83,9 +83,7 @@ update pageInfo msg model =
 
     MessageCreateOpen ->
       ( { model | messageCreateOpen = True }
-      , case model.person of
-          Nothing -> Cmd.none
-          Just person -> Cmd.map MessageCreateMsg MessageForm.setup
+      , Cmd.map MessageCreateMsg MessageForm.setup
       )
 
     MessageCreateClose ->
