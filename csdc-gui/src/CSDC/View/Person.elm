@@ -16,9 +16,10 @@ import CSDC.Input exposing (button)
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.View.UnitPreview as UnitPreview
-import CSDC.View.MessageCreate as MessageCreate
+import CSDC.Form.Message as MessageForm
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
+import Form
 
 import Html exposing (Html)
 import Html.Attributes
@@ -32,7 +33,8 @@ import Tuple exposing (pair)
 type alias Model =
   { person : Maybe PersonInfo
   , panelUnits : Panel.Model (Id Member)
-  , message : MessageCreate.Model
+  , messageCreate : MessageForm.Model
+  , messageCreateOpen : Bool
   , notification : Notification
   }
 
@@ -40,7 +42,8 @@ initial : Model
 initial =
   { person = Nothing
   , panelUnits = Panel.initial "Units"
-  , message = MessageCreate.initial
+  , messageCreate = MessageForm.initial
+  , messageCreateOpen = False
   , notification = Notification.Empty
   }
 
@@ -54,7 +57,9 @@ type Msg
   = APIMsg API.Msg
   | UnitsMsg (Panel.Msg (Id Member))
   | ViewSelected (Id Unit)
-  | MessageMember (Id Person)
+  | MessageCreateMsg (MessageForm.Msg Member)
+  | MessageCreateOpen
+  | MessageCreateClose
   | Reset
   | CloseModal
 
@@ -71,15 +76,40 @@ update pageInfo msg model =
       , Page.goTo pageInfo (Page.Unit uid)
       )
 
-    MessageMember pid ->
-      ( initial
-      , Page.goTo pageInfo (Page.InvitationMember pid)
-      )
-
     CloseModal ->
       ( { model | panelUnits = Panel.update (Panel.SetSelected Nothing) model.panelUnits }
       , Cmd.none
       )
+
+    MessageCreateOpen ->
+      ( { model | messageCreateOpen = True }
+      , case model.person of
+          Nothing -> Cmd.none
+          Just person -> Cmd.map MessageCreateMsg MessageForm.setup
+      )
+
+    MessageCreateClose ->
+      ( { model | messageCreateOpen = False }
+      , Cmd.none
+      )
+
+    MessageCreateMsg messageMsg ->
+      case model.person of
+        Nothing -> (model, Cmd.none)
+        Just person ->
+          let
+            config =
+              { request = API.sendMessageMember
+              , finish = Cmd.none
+              }
+            (messageCreate, cmd) = MessageForm.updateWith config messageMsg model.messageCreate
+          in
+            ( { model
+              | messageCreate = messageCreate
+              , messageCreateOpen = not (Form.isFinished messageMsg)
+              }
+            , Cmd.map MessageCreateMsg cmd
+            )
 
     Reset ->
       ( { model | notification = Notification.Empty }
@@ -131,7 +161,7 @@ view model =
               [ Html.Attributes.class "column is-two-thirds" ]
               [ Column.make "Information"
                   [ { label = "Invite this person to your unit"
-                    , message = MessageMember person.id
+                    , message = MessageCreateOpen
                     }
                   ]
                   [ Html.div
@@ -154,6 +184,14 @@ view model =
               [ Html.Attributes.class "column is-one-third" ]
               [ Html.map UnitsMsg <| Panel.view model.panelUnits ]
           ]
+
+      , Modal.view model.messageCreateOpen MessageCreateClose <|
+          Html.map MessageCreateMsg <|
+          let
+            make uid = { person = person.id, unit = uid }
+          in
+            Form.viewWith "Send Invitation" (MessageForm.view Invitation make) model.messageCreate
+
       , let
           isActive =
             case model.panelUnits.selected of

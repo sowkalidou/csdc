@@ -1,11 +1,7 @@
-module CSDC.Input exposing
-  ( button
-  , buttonDanger
-  , text
-  , textarea
-  )
+module CSDC.Input exposing (..)
 
 import Field exposing (Field (..), Status (..))
+import Form
 
 import Html exposing (Html)
 import Html.Attributes
@@ -14,20 +10,20 @@ import Html.Events
 --------------------------------------------------------------------------------
 -- Button
 
-button : msg -> String -> Html msg
-button msg txt =
+button : String -> r -> Html (Form.Msg msg r b)
+button txt r =
   Html.button
     [ Html.Attributes.class "button is-link is-pulled-right"
-    , Html.Events.onClick msg
+    , Html.Events.onClick (Form.Submit r)
     ]
     [ Html.text txt
     ]
 
-buttonDanger : msg -> String -> Html msg
-buttonDanger msg txt =
+buttonDanger : String -> r -> Html (Form.Msg msg r b)
+buttonDanger txt r =
   Html.button
     [ Html.Attributes.class "button is-danger is-pulled-right"
-    , Html.Events.onClick msg
+    , Html.Events.onClick (Form.Submit r)
     ]
     [ Html.text txt
     ]
@@ -55,7 +51,7 @@ wrapper field div =
       in
         List.map makeError (Field.errors field)
 
-text : Field String a -> (String -> msg) -> Html msg
+text : Field String a -> (String -> msg) -> Html (Form.Msg msg r b)
 text field makeMsg =
   wrapper field <|
     Html.input
@@ -65,12 +61,12 @@ text field makeMsg =
       , Html.Attributes.type_ "text"
       , Html.Attributes.placeholder (Field.name field)
       , Html.Attributes.value (Field.raw field)
-      , Html.Events.onInput makeMsg
+      , Html.Events.onInput (Form.ModelMsg << makeMsg)
       ]
       []
 
 
-textarea : Field String a -> (String -> msg) -> Html msg
+textarea : Field String a -> (String -> msg) -> Html (Form.Msg msg r b)
 textarea field makeMsg =
   wrapper field <|
     Html.textarea
@@ -79,43 +75,26 @@ textarea field makeMsg =
           _ -> Html.Attributes.class "textarea"
       , Html.Attributes.placeholder (Field.name field)
       , Html.Attributes.value (Field.raw field)
-      , Html.Events.onInput makeMsg
+      , Html.Events.onInput (Form.ModelMsg << makeMsg)
       ]
       []
 
 --------------------------------------------------------------------------------
 -- Text input
 
-dropdown : List (a, String) -> Field (Maybe a) b -> (Maybe a -> msg) -> Html msg
-dropdown items field makeMsg =
+select : List (a, String) -> Field (Maybe a) c -> (Maybe a -> msg) -> Html (Form.Msg msg r b)
+select items field makeMsg =
   wrapper field <|
     Html.div
-      [ Html.Attributes.class "dropdown"
-      , Html.Attributes.style "height" "26px"
-      , Html.Attributes.style "margin-top" "-4px"
+      [ Html.Attributes.class "select"
       ]
-      [ Html.div
-          [ Html.Attributes.class "dropdown-trigger"
-          ]
-          [ Html.span [] [ Html.text "Select" ]
-          , Html.span [] [ Html.text "\u{65088}" ]
-          ]
-      , Html.div
-          [ Html.Attributes.class "dropdown-menu"
-          , Html.Attributes.attribute "role" "menu"
-          ]
-          [ Html.div
-              [ Html.Attributes.class "dropdown-content has-text-right"
-              ]
-              (List.map (Html.map makeMsg << dropdownItem) items)
-          ]
+      [ Html.select [] <|
+          List.map (Html.map (Form.ModelMsg << makeMsg) << selectItem) <|
+          [(Nothing, "Select")] ++ List.map (\(a,l) -> (Just a,l)) items
       ]
 
-dropdownItem : (a, String) -> Html (Maybe a)
-dropdownItem (a, label) =
-  Html.div
-    [ Html.Attributes.class "dropdown-item"
-    , Html.Events.onClick (Just a)
-    ]
-    [ Html.text label
-    ]
+selectItem : (Maybe a, String) -> Html (Maybe a)
+selectItem (a, label) =
+  Html.option
+    [ Html.Events.onClick a ]
+    [ Html.text label ]

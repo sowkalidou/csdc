@@ -11,7 +11,6 @@ import CSDC.Types exposing (..)
 import CSDC.View.Admin as Admin
 import CSDC.View.Explorer as Explorer
 import CSDC.View.InvitationMember as InvitationMember
-import CSDC.View.MessageMember as MessageMember
 import CSDC.View.MessageSubpart as MessageSubpart
 import CSDC.View.Studio as Studio
 import CSDC.View.Person as Person
@@ -59,7 +58,6 @@ type alias Model =
   , viewPerson : Person.Model
   , viewUnit : Unit.Model
   , viewUnitAdmin : UnitAdmin.Model
-  , messageMember : MessageMember.Model
   , invitationMember : InvitationMember.Model
   , messageSubpart : MessageSubpart.Model
   , explorer : Explorer.Model
@@ -82,7 +80,6 @@ init _ url key =
       , viewPerson = Person.initial
       , viewUnit = Unit.initial
       , viewUnitAdmin = UnitAdmin.initial
-      , messageMember = MessageMember.initial
       , invitationMember = InvitationMember.initial
       , messageSubpart = MessageSubpart.initial
       , notification = Notification.Empty
@@ -104,7 +101,6 @@ type Msg
   | PersonMsg Person.Msg
   | UnitMsg Unit.Msg
   | UnitAdminMsg UnitAdmin.Msg
-  | MessageMemberMsg MessageMember.Param MessageMember.Msg
   | InvitationMemberMsg InvitationMember.Param InvitationMember.Msg
   | MessageSubpartMsg MessageSubpart.Param MessageSubpart.Msg
   | StudioMsg Studio.Msg
@@ -125,8 +121,6 @@ routeCmd page =
       Cmd.map PersonMsg (Person.setup uid)
     Page.InvitationMember pid ->
       Cmd.none
-    Page.MessageMember pid uid mtype ->
-      Cmd.map (MessageMemberMsg { messageType = mtype }) (MessageMember.setup pid uid)
     Page.MessageSubpart pid uid mtype ->
       Cmd.map (MessageSubpartMsg { messageType = mtype }) (MessageSubpart.setup pid uid)
     Page.Admin ->
@@ -217,14 +211,6 @@ update msg model =
       in
         ( { model | viewUnitAdmin = viewUnitAdmin }
         , Cmd.map UnitAdminMsg cmd
-        )
-
-    MessageMemberMsg p m ->
-      let
-        (messageMember, cmd) = MessageMember.update pageInfo m p model.messageMember
-      in
-        ( { model | messageMember = messageMember }
-        , Cmd.map (MessageMemberMsg p) cmd
         )
 
     InvitationMemberMsg p m ->
@@ -364,15 +350,6 @@ mainPanel model =
               List.map (Element.map toMsg) <|
               [ InvitationMember.view param model.invitationMember ]
           _ -> []
-
-      Page.MessageMember _ _ mtype ->
-        wrapElements <|
-        let
-          param = { messageType = mtype }
-          toMsg = MessageMemberMsg param
-        in
-          List.map (Element.map toMsg) <|
-          [ MessageMember.view param model.messageMember ]
 
       Page.MessageSubpart _ _ mtype ->
         wrapElements <|

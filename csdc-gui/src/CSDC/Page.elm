@@ -26,7 +26,6 @@ type Page
   | Unit (Id Unit)
   | Admin
   | UnitAdmin (Id Unit)
-  | MessageMember (Id Person) (Id Unit) MessageType
   | InvitationMember (Id Person)
   | MessageSubpart (Id Person) (Id Unit) MessageType
 
@@ -60,12 +59,6 @@ toFragments page =
     Unit uid -> ["unit", toFragmentId uid]
     Admin -> ["admin"]
     UnitAdmin uid -> ["unit-admin", toFragmentId uid]
-    MessageMember pid uid mtype ->
-      [ "message-member"
-      , toFragmentId pid
-      , toFragmentId uid
-      , toFragmentMessageType mtype
-      ]
     InvitationMember pid ->
       [ "invitation-member"
       , toFragmentId pid
@@ -113,12 +106,6 @@ fromFragments l =
       default <|
       Maybe.map UnitAdmin
         (fromFragmentId uid)
-    ["message-member",pid,uid,mtype] ->
-      default <|
-      Maybe.map3 MessageMember
-        (fromFragmentId pid)
-        (fromFragmentId uid)
-        (fromFragmentMessageType mtype)
     ["invitation-member",pid] ->
       default <|
       Maybe.map InvitationMember

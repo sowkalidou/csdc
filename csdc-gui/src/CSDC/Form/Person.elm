@@ -105,7 +105,7 @@ update msg model =
 
 view : Model -> List (Html Msg)
 view model =
-  [ Input.text model.name (Form.ModelMsg << SetName)
-  , Input.textarea model.description (Form.ModelMsg << SetDescription)
-  , Input.button (Form.Submit ()) "Save"
+  [ Input.text model.name SetName
+  , Input.textarea model.description SetDescription
+  , Input.button "Save" ()
   ]

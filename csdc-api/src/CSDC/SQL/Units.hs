@@ -1,15 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module CSDC.SQL.Units
   ( select
+  , selectByChair
   , insert
   , insertAt
   , update
   , delete
   ) where
 
-import CSDC.DAO.Types (Unit (..), UnitUpdate (..))
-import CSDC.Data.Id (Id (..))
+import CSDC.DAO.Types
+import CSDC.Data.Id
 
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder
@@ -35,6 +37,26 @@ select = Statement sql encoder decoder True
         Decoder.text <*>
         Decoder.text <*>
         Decoder.id
+
+selectByChair :: Statement (Id Person) [WithId Unit]
+selectByChair = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "SELECT id, name, description, chair"
+      , "FROM units"
+      , "WHERE id = $1"
+      ]
+
+    encoder = Encoder.id
+
+    decoder = Decoder.rowList $ do
+      withId_id <- Decoder.id
+      withId_value <- do
+        unit_name <- Decoder.text
+        unit_description <- Decoder.text
+        unit_chair <- Decoder.id
+        pure Unit {..}
+      pure WithId {..}
 
 insert :: Statement Unit (Id Unit)
 insert = Statement sql encoder decoder True

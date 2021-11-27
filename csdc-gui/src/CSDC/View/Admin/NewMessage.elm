@@ -58,7 +58,7 @@ validate model =
 type Msg
   = InputPerson String
   | InputUnit String
-  | APIMsg API.Msg
+  | APIMsg (API.Response (Id (Message Member)))
   | InputMessageType MessageType
   | Submit
   | Reset
@@ -92,32 +92,16 @@ update msg model =
       , Cmd.none
       )
 
-    APIMsg apimsg ->
-      case apimsg of
-        API.InsertMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok _ ->
-              ( { initial | notification = Notification.Success }
-              , Notification.reset Reset
-              )
-
-        API.SendMessageMember result ->
-          case result of
-            Err err ->
-              ( { model | notification = Notification.HttpError err }
-              , Cmd.none
-              )
-            Ok _ ->
-              ( { initial | notification = Notification.Success }
-              , Notification.reset Reset
-              )
-
-        _ ->
-          (model, Cmd.none)
+    APIMsg result ->
+      case result of
+        Err err ->
+          ( { model | notification = Notification.HttpError err }
+          , Cmd.none
+          )
+        Ok _ ->
+          ( { initial | notification = Notification.Success }
+          , Notification.reset Reset
+          )
 
     Reset ->
       ( { model | notification = Notification.Empty }
@@ -142,7 +126,7 @@ view model =
         { onChange = InputUnit
         , field = model.unit
         }
-    , Element.html <| CSDC.Input.button Submit "Submit"
+    , Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)
 
 selectMessageType : Model -> Element Msg

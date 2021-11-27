@@ -16,6 +16,7 @@ import CSDC.Component.Panel as Panel
 import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
 import CSDC.Form.Unit as UnitForm
+import CSDC.Form.UnitDelete as UnitDeleteForm
 import CSDC.Input as Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
@@ -53,6 +54,7 @@ type alias Model =
   , inbox : Inbox
   , unitEdit : UnitForm.Model
   , unitEditOpen : Bool
+  , unitDelete : UnitDeleteForm.Model
   , unitDeleteOpen : Bool
   }
 
@@ -67,6 +69,7 @@ initial =
   , inbox = emptyInbox
   , unitEdit = UnitForm.initial
   , unitEditOpen = False
+  , unitDelete = UnitDeleteForm.initial
   , unitDeleteOpen = False
   }
 
@@ -125,7 +128,7 @@ type Msg
   | UnitEditMsg (UnitForm.Msg ())
   | UnitEditOpen
   | UnitEditClose
-  | UnitDeleteConfirm
+  | UnitDeleteMsg UnitDeleteForm.Msg
   | UnitDeleteOpen
   | UnitDeleteClose
   | Reset
@@ -177,7 +180,7 @@ update pageInfo msg model =
 
     MessageMember pid uid mtype ->
       ( model
-      , Page.goTo pageInfo (Page.MessageMember pid uid mtype)
+      , Cmd.none -- Page.goTo pageInfo (Page.MessageMember pid uid mtype)
       )
 
     MessageSubpart pid uid mtype ->
@@ -248,16 +251,26 @@ update pageInfo msg model =
       , Cmd.none
       )
 
-    UnitDeleteConfirm ->
+    UnitDeleteMsg unitMsg ->
       case model.info of
         Nothing ->
           ( model
           , Cmd.none
           )
         Just unit ->
-          ( model
-          , Cmd.map APIMsg <| API.deleteUnit unit.id
-          )
+          let
+            config =
+              { request = API.deleteUnit unit.id
+              , finish = Page.goTo pageInfo (Page.Unit unit.id)
+              }
+            (unitDelete, cmd) = UnitDeleteForm.updateWith config unitMsg model.unitDelete
+          in
+            ( { model
+              | unitDelete = unitDelete
+              , unitDeleteOpen = not (Form.isFinished unitMsg)
+              }
+            , Cmd.map UnitDeleteMsg cmd
+            )
 
     Reset ->
       ( { model | notification = Notification.Empty }
@@ -307,11 +320,6 @@ update pageInfo msg model =
         API.UnitInbox _ result -> onSuccess result <| \inbox ->
           ( { model | inbox = inbox }
           , Cmd.none
-          )
-
-        API.DeleteUnit result -> onSuccess result <| \_ ->
-          ( { model | unitDeleteOpen = False }
-          , Page.goTo pageInfo Page.Studio
           )
 
         API.SendMessageSubpart result -> onSuccess result <| \_ ->
@@ -413,18 +421,8 @@ view mid model =
           Form.viewWith "Edit Profile" UnitForm.view model.unitEdit
 
       , Modal.view model.unitDeleteOpen UnitDeleteClose <|
-          Preview.make
-            [ Html.h2
-                []
-                [ Html.text "Delete Unit" ]
-            , Html.p
-                []
-                [ Html.text "Are you sure you want to delete this unit?" ]
-            , Html.p
-                []
-                [ Html.text "This operation is not reversible." ]
-            , Input.buttonDanger UnitDeleteConfirm "Delete"
-            ]
+          Html.map UnitDeleteMsg <|
+          Form.viewWith "Delete Unit" UnitDeleteForm.view model.unitDelete
 
       , let
           isActive = case model.selected of

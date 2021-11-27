@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE LambdaCase #-}
 
 module CSDC.DAO where
 
@@ -374,14 +374,10 @@ getUnitInfo uid =
         , unitInfo_parents = parents
         }
 
-getUserUnits :: Id Person -> Action user (IdMap Member Unit)
-getUserUnits uid = do
-  members <- selectMembersByPerson uid
-  pairs <- forM members $ \(Member _ unitId) ->
-    selectUnit unitId
-  case sequence pairs of
-    Nothing -> pure IdMap.empty
-    Just m -> pure m
+selectUnitsWhoseChairIsUser :: ActionAuth [WithId Unit]
+selectUnitsWhoseChairIsUser = do
+  uid <- getUser
+  runSQL $ SQL.query SQL.Units.selectByChair uid
 
 getUnitMembers :: Id Unit -> Action user (IdMap Member (WithId Person))
 getUnitMembers uid = do

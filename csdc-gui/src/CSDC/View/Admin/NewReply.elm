@@ -7,7 +7,6 @@ module CSDC.View.Admin.NewReply exposing
   )
 
 import CSDC.API as API
-import CSDC.Input
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Types exposing (..)
@@ -110,7 +109,7 @@ view model =
         { onChange = InputMessage
         , field = model.message
         }
-    , Element.html <| CSDC.Input.button Submit "Submit"
+    , Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)
 
 selectReplyType : Model -> Element Msg

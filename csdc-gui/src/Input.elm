@@ -1,5 +1,6 @@
 module Input exposing
-  ( text
+  ( button
+  , text
   , radio
   )
 
@@ -8,6 +9,12 @@ import Field exposing (Field)
 import Element exposing (Element)
 import Element.Font as Font
 import Element.Input as Input
+
+button : msg -> String -> Element msg
+button msg label = Input.button []
+  { onPress = Just msg
+  , label = Element.text label
+  }
 
 text :
   { onChange : String -> msg

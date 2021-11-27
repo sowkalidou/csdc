@@ -1,4 +1,4 @@
-module CSDC.Form.ReplySeen exposing
+module CSDC.Form.UnitDelete exposing
   ( Model
   , initial
   , Msg
@@ -8,7 +8,7 @@ module CSDC.Form.ReplySeen exposing
 
 import CSDC.Component.Preview as Preview
 import CSDC.Types exposing (..)
-import CSDC.Input exposing (button)
+import CSDC.Input as Input
 import CSDC.Form.Reply exposing (viewMessage)
 import CSDC.API as API
 import CSDC.Notification as Notification exposing (Notification)
@@ -49,17 +49,13 @@ type alias Msg = Form.Msg () () ()
 --------------------------------------------------------------------------------
 -- View
 
-view : ReplyInfo a -> Model -> List (Html Msg)
-view msg _ =
-  [ Html.p [] [ Html.text msg.text ]
-  , Html.hr [] []
-  , Html.h4 [] [ Html.text "Original Message" ]
-  , Html.div [] (viewMessage msg.message)
-  , Html.hr [] []
-  , Html.button
-      [ Html.Attributes.class "button is-primary is-pulled-right"
-      , Html.Events.onClick (Form.Submit ())
-      ]
-      [ Html.text "Mark as seen"
-      ]
+view : Model -> List (Html Msg)
+view _ =
+  [ Html.p
+      []
+      [ Html.text "Are you sure you want to delete this unit?" ]
+  , Html.p
+      []
+      [ Html.text "This operation is not reversible." ]
+  , Input.buttonDanger "Delete" ()
   ]

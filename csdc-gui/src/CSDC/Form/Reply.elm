@@ -83,17 +83,17 @@ view msg model =
 
   , Html.p [] [ Html.i [] [ Html.text "Please reply below." ] ]
 
-  , Input.textarea model.reason (Form.ModelMsg << SetReason)
+  , Input.textarea model.reason SetReason
 
   , Html.div
       [ Html.Attributes.class "field is-grouped is-grouped-right"
       ]
       [ Html.p
           [ Html.Attributes.class "control" ]
-          [ Input.buttonDanger (Form.Submit Reject) "Reject" ]
+          [ Input.buttonDanger "Reject" Reject ]
       , Html.p
           [ Html.Attributes.class "control" ]
-          [ Input.button (Form.Submit Accept) "Accept" ]
+          [ Input.button "Accept" Accept ]
       ]
   ]
 

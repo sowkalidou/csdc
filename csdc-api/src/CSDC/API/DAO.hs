@@ -35,7 +35,7 @@ type PersonAPI =
   :<|> CaptureId Person :> PostJSON PersonUpdate ()
   :<|> CaptureId Person :> DeleteJSON ()
   :<|> CaptureId Person :> "info" :> GetJSON (Maybe PersonInfo)
-  :<|> CaptureId Person :> "units" :> GetJSON (IdMap Member Unit)
+  :<|> "units" :> GetJSON [WithId Unit]
 
 servePersonAPI :: Server PersonAPI
 servePersonAPI =
@@ -44,7 +44,7 @@ servePersonAPI =
   :<|> updatePerson
   :<|> deletePerson
   :<|> getPersonInfo
-  :<|> getUserUnits
+  :<|> selectUnitsWhoseChairIsUser
 
 --------------------------------------------------------------------------------
 -- Unit API

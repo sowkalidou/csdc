@@ -16,10 +16,11 @@ import CSDC.Page as Page
 import CSDC.Types exposing (..)
 import Field exposing (Field)
 import Validation exposing (Validation)
+import Input
 
 import Element exposing (..)
 import Element.Font as Font
-import Element.Input as Input
+import Element.Input
 import String
 
 --------------------------------------------------------------------------------
@@ -175,14 +176,14 @@ view param model = whenLoaded model <| \personInfo unitInfo ->
         then text "You must be the chair of a unit to send messages to units."
         else invitation model.selected units SelectInvitation
 
-    , Input.multiline []
-        { label = Input.labelAbove [] (text "Your message.")
+    , Element.Input.multiline []
+        { label = Element.Input.labelAbove [] (text "Your message.")
         , onChange = InputText
         , placeholder = Nothing
         , text = model.text
         , spellcheck = True
         }
-    , Element.html <| CSDC.Input.button Submit "Submit"
+    , Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)
 
 invitation :
@@ -192,15 +193,15 @@ invitation :
   Element msg
 invitation selected units makeEvent =
   let
-    makeOption unit = Input.option unit.id (text unit.value.name)
+    makeOption unit = Element.Input.option unit.id (text unit.value.name)
   in
-    Input.radioRow
+    Element.Input.radioRow
       [ padding 10
       , spacing 20
       ]
       { onChange = makeEvent
       , selected = selected
-      , label = Input.labelAbove [] (text "Relevant unit.")
+      , label = Element.Input.labelAbove [] (text "Relevant unit.")
       , options = List.map makeOption units
       }
 

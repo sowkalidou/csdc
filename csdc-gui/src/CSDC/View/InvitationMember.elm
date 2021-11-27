@@ -15,6 +15,7 @@ import CSDC.Page as Page
 import CSDC.Types exposing (..)
 import Field exposing (Field)
 import Validation exposing (Validation)
+import Input as CSDCInput
 
 import Element exposing (..)
 import Element.Font as Font
@@ -50,7 +51,7 @@ initial =
 type Msg
   = InputText String
   | SelectInvitation (Id Unit)
-  | APIMsg API.Msg
+  | APIMsg (API.Response (Id (Message Member)))
   | Submit
   | Reset
 
@@ -86,12 +87,11 @@ update pageInfo msg param model =
             , Cmd.map APIMsg <| API.sendMessageMember message
             )
 
-    APIMsg apimsg ->
+    APIMsg result ->
       let
         onSuccess = Notification.withResponse Reset model
       in
-      case apimsg of
-        API.SendMessageMember result -> onSuccess result <| \_ ->
+        onSuccess result <| \_ ->
           ( { initial | notification = Notification.Success }
           , Cmd.batch
               [ Notification.reset Reset
@@ -100,9 +100,6 @@ update pageInfo msg param model =
                   Just unit -> Page.goTo pageInfo (Page.Unit unit)
               ]
           )
-
-        _ ->
-          (model, Cmd.none)
 
     Reset ->
       ( { model | notification = Notification.Empty }
@@ -136,7 +133,7 @@ view param model =
             , text = model.text
             , spellcheck = True
             }
-        , Element.html <| CSDC.Input.button Submit "Submit"
+        , CSDCInput.button Submit "Submit"
         ] ++ List.map html (Notification.view model.notification)
 
 invitation :

@@ -19,7 +19,7 @@ isFinished msg =
     Finish _ -> True
     _ -> False
 
-type alias Config model msg a b r =
+type alias Config model msg r a b =
   { initial : Has model
   , update : msg -> Has model -> (Has model, Cmd msg)
   , reload : Has model -> Has model
@@ -28,8 +28,23 @@ type alias Config model msg a b r =
   , finish : b -> Cmd (Msg msg r b)
   }
 
+type alias StatelessConfig b =
+  { request : Cmd (API.Response b)
+  , finish : b -> Cmd (Msg () () b)
+  }
+
+statelessConfig : Has model -> StatelessConfig b -> Config model () () () b
+statelessConfig initial config =
+  { initial = initial
+  , update = \_ model -> (model, Cmd.none)
+  , reload = \model -> model
+  , parse = \_ _ -> Just ()
+  , request = \_ -> config.request
+  , finish = config.finish
+  }
+
 update :
-  Config model msg a b r ->
+  Config model msg r a b ->
   Msg msg r b -> Has model -> (Has model, Cmd (Msg msg r b))
 update config formMsg model =
   case formMsg of
@@ -48,7 +63,7 @@ update config formMsg model =
             ( { reloaded
               | notification = Notification.Error ["All fields should be filled"]
               }
-            , Cmd.none
+            , Delay.after 3 Delay.Second ResetNotification
             )
           Just a ->
             ( { reloaded

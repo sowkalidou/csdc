@@ -94,5 +94,5 @@ view model =
         { onChange = InputName
         , field = model.name
         }
-    , Element.html <| CSDC.Input.button Submit "Submit"
+    , Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)

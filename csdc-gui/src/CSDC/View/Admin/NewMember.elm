@@ -115,5 +115,5 @@ view model =
         , field = model.unit
         }
 
-    , Element.html <| CSDC.Input.button Submit "Submit"
+    , Input.button Submit "Submit"
     ] ++ List.map html (Notification.view model.notification)

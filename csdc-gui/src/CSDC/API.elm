@@ -25,7 +25,6 @@ ignoreResult = Result.map (\_ -> ())
 type Msg
   = RootPerson (Response UserId)
   | GetPersonInfo (Response PersonInfo)
-  | UnitsPerson (Response (IdMap Member Unit))
   | SelectPerson (Id Person) (Response Person)
   | InsertPerson (Response (Id Person))
   | DeletePerson (Response ())
@@ -36,7 +35,6 @@ type Msg
   | GetUnitParents (Response (IdMap Subpart (WithId Unit)))
   | CreateUnit (Response (Id Unit))
   | SelectUnit (Id Unit) (Response Unit)
-  | DeleteUnit (Response ())
   | SelectMemberPerson (Response (IdMap Member Member))
   | SelectMemberUnit (Response (IdMap Member Member))
   | InsertMember (Response (Id Member))
@@ -69,11 +67,11 @@ getPersonInfo id =
     , expect = Http.expectJson GetPersonInfo decodePersonInfo
     }
 
-unitsPerson : Id Person -> Cmd Msg
-unitsPerson id =
+unitsPerson : Cmd (Response (List (WithId Unit)))
+unitsPerson =
   Http.get
-    { url = baseUrl ++ "person/" ++ idToString id ++ "/units"
-    , expect = Http.expectJson UnitsPerson (decodeIdMap decodeUnit)
+    { url = baseUrl ++ "person/units"
+    , expect = Http.expectJson identity (D.list (decodeWithId decodeUnit))
     }
 
 selectPerson : Id Person -> Cmd Msg
@@ -163,8 +161,8 @@ updateUnit id unit =
     , expect = Http.expectJson identity decodeNull
     }
 
-deleteUnit : Id Unit -> Cmd Msg
-deleteUnit = delete "unit" DeleteUnit
+deleteUnit : Id Unit -> Cmd (Response ())
+deleteUnit = delete "unit" identity
 
 --------------------------------------------------------------------------------
 -- Member
@@ -225,12 +223,12 @@ deleteSubpart = delete "subpart" DeleteSubpart
 --------------------------------------------------------------------------------
 -- Message
 
-sendMessageMember : NewMessage Member -> Cmd Msg
+sendMessageMember : NewMessage Member -> Cmd (Response (Id (Message Member)))
 sendMessageMember msg =
   Http.post
     { url = baseUrl ++ "message/member/send"
     , body = Http.jsonBody <| encodeNewMessage encodeMember msg
-    , expect = Http.expectJson SendMessageMember decodeId
+    , expect = Http.expectJson identity decodeId
     }
 
 sendReplyMember : NewReply Member -> Cmd (Response ())
@@ -290,7 +288,7 @@ unitInbox id =
 --------------------------------------------------------------------------------
 -- Delete
 
-delete : String -> (Result Http.Error () -> Msg) -> Id a -> Cmd Msg
+delete : String -> (Result Http.Error () -> b) -> Id a -> Cmd b
 delete name msg id =
   Http.request
     { method = "DELETE"

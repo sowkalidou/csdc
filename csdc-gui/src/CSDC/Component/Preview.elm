@@ -3,7 +3,6 @@ module CSDC.Component.Preview exposing
   )
 
 import CSDC.Types exposing (..)
-import CSDC.Input exposing (button)
 
 import Html exposing (Html)
 import Html.Attributes
