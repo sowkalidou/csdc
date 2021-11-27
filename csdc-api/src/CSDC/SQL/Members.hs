@@ -46,7 +46,7 @@ selectByUnit :: Statement (Id Unit) [UnitMember]
 selectByUnit = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT members.id, person, persons.name, persons.description, persons.orcid, persons.created_at"
+      [ "SELECT members.id, person, persons.name, persons.description, persons.orcid, persons.image, persons.created_at"
       , "FROM members"
       , "JOIN persons ON persons.id = person"
       , "WHERE unit = $1"
@@ -61,6 +61,7 @@ selectByUnit = Statement sql encoder decoder True
         person_name <- Decoder.text
         person_description <- Decoder.text
         person_orcid <- Decoder.orcidId
+        person_image <- Decoder.textNullable
         person_createdAt <- Decoder.timestamptz
         pure Person {..}
       pure UnitMember {..}

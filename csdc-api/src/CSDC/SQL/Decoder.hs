@@ -1,6 +1,7 @@
 module CSDC.SQL.Decoder
   ( -- * Base types
     text
+  , textNullable
   , timestamptz
     -- * Local types
   , id
@@ -23,7 +24,7 @@ import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.Text (Text)
 import Data.Time (UTCTime)
-import Hasql.Decoders (Row, column, nonNullable)
+import Hasql.Decoders (Row, column, nonNullable, nullable)
 
 import qualified Hasql.Decoders as Decoders
 
@@ -32,6 +33,9 @@ import qualified Hasql.Decoders as Decoders
 
 text :: Row Text
 text = column (nonNullable Decoders.text)
+
+textNullable :: Row (Maybe Text)
+textNullable = column (nullable Decoders.text)
 
 timestamptz :: Row UTCTime
 timestamptz = column (nonNullable Decoders.timestamptz)

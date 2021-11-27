@@ -25,7 +25,7 @@ select :: Statement (Id Person) (Maybe Person)
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT name, description, orcid, created_at"
+      [ "SELECT name, description, orcid, image, created_at"
       , "FROM persons"
       , "WHERE id = $1"
       ]
@@ -36,6 +36,7 @@ select = Statement sql encoder decoder True
       person_name <- Decoder.text
       person_description <- Decoder.text
       person_orcid <- Decoder.orcidId
+      person_image <- Decoder.textNullable
       person_createdAt <- Decoder.timestamptz
       pure Person {..}
 
@@ -73,14 +74,15 @@ update = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "UPDATE persons"
-      , "SET name = $2, description = $3"
+      , "SET name = $2, description = $3, image = $4"
       , "WHERE id = $1"
       ]
 
     encoder =
       (contramap fst Encoder.id) <>
       (contramap (personUpdate_name . snd) Encoder.text) <>
-      (contramap (personUpdate_description . snd) Encoder.text)
+      (contramap (personUpdate_description . snd) Encoder.text) <>
+      (contramap (personUpdate_image . snd) Encoder.textNullable)
 
     decoder = Decoder.noResult
 

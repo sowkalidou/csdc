@@ -58,20 +58,23 @@ type alias Person =
   { name : String
   , orcid : String
   , description : String
+  , image : Maybe String
   , createdAt : String
   }
 
 decodePerson : Decoder Person
 decodePerson =
-  Decoder.map4 Person
+  Decoder.map5 Person
     (Decoder.field "name" Decoder.string)
     (Decoder.field "orcid" Decoder.string)
     (Decoder.field "description" Decoder.string)
+    (Decoder.field "image" (Decoder.nullable Decoder.string))
     (Decoder.field "createdAt" Decoder.string)
 
 type alias PersonUpdate =
   { name : String
   , description : String
+  , image : Maybe String
   }
 
 encodePersonUpdate : PersonUpdate -> Value
@@ -79,6 +82,11 @@ encodePersonUpdate person =
   Encoder.object
     [ ("name", Encoder.string person.name)
     , ("description", Encoder.string person.description)
+    , ("image",
+       case person.image of
+         Nothing -> Encoder.null
+         Just image -> Encoder.string image
+      )
     ]
 
 type alias PersonMember =

@@ -55,6 +55,7 @@ data Person = Person
   { person_name :: Text
   , person_description :: Text
   , person_orcid :: ORCID.Id
+  , person_image :: Maybe Text
   , person_createdAt :: UTCTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Person
@@ -69,6 +70,7 @@ data NewPerson = NewPerson
 data PersonUpdate = PersonUpdate
   { personUpdate_name :: Text
   , personUpdate_description :: Text
+  , personUpdate_image :: Maybe Text
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON PersonUpdate
 

@@ -10,6 +10,7 @@ module Field exposing
   , validate
     -- Common
   , make
+  , optional
   , required
   , requiredString
   , requiredId
@@ -86,6 +87,9 @@ make n r v = Field
   , validate = v
   , status = Initial
   }
+
+optional : String -> Field (Maybe a) (Maybe a)
+optional n = make n Nothing Validation.valid
 
 required : String -> Field (Maybe a) a
 required n = make n Nothing <| \m ->

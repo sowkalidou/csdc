@@ -274,3 +274,4 @@ mainPanel model =
       Page.UnitAdmin _ ->
         List.map (Html.map UnitAdminMsg) <|
         UnitAdmin.view model.info model.viewUnitAdmin
+

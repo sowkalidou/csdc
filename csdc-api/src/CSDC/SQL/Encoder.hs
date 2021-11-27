@@ -1,6 +1,7 @@
 module CSDC.SQL.Encoder
   ( -- * Base types
     text
+  , textNullable
     -- * Local types
   , id
   , idNullable
@@ -30,6 +31,9 @@ import qualified Hasql.Encoders as Encoders
 
 text :: Params Text
 text = param (nonNullable Encoders.text)
+
+textNullable :: Params (Maybe Text)
+textNullable = param (nullable Encoders.text)
 
 --------------------------------------------------------------------------------
 -- Local types

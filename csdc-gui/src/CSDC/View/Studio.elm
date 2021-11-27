@@ -11,6 +11,7 @@ module CSDC.View.Studio exposing
 import CSDC.API as API
 import CSDC.Component.Column as Column
 import CSDC.Component.DotMenu as DotMenu
+import CSDC.Component.ImageUpload exposing (defaultImage)
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
 import CSDC.Component.Preview as Preview
@@ -180,7 +181,7 @@ update pageInfo msg model =
             | personEditOpen = True
             , personEdit = PersonForm.fromPerson info.person
             }
-          , Cmd.none
+          , Cmd.map PersonEditMsg <| PersonForm.setup info.person.image
           )
 
     PersonEditClose ->
@@ -367,7 +368,10 @@ view model =
                               , Html.Attributes.style "margin" "0"
                               ]
                               [ Html.img
-                                  [ Html.Attributes.src "https://bulma.io/images/placeholders/96x96.png"
+                                  [ Html.Attributes.src <|
+                                      case info.person.image of
+                                        Nothing -> "https://bulma.io/images/placeholders/96x96.png"
+                                        Just image -> image
                                   , Html.Attributes.alt "Profile image"
                                   ]
                                   []

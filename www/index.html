@@ -6,6 +6,10 @@
   <title>CS-DC DAO</title>
   <script src="app.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/elm-croppie@1.0.3/dist/elm-croppie.css" />
+  <script src="https://unpkg.com/elm-croppie@1.0.3/dist/elm-croppie.js"></script>
+
   <style>
     html {
       height: 100%;
@@ -27,6 +31,10 @@
   <script>
   var app = Elm.Main.init({
     node: document.getElementById('app')
+  });
+
+  app.ports.croppie.subscribe((data) => {
+    ElmCroppie.port(data);
   });
   </script>
 </body>
