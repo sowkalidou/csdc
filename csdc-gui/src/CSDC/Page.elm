@@ -26,7 +26,6 @@ type Page
   | Unit (Id Unit)
   | Admin
   | UnitAdmin (Id Unit)
-  | InvitationMember (Id Person)
 
 type alias Info =
   { key : Nav.Key
@@ -58,10 +57,6 @@ toFragments page =
     Unit uid -> ["unit", toFragmentId uid]
     Admin -> ["admin"]
     UnitAdmin uid -> ["unit-admin", toFragmentId uid]
-    InvitationMember pid ->
-      [ "invitation-member"
-      , toFragmentId pid
-      ]
 
 toFragmentId : Id a -> String
 toFragmentId (Id a) = String.fromInt a
@@ -83,7 +78,6 @@ fromFragments : List String -> Page
 fromFragments l =
   let default = Maybe.withDefault Studio in
   case l of
-    [] -> Studio
     ["studio"] -> Studio
     ["explorer"] -> Explorer
     ["person", uid] ->
@@ -99,10 +93,6 @@ fromFragments l =
       default <|
       Maybe.map UnitAdmin
         (fromFragmentId uid)
-    ["invitation-member",pid] ->
-      default <|
-      Maybe.map InvitationMember
-        (fromFragmentId pid)
     _ -> Studio
 
 fromFragmentId : String -> Maybe (Id a)

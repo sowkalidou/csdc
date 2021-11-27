@@ -10,7 +10,6 @@ import CSDC.Page exposing (Page)
 import CSDC.Types exposing (..)
 import CSDC.View.Admin as Admin
 import CSDC.View.Explorer as Explorer
-import CSDC.View.InvitationMember as InvitationMember
 import CSDC.View.Studio as Studio
 import CSDC.View.Person as Person
 import CSDC.View.Unit as Unit
@@ -57,7 +56,6 @@ type alias Model =
   , viewPerson : Person.Model
   , viewUnit : Unit.Model
   , viewUnitAdmin : UnitAdmin.Model
-  , invitationMember : InvitationMember.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
   , notification : Notification
@@ -78,7 +76,6 @@ init _ url key =
       , viewPerson = Person.initial
       , viewUnit = Unit.initial
       , viewUnitAdmin = UnitAdmin.initial
-      , invitationMember = InvitationMember.initial
       , notification = Notification.Empty
       }
     , case page of
@@ -98,7 +95,6 @@ type Msg
   | PersonMsg Person.Msg
   | UnitMsg Unit.Msg
   | UnitAdminMsg UnitAdmin.Msg
-  | InvitationMemberMsg InvitationMember.Param InvitationMember.Msg
   | StudioMsg Studio.Msg
   | APIMsg API.Msg
 
@@ -115,8 +111,6 @@ routeCmd page =
       Cmd.map UnitAdminMsg (UnitAdmin.setup uid)
     Page.Person uid ->
       Cmd.map PersonMsg (Person.setup uid)
-    Page.InvitationMember pid ->
-      Cmd.none
     Page.Admin ->
       Cmd.none
 
@@ -205,14 +199,6 @@ update msg model =
       in
         ( { model | viewUnitAdmin = viewUnitAdmin }
         , Cmd.map UnitAdminMsg cmd
-        )
-
-    InvitationMemberMsg p m ->
-      let
-        (invitationMember, cmd) = InvitationMember.update pageInfo m p model.invitationMember
-      in
-        ( { model | invitationMember = invitationMember }
-        , Cmd.map (InvitationMemberMsg p) cmd
         )
 
     APIMsg m ->
@@ -324,15 +310,3 @@ mainPanel model =
         wrapElements <|
         List.map (Element.map AdminMsg) <|
         Admin.view model.admin
-
-      Page.InvitationMember pid ->
-        wrapElements <|
-        case model.info of
-          Just person ->
-            let
-              param = {person = pid, user = person}
-              toMsg = InvitationMemberMsg param
-            in
-              List.map (Element.map toMsg) <|
-              [ InvitationMember.view param model.invitationMember ]
-          _ -> []
