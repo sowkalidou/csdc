@@ -92,14 +92,13 @@ type Msg
   | UnitMsg Unit.Msg
   | UnitAdminMsg UnitAdmin.Msg
   | StudioMsg Studio.Msg
-  | RootPerson (API.Response (Id Person))
-  | GetPersonInfo (API.Response PersonInfo)
+  | GetUserInfo (API.Response PersonInfo)
 
 routeCmd : Page -> Cmd Msg
 routeCmd page =
   case page of
     Page.Studio ->
-      Cmd.map RootPerson API.rootPerson
+      Cmd.map GetUserInfo API.getUserInfo
     Page.Explorer ->
       Cmd.map ExplorerMsg Explorer.setup
     Page.Unit uid ->
@@ -188,21 +187,7 @@ update msg model =
         , Cmd.map UnitAdminMsg cmd
         )
 
-    RootPerson result ->
-      case result of
-        Err err ->
-          ( { model | notification = Notification.HttpError err }
-          , Cmd.none
-          )
-        Ok id ->
-          ( model
-          , Cmd.batch
-              [ Cmd.map StudioMsg <| Studio.setup id
-              , Cmd.map GetPersonInfo <| API.getPersonInfo id
-              ]
-          )
-
-    GetPersonInfo result ->
+    GetUserInfo result ->
       case result of
         Err err ->
           ( { model | notification = Notification.HttpError err }
@@ -210,7 +195,9 @@ update msg model =
           )
         Ok info ->
           ( { model | info = Just info }
-          , Cmd.none
+          , Cmd.batch
+              [ Cmd.map StudioMsg <| Studio.setup info.id
+              ]
           )
 
 --------------------------------------------------------------------------------

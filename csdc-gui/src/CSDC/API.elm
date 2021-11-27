@@ -22,11 +22,11 @@ ignoreResult = Result.map (\_ -> ())
 --------------------------------------------------------------------------------
 -- Person
 
-rootPerson : Cmd (Response (Id Person))
-rootPerson =
+getUserInfo : Cmd (Response PersonInfo)
+getUserInfo =
   Http.get
-    { url = baseUrl ++ "user"
-    , expect = Http.expectJson identity decodeId
+    { url = baseUrl ++ "user/info"
+    , expect = Http.expectJson identity decodePersonInfo
     }
 
 getPersonInfo : Id Person -> Cmd (Response PersonInfo)

@@ -292,6 +292,11 @@ inboxUnit uid = do
     , inbox_replySubpart = filter predReplySubpart allReplySubparts
     }
 
+getUserInfo :: ActionAuth (Maybe PersonInfo)
+getUserInfo = do
+  uid <- getUser
+  getPersonInfo uid
+
 getPersonInfo :: Id Person -> Action user (Maybe PersonInfo)
 getPersonInfo uid =
   selectPerson uid >>= \case

@@ -23,11 +23,13 @@ type CaptureId a = Capture "id" (Id a)
 
 type UserAPI =
        GetJSON (Id Person)
+  :<|> "info" :> GetJSON (Maybe PersonInfo)
   :<|> "units" :> GetJSON [WithId Unit]
 
 serveUserAPI :: Server UserAPI
 serveUserAPI =
        getUser
+  :<|> getUserInfo
   :<|> getUnitsWhoseChairIsUser
 
 --------------------------------------------------------------------------------
