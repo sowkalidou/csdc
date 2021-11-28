@@ -39,6 +39,7 @@ make items =
     , Html.div
         [ Html.Attributes.class "dropdown-menu"
         , Html.Attributes.attribute "role" "menu"
+    , Html.Attributes.style "min-width" "220px"
         ]
         [ Html.div
             [ Html.Attributes.class "dropdown-content has-text-right"

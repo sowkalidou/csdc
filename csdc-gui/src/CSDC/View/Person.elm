@@ -157,18 +157,48 @@ view model =
                     }
                   ]
                   [ Html.div
-                      []
-                      [ Html.strong [] [ Html.text "ORCID ID: " ]
-                      , Html.a
-                          [ Html.Attributes.target "_blank" ]
-                          [ Html.text ("https://orcid.org/" ++ person.person.orcid) ]
+                      [ Html.Attributes.class "media"
+                      , Html.Attributes.style "padding-bottom" "25px"
+                      ]
+                      [ Html.div
+                          [ Html.Attributes.class "media-left" ]
+                          [ Html.figure
+                              [ Html.Attributes.class "image is-96x96"
+                              , Html.Attributes.style "margin" "0"
+                              ]
+                              [ Html.img
+                                  [ Html.Attributes.src <|
+                                      case person.person.image of
+                                        Nothing -> "https://bulma.io/images/placeholders/96x96.png"
+                                        Just image -> image
+                                  , Html.Attributes.alt "Profile image"
+                                  ]
+                                  []
+                              ]
+                          ]
+                      , Html.div
+                          [ Html.Attributes.class "media-content"
+                          , Html.Attributes.style "padding-top" "24px"
+                          ]
+                          [ Html.p
+                              [ Html.Attributes.class "title is-5" ]
+                              [ Html.text person.person.name ]
+                          , Html.p
+                              [ Html.Attributes.class "subtitle is-6" ]
+                              [ Html.text "ORCID: "
+                              , Html.a
+                                  [ Html.Attributes.href ("https://orcid.org/" ++ person.person.orcid)
+                                  , Html.Attributes.target "_blank"
+                                  ]
+                                  [ Html.text person.person.orcid ]
+                              ]
+                          ]
                       ]
 
                   , Html.div
                       [ Html.Attributes.style "white-space" "pre-wrap"
                       ]
-                      [ Html.strong [] [ Html.text "Description: " ]
-                      , Html.text person.person.description
+                      [ Html.text person.person.description
                       ]
                   ]
               ]
