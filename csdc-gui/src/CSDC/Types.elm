@@ -480,6 +480,33 @@ decodeInbox =
     (Decoder.field "replySubpart" (Decoder.list <| decodeReplyInfo decodeNewSubpart))
 
 --------------------------------------------------------------------------------
+-- Search
+
+type SearchId = SearchUnit (Id Unit) | SearchPerson (Id Person)
+
+decodeSearchId : Decoder SearchId
+decodeSearchId =
+  Decoder.field "tag" Decoder.string
+    |> Decoder.andThen (\tag ->
+      if tag == "SearchUnit"
+      then Decoder.map SearchUnit <| Decoder.field "contents" decodeId
+      else if tag == "SearchPerson"
+      then Decoder.map SearchPerson <| Decoder.field "contents" decodeId
+      else Decoder.fail <| "SearchId: Unknown tag " ++ tag
+    )
+
+type alias SearchResult a =
+  { name : String
+  , id : a
+  }
+
+decodeSearchResult : Decoder a -> Decoder (SearchResult a)
+decodeSearchResult decode =
+  Decoder.map2 SearchResult
+    (Decoder.field "name" Decoder.string)
+    (Decoder.field "id" decode)
+
+--------------------------------------------------------------------------------
 -- Helpers
 
 decodeString : (String -> Decoder a) -> Decoder a

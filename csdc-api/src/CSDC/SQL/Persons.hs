@@ -4,13 +4,13 @@
 module CSDC.SQL.Persons
   ( select
   , insert
+  , search
   , update
   , delete
   , selectORCID
   ) where
 
-import CSDC.DAO.Types
-import CSDC.Data.Id (Id (..))
+import CSDC.Prelude
 
 import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.SQL.Decoder as Decoder
@@ -52,6 +52,22 @@ selectORCID = Statement sql encoder decoder True
     encoder = Encoder.orcidId
 
     decoder = Decoder.rowMaybe Decoder.id
+
+search :: Statement [Text] [SearchResult (Id Person)]
+search = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "SELECT id, name"
+      , "FROM persons"
+      , "WHERE name ILIKE ALL ($1)"
+      ]
+
+    encoder = Encoder.textList
+
+    decoder = Decoder.rowList $ do
+      searchResult_id <- Decoder.id
+      searchResult_name <- Decoder.text
+      pure SearchResult {..}
 
 insert :: Statement NewPerson (Id Person)
 insert = Statement sql encoder decoder True

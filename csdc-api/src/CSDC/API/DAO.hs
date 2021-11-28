@@ -129,6 +129,20 @@ serveMessageAPI =
   :<|> inboxUnit
 
 --------------------------------------------------------------------------------
+-- Search
+
+type SearchAPI =
+       "units" :> Capture "query" Text :> GetJSON [SearchResult (Id Unit)]
+  :<|> "persons" :> Capture "query" Text :> GetJSON [SearchResult (Id Person)]
+  :<|> "all":> Capture "query" Text :> GetJSON [SearchResult SearchId]
+
+serveSearchAPI :: Server SearchAPI
+serveSearchAPI =
+       searchUnits
+  :<|> searchPersons
+  :<|> searchAll
+
+--------------------------------------------------------------------------------
 -- API
 
 type API =
@@ -138,6 +152,7 @@ type API =
   :<|> "member" :> MemberAPI
   :<|> "subpart" :> SubpartAPI
   :<|> "message" :> MessageAPI
+  :<|> "search" :> SearchAPI
 
 serveAPI :: Server API
 serveAPI =
@@ -147,3 +162,4 @@ serveAPI =
   :<|> serveMemberAPI
   :<|> serveSubpartAPI
   :<|> serveMessageAPI
+  :<|> serveSearchAPI

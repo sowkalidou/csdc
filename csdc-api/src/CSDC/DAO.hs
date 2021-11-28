@@ -20,6 +20,8 @@ import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
 import Data.Time (getCurrentTime)
 
+import qualified Data.Text as Text
+
 --------------------------------------------------------------------------------
 -- Context
 
@@ -338,3 +340,28 @@ getUnitsWhoseChairIsUser :: ActionAuth [WithId Unit]
 getUnitsWhoseChairIsUser = do
   uid <- getUser
   runSQL $ SQL.query SQL.Units.selectByChair uid
+
+--------------------------------------------------------------------------------
+-- Search
+
+searchUnits :: Text -> Action user [SearchResult (Id Unit)]
+searchUnits query =
+  let
+    parts = Text.words query
+    toPattern part = "%" <> part <> "%"
+  in
+    runSQL $ SQL.query SQL.Units.search $ fmap toPattern parts
+
+searchPersons :: Text -> Action user [SearchResult (Id Person)]
+searchPersons query =
+  let
+    parts = Text.words query
+    toPattern part = "%" <> part <> "%"
+  in
+    runSQL $ SQL.query SQL.Persons.search $ fmap toPattern parts
+
+searchAll :: Text -> Action user [SearchResult SearchId]
+searchAll query = do
+  persons <- searchPersons query
+  units <- searchUnits query
+  pure $ fmap (fmap SearchPerson) persons <> fmap (fmap SearchUnit) units

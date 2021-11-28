@@ -3,6 +3,7 @@ module Main exposing (..)
 import CSDC.API as API
 import CSDC.Component.Menu as Menu
 import CSDC.Component.Navbar as Navbar
+import CSDC.Component.Search as Search
 import CSDC.Notification as Notification
 import CSDC.Notification exposing (Notification)
 import CSDC.Page as Page
@@ -56,6 +57,7 @@ type alias Model =
   , viewUnitAdmin : UnitAdmin.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
+  , search : Search.Model
   , notification : Notification
   }
 
@@ -73,6 +75,7 @@ init _ url key =
       , viewPerson = Person.initial
       , viewUnit = Unit.initial
       , viewUnitAdmin = UnitAdmin.initial
+      , search = Search.initial
       , notification = Notification.Empty
       }
     , case page of
@@ -92,6 +95,7 @@ type Msg
   | UnitMsg Unit.Msg
   | UnitAdminMsg UnitAdmin.Msg
   | StudioMsg Studio.Msg
+  | SearchMsg Search.Msg
   | GetUserInfo (API.Response PersonInfo)
 
 routeCmd : Page -> Cmd Msg
@@ -187,6 +191,14 @@ update msg model =
         , Cmd.map UnitAdminMsg cmd
         )
 
+    SearchMsg m ->
+      let
+        (search, cmd) = Search.update pageInfo m model.search
+      in
+        ( { model | search = search }
+        , Cmd.map SearchMsg cmd
+        )
+
     GetUserInfo result ->
       case result of
         Err err ->
@@ -213,7 +225,7 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "CSDC DAO"
   , body =
-      [ Navbar.view
+      [ Navbar.view <| Html.map SearchMsg <| Search.view model.search
       , Html.div
           [ Html.Attributes.class "columns"
           , Html.Attributes.attribute "style" "padding:25px; height: calc(100vh - 80px)"

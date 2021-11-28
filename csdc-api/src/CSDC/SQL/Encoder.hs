@@ -2,6 +2,7 @@ module CSDC.SQL.Encoder
   ( -- * Base types
     text
   , textNullable
+  , textList
     -- * Local types
   , id
   , idNullable
@@ -22,7 +23,7 @@ import Data.Foldable (foldl')
 import Data.Functor.Contravariant (Contravariant (..))
 import Data.Text (Text)
 import Hasql.Encoders
-  (Params, dimension, param, nonNullable, nullable, element, array)
+  (Params, dimension, param, nonNullable, nullable, element, array, foldableArray)
 
 import qualified Hasql.Encoders as Encoders
 
@@ -34,6 +35,9 @@ text = param (nonNullable Encoders.text)
 
 textNullable :: Params (Maybe Text)
 textNullable = param (nullable Encoders.text)
+
+textList :: Params [Text]
+textList = param $ nonNullable $ foldableArray $ nonNullable Encoders.text
 
 --------------------------------------------------------------------------------
 -- Local types

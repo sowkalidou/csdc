@@ -1,4 +1,5 @@
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE DeriveFunctor #-}
 
 module CSDC.DAO.Types
   ( -- Person
@@ -34,6 +35,9 @@ module CSDC.DAO.Types
   , Inbox (..)
   , MessageInfo (..)
   , ReplyInfo (..)
+    -- Search
+  , SearchId (..)
+  , SearchResult (..)
     -- Reexport
   , Id (..)
   ) where
@@ -243,3 +247,16 @@ data Inbox = Inbox
   , inbox_replySubpart :: [ReplyInfo NewSubpart]
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Inbox
+
+--------------------------------------------------------------------------------
+-- Search
+
+data SearchId = SearchPerson (Id Person) | SearchUnit (Id Unit)
+    deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON SearchId
+
+data SearchResult a = SearchResult
+  { searchResult_id :: a
+  , searchResult_name :: Text
+  } deriving (Show, Eq, Generic, Functor)
+    deriving (FromJSON, ToJSON) via JSON (SearchResult a)

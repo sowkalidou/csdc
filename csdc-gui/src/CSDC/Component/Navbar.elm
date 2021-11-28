@@ -5,8 +5,8 @@ module CSDC.Component.Navbar exposing
 import Html exposing (Html)
 import Html.Attributes
 
-view : Html msg
-view =
+view : Html msg -> Html msg
+view search =
   Html.nav
     [ Html.Attributes.class "navbar is-fixed-top"
     , Html.Attributes.attribute "role" "navigation"
@@ -52,11 +52,13 @@ view =
                 ]
             ]
         , Html.div
-            [ Html.Attributes.class "navbar-env"
+            [ Html.Attributes.class "navbar-end"
             ]
             [ Html.div
-                [ Html.Attributes.class "navbar-item"
-                ]
+                [ Html.Attributes.class "navbar-item" ]
+                [ search ]
+            , Html.div
+                [ Html.Attributes.class "navbar-item" ]
                 [ Html.div
                     [ Html.Attributes.class "buttons"
                     ]

@@ -4,13 +4,13 @@
 module CSDC.SQL.Units
   ( select
   , selectByChair
+  , search
   , insert
   , update
   , delete
   ) where
 
-import CSDC.DAO.Types
-import CSDC.Data.Id
+import CSDC.Prelude
 
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder
@@ -58,6 +58,22 @@ selectByChair = Statement sql encoder decoder True
         unit_createdAt <- Decoder.timestamptz
         pure Unit {..}
       pure WithId {..}
+
+search :: Statement [Text] [SearchResult (Id Unit)]
+search = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "SELECT id, name"
+      , "FROM units"
+      , "WHERE name ILIKE ALL ($1)"
+      ]
+
+    encoder = Encoder.textList
+
+    decoder = Decoder.rowList $ do
+      searchResult_id <- Decoder.id
+      searchResult_name <- Decoder.text
+      pure SearchResult {..}
 
 insert :: Statement Unit (Id Unit)
 insert = Statement sql encoder decoder True

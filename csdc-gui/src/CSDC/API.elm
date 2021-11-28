@@ -1,8 +1,10 @@
 module CSDC.API exposing (..)
 
-import Http
 import CSDC.Types exposing (..)
+
+import Http
 import Json.Decode as D
+import Url.Builder
 
 --------------------------------------------------------------------------------
 -- Helpers
@@ -19,8 +21,11 @@ decodeNull =
 ignoreResult : Result e a -> Result e ()
 ignoreResult = Result.map (\_ -> ())
 
+url : List String -> String
+url l = Url.Builder.absolute ("api" :: l) []
+
 --------------------------------------------------------------------------------
--- Person
+-- User
 
 getUserInfo : Cmd (Response PersonInfo)
 getUserInfo =
@@ -29,18 +34,42 @@ getUserInfo =
     , expect = Http.expectJson identity decodePersonInfo
     }
 
-getPersonInfo : Id Person -> Cmd (Response PersonInfo)
-getPersonInfo id =
-  Http.get
-    { url = baseUrl ++ "person/" ++ idToString id ++ "/info"
-    , expect = Http.expectJson identity decodePersonInfo
-    }
-
 unitsPerson : Cmd (Response (List (WithId Unit)))
 unitsPerson =
   Http.get
     { url = baseUrl ++ "user/units"
     , expect = Http.expectJson identity (D.list (decodeWithId decodeUnit))
+    }
+
+searchUnits : String -> Cmd (Response (List (SearchResult (Id Unit))))
+searchUnits input =
+  Http.get
+    { url = url ["search", "units", input]
+    , expect = Http.expectJson identity (D.list (decodeSearchResult decodeId))
+    }
+
+searchPersons : String -> Cmd (Response (List (SearchResult (Id Person))))
+searchPersons input =
+  Http.get
+    { url = url ["search", "persons", input]
+    , expect = Http.expectJson identity (D.list (decodeSearchResult decodeId))
+    }
+
+searchAll : String -> Cmd (Response (List (SearchResult SearchId)))
+searchAll input =
+  Http.get
+    { url = url ["search", "all", input]
+    , expect = Http.expectJson identity (D.list (decodeSearchResult decodeSearchId))
+    }
+
+--------------------------------------------------------------------------------
+-- Person
+
+getPersonInfo : Id Person -> Cmd (Response PersonInfo)
+getPersonInfo id =
+  Http.get
+    { url = baseUrl ++ "person/" ++ idToString id ++ "/info"
+    , expect = Http.expectJson identity decodePersonInfo
     }
 
 updatePerson : Id Person -> PersonUpdate -> Cmd (Response ())
