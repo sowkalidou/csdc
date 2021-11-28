@@ -51,7 +51,6 @@ type alias Model =
   { key: Nav.Key
   , url: Url.Url
   , page : Page
-  , info : Maybe PersonInfo
   , viewPerson : Person.Model
   , viewUnit : Unit.Model
   , viewUnitAdmin : UnitAdmin.Model
@@ -69,7 +68,6 @@ init _ url key =
     ( { key = key
       , url = url
       , page = page
-      , info = Nothing
       , explorer = Explorer.initial
       , studio = Studio.initial
       , viewPerson = Person.initial
@@ -96,13 +94,12 @@ type Msg
   | UnitAdminMsg UnitAdmin.Msg
   | StudioMsg Studio.Msg
   | SearchMsg Search.Msg
-  | GetUserInfo (API.Response PersonInfo)
 
 routeCmd : Page -> Cmd Msg
 routeCmd page =
   case page of
     Page.Studio ->
-      Cmd.map GetUserInfo API.getUserInfo
+      Cmd.map StudioMsg Studio.setup
     Page.Explorer ->
       Cmd.map ExplorerMsg Explorer.setup
     Page.Unit uid ->
@@ -199,19 +196,6 @@ update msg model =
         , Cmd.map SearchMsg cmd
         )
 
-    GetUserInfo result ->
-      case result of
-        Err err ->
-          ( { model | notification = Notification.HttpError err }
-          , Cmd.none
-          )
-        Ok info ->
-          ( { model | info = Just info }
-          , Cmd.batch
-              [ Cmd.map StudioMsg <| Studio.setup info.id
-              ]
-          )
-
 --------------------------------------------------------------------------------
 -- Subscriptions
 
@@ -281,9 +265,9 @@ mainPanel model =
 
       Page.Unit _ ->
         List.map (Html.map UnitMsg) <|
-        Unit.view model.info model.viewUnit
+        Unit.view model.viewUnit
 
       Page.UnitAdmin _ ->
         List.map (Html.map UnitAdminMsg) <|
-        UnitAdmin.view model.info model.viewUnitAdmin
+        UnitAdmin.view model.viewUnitAdmin
 

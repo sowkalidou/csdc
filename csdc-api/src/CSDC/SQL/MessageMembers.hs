@@ -10,6 +10,7 @@ module CSDC.SQL.MessageMembers
   , Filter (..)
   , select
   , messageReplies
+  , isMembershipPending
   ) where
 
 import CSDC.DAO.Types
@@ -176,3 +177,20 @@ messageReplies = Statement sql encoder decoder True
         messageInfo_right <- Decoder.text
         pure MessageInfo {..}
       pure ReplyInfo {..}
+
+isMembershipPending :: Statement (Id Person, Id Unit) Bool
+isMembershipPending =  Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "SELECT EXISTS ("
+      , "SELECT 1"
+      , "FROM messages_member"
+      , "WHERE person = $1 AND unit = $2 AND status = 'Waiting'"
+      , ")"
+      ]
+
+    encoder =
+      contramap fst Encoder.id <>
+      contramap snd Encoder.id
+
+    decoder = Decoder.singleRow Decoder.bool

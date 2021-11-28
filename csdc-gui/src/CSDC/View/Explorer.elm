@@ -48,7 +48,7 @@ initial =
   }
 
 setup : Cmd Msg
-setup = Cmd.map UnitsPerson API.unitsPerson
+setup = Cmd.map GetUserUnits API.getUserUnits
 
 --------------------------------------------------------------------------------
 -- Update
@@ -67,7 +67,7 @@ type Msg
   | Reset
   | Focus
   | FocusResult (Result Dom.Error ())
-  | UnitsPerson (API.Response (List (WithId Unit)))
+  | GetUserUnits (API.Response (List (WithId Unit)))
   | GetUnitParents (API.Response (List UnitSubpart))
   | GetUnitChildren (API.Response (List UnitSubpart))
   | SelectUnit Component (Id Unit) (API.Response Unit)
@@ -172,7 +172,7 @@ update pageInfo msg model =
           _ -> Cmd.none
       )
 
-    UnitsPerson res -> onSuccess res <| \units ->
+    GetUserUnits res -> onSuccess res <| \units ->
       let
         toItem w =
           { index = w.id

@@ -72,19 +72,19 @@ initial =
   , previewReply = ReplySeenForm.initial
   }
 
-setup : Id Person -> Cmd Msg
-setup id =
+setup : Cmd Msg
+setup =
   Cmd.batch
-    [ Cmd.map GetPersonInfo <| API.getPersonInfo id
-    , Cmd.map PersonInbox <| API.personInbox id
+    [ Cmd.map GetUserInfo <| API.getUserInfo
+    , Cmd.map GetUserInbox <| API.getUserInbox
     ]
 
 --------------------------------------------------------------------------------
 -- Update
 
 type Msg
-  = GetPersonInfo (API.Response PersonInfo)
-  | PersonInbox (API.Response Inbox)
+  = GetUserInfo (API.Response PersonInfo)
+  | GetUserInbox (API.Response Inbox)
   | UnitsMsg (Panel.Msg (Id Unit))
   | MessagesMsg (Panel.Msg InboxId)
   | ReplyMsg ReplyForm.Msg
@@ -300,7 +300,7 @@ update pageInfo msg model =
       , Cmd.none
       )
 
-    GetPersonInfo result -> onSuccess result <| \info ->
+    GetUserInfo result -> onSuccess result <| \info ->
       let
         pairs =
           info.members |>
@@ -317,7 +317,7 @@ update pageInfo msg model =
         , Cmd.none
         )
 
-    PersonInbox result -> onSuccess result <| \inbox ->
+    GetUserInbox result -> onSuccess result <| \inbox ->
       let
         panelMessages =
           Panel.update (Panel.SetItems <| inboxToItems inbox) model.panelMessages

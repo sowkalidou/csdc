@@ -34,8 +34,15 @@ getUserInfo =
     , expect = Http.expectJson identity decodePersonInfo
     }
 
-unitsPerson : Cmd (Response (List (WithId Unit)))
-unitsPerson =
+getUserInbox : Cmd (Response Inbox)
+getUserInbox =
+  Http.get
+    { url = baseUrl ++ "user/inbox"
+    , expect = Http.expectJson identity decodeInbox
+    }
+
+getUserUnits : Cmd (Response (List (WithId Unit)))
+getUserUnits =
   Http.get
     { url = baseUrl ++ "user/units"
     , expect = Http.expectJson identity (D.list (decodeWithId decodeUnit))
@@ -207,13 +214,6 @@ viewReplySubpart id =
     { url = baseUrl ++ "message/subpart/view"
     , body = Http.jsonBody <| encodeId id
     , expect = Http.expectJson identity decodeNull
-    }
-
-personInbox : Id Person -> Cmd (Response Inbox)
-personInbox id =
-  Http.get
-    { url = baseUrl ++ "message/inbox/person/" ++ idToString id
-    , expect = Http.expectJson identity decodeInbox
     }
 
 unitInbox : Id Unit -> Cmd (Response Inbox)

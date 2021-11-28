@@ -53,7 +53,6 @@ type alias Model =
   , notification : Notification
   , selected : Selected
   , invited : Maybe (Id Unit)
-  , inbox : Inbox
   , unitEdit : UnitForm.Model
   , unitEditOpen : Bool
   , unitDelete : UnitDeleteForm.Model
@@ -73,7 +72,6 @@ initial =
   , notification = Notification.Empty
   , selected = SelectedNothing
   , invited = Nothing
-  , inbox = emptyInbox
   , unitEdit = UnitForm.initial
   , unitEditOpen = False
   , unitDelete = UnitDeleteForm.initial
@@ -89,48 +87,13 @@ setup : Id Unit -> Cmd Msg
 setup id =
   Cmd.batch
     [ Cmd.map GetUnitInfo <| API.getUnitInfo id
-    , Cmd.map UnitInbox <| API.unitInbox id
     ]
-
-canEdit : Maybe PersonInfo -> Model -> Bool
-canEdit mid model =
-  case mid of
-    Nothing -> False
-    Just pinfo ->
-      case model.info of
-        Nothing -> False
-        Just info ->
-          case lookup (\w -> w.id == info.unit.chair) info.members of
-            Nothing -> False
-            Just member -> pinfo.id == member.id
-
-isMember : Maybe PersonInfo -> Model -> Maybe (WithId Person)
-isMember mid model =
-  case mid of
-    Just pinfo ->
-      case model.info of
-        Nothing -> Nothing
-        Just info ->
-          if List.any (\unitMember -> unitMember.id == pinfo.id) info.members
-          then Nothing
-          else Just { id = pinfo.id, value = pinfo.person }
-    _ ->
-      Nothing
-
-isMemberPending : Maybe PersonInfo -> Model -> Bool
-isMemberPending mid model =
-  case mid of
-    Just info ->
-      List.any (\m -> m.value.person == info.id) model.inbox.messageMember
-    _ ->
-      False
 
 --------------------------------------------------------------------------------
 -- Update
 
 type Msg
   = GetUnitInfo (API.Response UnitInfo)
-  | UnitInbox (API.Response Inbox)
   | SubpartsMsg (Panel.Msg (Id Unit))
   | MembersMsg (Panel.Msg (Id Person))
   | View ViewSelected
@@ -380,16 +343,11 @@ update pageInfo msg model =
         , Cmd.none
         )
 
-    UnitInbox result -> onSuccess result <| \inbox ->
-      ( { model | inbox = inbox }
-      , Cmd.none
-      )
-
 --------------------------------------------------------------------------------
 -- View
 
-view : Maybe PersonInfo -> Model -> List (Html Msg)
-view mid model =
+view : Model -> List (Html Msg)
+view model =
   case model.info of
     Nothing ->
       [ Progress.view
@@ -408,18 +366,15 @@ view mid model =
               [ Column.make
                   "Information"
                   ( List.concat
-                      [ case mid of
-                          Just pinfo ->
-                            [ { label = "Invitation for this unit"
-                              , message = SubpartCreateOpen Invitation
-                              }
-                            , { label = "Submission to this unit"
-                              , message = SubpartCreateOpen Submission
-                              }
-                            ]
-                          _ ->
-                            []
-                      , if canEdit mid model
+                      [ [ { label = "Invitation for this unit"
+                          , message = SubpartCreateOpen Invitation
+                          }
+                        , { label = "Submission to this unit"
+                          , message = SubpartCreateOpen Submission
+                          }
+                        ]
+
+                      , if info.isAdmin
                           then
                             [ { label = "Edit profile"
                               , message = UnitEditOpen
@@ -432,9 +387,10 @@ view mid model =
                               }
                             ]
                           else []
-                      , case isMember mid model of
-                          Nothing -> []
-                          Just wid ->
+
+                      , if info.isMember || info.isMembershipPending
+                          then []
+                          else
                             [ { label = "Become a member"
                               , message = SubmissionMemberOpen
                               }
@@ -456,7 +412,7 @@ view mid model =
                       , Html.text info.unit.description
                       ]
                   , Html.div [] <|
-                      if isMemberPending mid model
+                      if info.isMembershipPending
                       then [ Html.text "Your submission was sent." ]
                       else []
                   ]
@@ -479,14 +435,10 @@ view mid model =
 
       , Modal.view model.submissionMemberOpen SubmissionMemberClose <|
           Html.map SubmissionMemberMsg <|
-          case mid of
-            Just person ->
-              let
-                member = { person = person.id, unit = info.id }
-              in
-                Form.viewWith "Send Submission"(SubmissionMemberForm.view member) model.submissionMember
-            Nothing ->
-              Html.text "Error"
+          let
+            member = { person = info.user, unit = info.id }
+          in
+            Form.viewWith "Send Submission"(SubmissionMemberForm.view member) model.submissionMember
 
       , Modal.view model.subpartCreateOpen SubpartCreateClose <|
           Html.map SubpartCreateMsg <|

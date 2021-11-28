@@ -216,6 +216,10 @@ data UnitInfo = UnitInfo
   , unitInfo_members :: [UnitMember]
   , unitInfo_children :: [UnitSubpart]
   , unitInfo_parents :: [UnitSubpart]
+  , unitInfo_user :: Id Person
+  , unitInfo_isMember :: Bool
+  , unitInfo_isAdmin :: Bool
+  , unitInfo_isMembershipPending :: Bool
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON UnitInfo
 

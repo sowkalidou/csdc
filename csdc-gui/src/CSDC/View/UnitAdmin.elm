@@ -285,15 +285,15 @@ canEdit muser unitInfo =
     Nothing -> False
     Just person -> person.id == unitInfo.unit.chair
 
-view : Maybe PersonInfo -> Model -> List (Html Msg)
-view mid model =
+view : Model -> List (Html Msg)
+view model =
   case model.unit of
     Nothing ->
       [ Html.text "Loading..."
       ] ++ Notification.view model.notification
 
     Just unit ->
-      if not (canEdit mid unit)
+      if not unit.isAdmin
         then
           [ Html.text "You cannot edit this unit."
           ]

@@ -22,14 +22,14 @@ type CaptureId a = Capture "id" (Id a)
 -- User API
 
 type UserAPI =
-       GetJSON (Id Person)
-  :<|> "info" :> GetJSON (Maybe PersonInfo)
+       "info" :> GetJSON (Maybe PersonInfo)
+  :<|> "inbox" :> GetJSON Inbox
   :<|> "units" :> GetJSON [WithId Unit]
 
 serveUserAPI :: Server UserAPI
 serveUserAPI =
-       getUser
-  :<|> getUserInfo
+       getUserInfo
+  :<|> getUserInbox
   :<|> getUnitsWhoseChairIsUser
 
 --------------------------------------------------------------------------------
@@ -118,14 +118,12 @@ serveMessageSubpartAPI =
 type MessageAPI =
        "member" :> MessageMemberAPI
   :<|> "subpart" :> MessageSubpartAPI
-  :<|> "inbox" :> "person" :> CaptureId Person :> GetJSON Inbox
   :<|> "inbox" :> "unit" :> CaptureId Unit :> GetJSON Inbox
 
 serveMessageAPI :: Server MessageAPI
 serveMessageAPI =
        serveMessageMemberAPI
   :<|> serveMessageSubpartAPI
-  :<|> inboxPerson
   :<|> inboxUnit
 
 --------------------------------------------------------------------------------

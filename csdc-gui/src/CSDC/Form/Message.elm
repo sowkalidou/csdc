@@ -67,7 +67,7 @@ parse (mtype, make) model =
       Ok reason -> Just reason
 
 setup : Cmd (Msg a)
-setup = Cmd.map (Form.ModelMsg << SetUnits) API.unitsPerson
+setup = Cmd.map (Form.ModelMsg << SetUnits) API.getUserUnits
 
 --------------------------------------------------------------------------------
 -- Update

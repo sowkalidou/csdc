@@ -229,8 +229,9 @@ createUnit unit = do
   _ <- insertMember member
   return uid
 
-inboxPerson :: Id Person -> Action user Inbox
-inboxPerson pid = do
+getUserInbox :: ActionAuth Inbox
+getUserInbox = do
+  pid <- getUser
   allMessageMembers <- runSQL $
     SQL.query SQL.MessageMembers.select $
     SQL.MessageMembers.Filter (Just pid) Nothing
@@ -320,8 +321,11 @@ getUnitChildren uid = runSQL $ SQL.query SQL.Subparts.selectByParent uid
 getUnitParents :: Id Unit -> Action user [UnitSubpart]
 getUnitParents uid = runSQL $ SQL.query SQL.Subparts.selectByChild uid
 
-getUnitInfo :: Id Unit -> Action user (Maybe UnitInfo)
-getUnitInfo uid =
+getUnitInfo :: Id Unit -> ActionAuth (Maybe UnitInfo)
+getUnitInfo uid = do
+  userId <- getUser
+  isMembershipPending <- runSQL $
+    SQL.query SQL.MessageMembers.isMembershipPending (userId, uid)
   selectUnit uid >>= \case
     Nothing -> pure Nothing
     Just unit -> do
@@ -334,6 +338,10 @@ getUnitInfo uid =
         , unitInfo_members = members
         , unitInfo_children = children
         , unitInfo_parents = parents
+        , unitInfo_user = userId
+        , unitInfo_isAdmin = unit_chair unit == userId
+        , unitInfo_isMember = any (\m -> unitMember_id m == userId) members
+        , unitInfo_isMembershipPending = isMembershipPending
         }
 
 getUnitsWhoseChairIsUser :: ActionAuth [WithId Unit]

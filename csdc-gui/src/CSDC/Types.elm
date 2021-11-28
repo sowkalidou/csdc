@@ -189,16 +189,27 @@ type alias UnitInfo =
   , members : List UnitMember
   , children : List UnitSubpart
   , parents : List UnitSubpart
+  , user : Id Person
+  , isMember : Bool
+  , isAdmin : Bool
+  , isMembershipPending : Bool
   }
 
 decodeUnitInfo : Decoder UnitInfo
 decodeUnitInfo =
-  Decoder.map5 UnitInfo
-    (Decoder.field "id" decodeId)
-    (Decoder.field "unit" decodeUnit)
-    (Decoder.field "members" (Decoder.list decodeUnitMember ))
-    (Decoder.field "children" (Decoder.list decodeUnitSubpart))
-    (Decoder.field "parents" (Decoder.list decodeUnitSubpart))
+  Decoder.succeed UnitInfo
+    |> andMap (Decoder.field "id" decodeId)
+    |> andMap (Decoder.field "unit" decodeUnit)
+    |> andMap (Decoder.field "members" (Decoder.list decodeUnitMember ))
+    |> andMap (Decoder.field "children" (Decoder.list decodeUnitSubpart))
+    |> andMap (Decoder.field "parents" (Decoder.list decodeUnitSubpart))
+    |> andMap (Decoder.field "user" decodeId)
+    |> andMap (Decoder.field "isMember" Decoder.bool)
+    |> andMap (Decoder.field "isAdmin" Decoder.bool)
+    |> andMap (Decoder.field "isMembershipPending" Decoder.bool)
+
+andMap : Decoder a -> Decoder (a -> b) -> Decoder b
+andMap = Decoder.map2 (\a f -> f a)
 
 --------------------------------------------------------------------------------
 -- Member

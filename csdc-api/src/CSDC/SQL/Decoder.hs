@@ -1,6 +1,7 @@
 module CSDC.SQL.Decoder
   ( -- * Base types
-    text
+    bool
+  , text
   , textNullable
   , timestamptz
     -- * Local types
@@ -30,6 +31,9 @@ import qualified Hasql.Decoders as Decoders
 
 --------------------------------------------------------------------------------
 -- Base types
+
+bool :: Row Bool
+bool = column (nonNullable Decoders.bool)
 
 text :: Row Text
 text = column (nonNullable Decoders.text)
