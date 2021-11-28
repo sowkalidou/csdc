@@ -34,7 +34,8 @@ common dependencies
     servant-server,
     text,
     time,
-    wai-app-static
+    wai-app-static,
+    wai-extra
 
 common extensions
   default-extensions:

@@ -11,6 +11,7 @@ import qualified CSDC.SQL as SQL
 
 import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (runSettings, setPort, setLogger, defaultSettings)
+import Network.Wai.Middleware.Gzip (gzip, def, gzipFiles, GzipFiles (..))
 import Network.Wai.Logger (withStdoutLogger)
 import Servant (Application, Proxy (..), serve, hoistServer)
 import System.Environment (getArgs)
@@ -62,7 +63,8 @@ makeMiddleware context = do
   let corsOptions = Cors.simpleCorsResourcePolicy
        { Cors.corsRequestHeaders = Cors.simpleHeaders }
       cors = Cors.cors (\_ -> Just corsOptions)
-  pure $ authentication . cors
+      compress = gzip def { gzipFiles = GzipCompress }
+  pure $ compress . authentication . cors
 
 application :: FilePath -> DAO.Context () -> Application
 application path context = \request response ->
