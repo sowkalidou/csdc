@@ -43,7 +43,7 @@ module CSDC.DAO.Types
   ) where
 
 import CSDC.Aeson (JSON (..))
-import CSDC.Data.Id (Id (..))
+import CSDC.Data.Id
 
 import qualified CSDC.Auth.ORCID as ORCID
 
@@ -264,3 +264,43 @@ data SearchResult a = SearchResult
   , searchResult_name :: Text
   } deriving (Show, Eq, Generic, Functor)
     deriving (FromJSON, ToJSON) via JSON (SearchResult a)
+
+--------------------------------------------------------------------------------
+-- Forum
+
+data NewThread = NewThread
+  { newThread_unit :: Id Unit
+  , newThread_subject :: Text
+  , newThread_message :: Text
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON NewThread
+
+data Thread = Thread
+  { thread_unit :: Id Unit
+  , thread_subject :: Text
+  , thread_createdAt :: UTCTime
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON Thread
+
+data ThreadSummary = ThreadSummary
+  { threadSummary_id :: Id Thread
+  , threadSummary_subject :: Text
+  , threadSummary_createdAt :: UTCTime
+  , threadSummary_last :: UTCTime
+  , threadSummary_messages :: Int
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON ThreadSummary
+
+data ThreadInfo = ThreadInfo
+  { threadInfo_id :: Id Thread
+  , threadInfo_thread :: Thread
+  , threadInfo_messages :: [WithId ThreadMessage]
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON ThreadInfo
+
+data ThreadMessage = ThreadMessage
+  { threadMessage_author :: Id Person
+  , threadMessage_message :: Text
+  , threadMessage_createdAt :: UTCTime
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON ThreadMessage

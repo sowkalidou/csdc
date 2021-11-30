@@ -70,7 +70,8 @@ application :: FilePath -> DAO.Context () -> Application
 application path context = \request response ->
   let
     proxy = Proxy @API
-    server = hoistServer proxy (DAO.run context) (serveAPI path)
+    sqlContext = DAO.context_sql context
+    server = hoistServer proxy (DAO.run context) (serveAPI path sqlContext)
   in do
     serve proxy server request response
 

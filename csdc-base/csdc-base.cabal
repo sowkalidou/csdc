@@ -21,6 +21,7 @@ library
   exposed-modules:
     CSDC.Aeson
     CSDC.Data.Id
+    CSDC.Data.File
     CSDC.Data.RIO
     CSDC.Error
     CSDC.DAO.Types
@@ -28,8 +29,11 @@ library
   build-depends:
     csdc-auth,
     aeson,
+    base64-bytestring,
+    bytestring,
     base,
     containers,
+    cryptohash-md5,
     http-api-data,
     lens,
     mtl,

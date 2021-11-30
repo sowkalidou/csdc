@@ -101,3 +101,15 @@ CREATE TABLE replies_subpart
   , message integer NOT NULL REFERENCES messages_subpart(id)
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );
+
+--------------------------------------------------------------------------------
+-- Files
+
+CREATE TABLE files
+  ( filepath text PRIMARY KEY
+  , contents bytea NOT NULL
+  , size int8 NOT NULL
+  , hash bytea NOT NULL
+  , modified_at int8 NOT NULL
+  );
+

@@ -1,6 +1,9 @@
 module CSDC.SQL.Encoder
   ( -- * Base types
-    text
+    bytea
+  , ctime
+  , int
+  , text
   , textNullable
   , textList
     -- * Local types
@@ -19,16 +22,26 @@ import Prelude hiding (id)
 
 import qualified CSDC.Auth.ORCID as ORCID
 
-import Data.Foldable (foldl')
+import Data.ByteString (ByteString)
 import Data.Functor.Contravariant (Contravariant (..))
 import Data.Text (Text)
+import Foreign.C.Types (CTime (..))
 import Hasql.Encoders
-  (Params, dimension, param, nonNullable, nullable, element, array, foldableArray)
+  (Params, param, nonNullable, nullable, foldableArray)
 
 import qualified Hasql.Encoders as Encoders
 
 --------------------------------------------------------------------------------
 -- Base types
+
+bytea :: Params ByteString
+bytea = param (nonNullable Encoders.bytea)
+
+ctime :: Params CTime
+ctime = contramap (\(CTime t) -> t) $ param (nonNullable Encoders.int8)
+
+int :: Params Int
+int = contramap fromIntegral $ param (nonNullable Encoders.int8)
 
 text :: Params Text
 text = param (nonNullable Encoders.text)
@@ -55,9 +68,7 @@ idNullable =
 idList :: Params [Id a]
 idList =
   contramap (fmap (fromIntegral . getId)) $
-  param (nonNullable (array (dim (element (nonNullable Encoders.int4)))))
-  where
-    dim = dimension foldl'
+  param (nonNullable (foldableArray (nonNullable Encoders.int4)))
 
 orcidId :: Params ORCID.Id
 orcidId =

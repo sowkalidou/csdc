@@ -13,9 +13,11 @@ module CSDC.API
 
 import CSDC.Auth (getUserToken)
 import CSDC.DAO
+import CSDC.FileServer (serveSQLFileServer)
 import CSDC.Prelude
 
 import qualified CSDC.API.DAO as DAO
+import qualified CSDC.SQL as SQL
 
 import Servant
 import Servant.Server.Internal.Delayed (passToServer)
@@ -28,11 +30,13 @@ import WaiAppStatic.Storage.Filesystem (defaultWebAppSettings)
 
 type API =
        Auth :> "api" :> DAO.API
+  :<|> "files" :> Raw
   :<|> Raw
 
-serveAPI :: FilePath -> ServerT API (Action ())
-serveAPI path =
+serveAPI :: FilePath -> SQL.Context -> ServerT API (Action ())
+serveAPI path ctx =
          serveDAOAPI
+    :<|> serveSQLFileServer ctx
     :<|> serveDirectoryWith (options path)
   where
     serveDAOAPI token =
