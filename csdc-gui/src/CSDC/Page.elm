@@ -2,6 +2,7 @@ module CSDC.Page exposing
   ( Page (..)
   , Info
   , goTo
+  , reload
   , fromFragment
   )
 
@@ -40,6 +41,9 @@ goTo { key, url } page =
       }
   in
     Nav.pushUrl key (Url.toString newUrl)
+
+reload : Cmd msg
+reload = Nav.reload
 
 --------------------------------------------------------------------------------
 -- Conversion to URL fragment

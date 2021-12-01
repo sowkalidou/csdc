@@ -240,7 +240,7 @@ update pageInfo msg model =
           let
             config =
               { id = person.id
-              , finish = Page.goTo pageInfo Page.Studio
+              , finish = Page.reload
               }
             (personImage, cmd) = PersonImageForm.updateWith config personMsg model.personImage
           in
