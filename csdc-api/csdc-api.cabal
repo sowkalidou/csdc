@@ -23,6 +23,7 @@ common dependencies
     aeson,
     aeson-pretty,
     base,
+    binary,
     bytestring,
     filepath,
     ghc-prim,

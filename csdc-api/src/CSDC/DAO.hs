@@ -4,10 +4,12 @@
 module CSDC.DAO where
 
 import CSDC.Auth.User (User (..))
+import CSDC.Data.File
 import CSDC.Prelude
 
 import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.SQL as SQL
+import qualified CSDC.SQL.Files as SQL.Files
 import qualified CSDC.SQL.Members as SQL.Members
 import qualified CSDC.SQL.MessageMembers as SQL.MessageMembers
 import qualified CSDC.SQL.MessageSubparts as SQL.MessageSubparts
@@ -19,6 +21,7 @@ import Control.Exception (Exception, throwIO)
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
 import Data.Time (getCurrentTime)
+import System.FilePath
 
 import qualified Data.Text as Text
 
@@ -102,7 +105,19 @@ insertPerson :: NewPerson -> Action user (Id (Person))
 insertPerson p = runSQL $ SQL.query SQL.Persons.insert p
 
 updatePerson :: Id Person -> PersonUpdate -> Action user ()
-updatePerson i p = runSQL $ SQL.query SQL.Persons.update (i,p)
+updatePerson i p = do
+  runSQL $ SQL.query SQL.Persons.update (i,p)
+
+updatePersonImage :: Id Person -> Base64File -> Action user ()
+updatePersonImage i image = do
+  let
+    fileName = personImageName (base64File_name image)
+    fileFolder = personImageFolder i
+    filePath = fileFolder <> "/" <> fileName
+    newImage = image { base64File_name = fileName }
+  filedb <- toNewFileDB (personImageFolder i) $ fromBase64File newImage
+  runSQL $ SQL.query SQL.Files.upsertFile filedb
+  runSQL $ SQL.query SQL.Persons.updateImage (i,filePath)
 
 deletePerson :: Id Person -> Action user ()
 deletePerson i = runSQL $ SQL.query SQL.Persons.delete i
@@ -373,3 +388,16 @@ searchAll query = do
   persons <- searchPersons query
   units <- searchUnits query
   pure $ fmap (fmap SearchPerson) persons <> fmap (fmap SearchUnit) units
+
+--------------------------------------------------------------------------------
+-- Files
+
+personImageName :: Text -> Text
+personImageName name =
+  let
+    (_,ext) = splitExtension (Text.unpack name)
+  in
+    Text.pack $ "photo" <> ext
+
+personImageFolder :: Id Person -> Text
+personImageFolder (Id n) = Text.pack $ "person/" <> show n

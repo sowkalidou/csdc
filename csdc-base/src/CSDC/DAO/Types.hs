@@ -74,7 +74,6 @@ data NewPerson = NewPerson
 data PersonUpdate = PersonUpdate
   { personUpdate_name :: Text
   , personUpdate_description :: Text
-  , personUpdate_image :: Maybe Text
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON PersonUpdate
 

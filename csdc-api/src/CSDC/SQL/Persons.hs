@@ -6,6 +6,7 @@ module CSDC.SQL.Persons
   , insert
   , search
   , update
+  , updateImage
   , delete
   , selectORCID
   ) where
@@ -25,7 +26,7 @@ select :: Statement (Id Person) (Maybe Person)
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT name, description, orcid, image, created_at"
+      [ "SELECT name, description, orcid, 'files/' || image, created_at"
       , "FROM persons"
       , "WHERE id = $1"
       ]
@@ -90,15 +91,29 @@ update = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
       [ "UPDATE persons"
-      , "SET name = $2, description = $3, image = $4"
+      , "SET name = $2, description = $3"
       , "WHERE id = $1"
       ]
 
     encoder =
       (contramap fst Encoder.id) <>
       (contramap (personUpdate_name . snd) Encoder.text) <>
-      (contramap (personUpdate_description . snd) Encoder.text) <>
-      (contramap (personUpdate_image . snd) Encoder.textNullable)
+      (contramap (personUpdate_description . snd) Encoder.text)
+
+    decoder = Decoder.noResult
+
+updateImage :: Statement (Id Person, Text) ()
+updateImage = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "UPDATE persons"
+      , "SET image = $2"
+      , "WHERE id = $1"
+      ]
+
+    encoder =
+      contramap fst Encoder.id <>
+      contramap snd Encoder.text
 
     decoder = Decoder.noResult
 

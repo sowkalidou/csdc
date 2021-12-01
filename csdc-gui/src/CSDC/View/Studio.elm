@@ -18,6 +18,7 @@ import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
 import CSDC.Form.Unit as UnitForm
 import CSDC.Form.Person as PersonForm
+import CSDC.Form.PersonImage as PersonImageForm
 import CSDC.Form.ReplySeen as ReplySeenForm
 import CSDC.Form.Reply as ReplyForm
 import CSDC.Notification as Notification
@@ -52,6 +53,8 @@ type alias Model =
   , unitCreateOpen : Bool
   , personEdit : PersonForm.Model
   , personEditOpen : Bool
+  , personImage : PersonImageForm.Model
+  , personImageOpen : Bool
   , previewMessage : ReplyForm.Model
   , previewReply : ReplySeenForm.Model
   }
@@ -68,6 +71,8 @@ initial =
   , unitCreateOpen = False
   , personEdit = PersonForm.initial
   , personEditOpen = False
+  , personImage = PersonImageForm.initial
+  , personImageOpen = False
   , previewMessage = ReplyForm.initial
   , previewReply = ReplySeenForm.initial
   }
@@ -95,6 +100,9 @@ type Msg
   | PersonEditMsg PersonForm.Msg
   | PersonEditOpen
   | PersonEditClose
+  | PersonImageMsg PersonImageForm.Msg
+  | PersonImageOpen
+  | PersonImageClose
   | View (Id Unit)
   | CloseModal
   | Reset
@@ -181,7 +189,7 @@ update pageInfo msg model =
             | personEditOpen = True
             , personEdit = PersonForm.fromPerson info.person
             }
-          , Cmd.map PersonEditMsg <| PersonForm.setup info.person.image
+          , Cmd.none
           )
 
     PersonEditClose ->
@@ -205,6 +213,42 @@ update pageInfo msg model =
               , personEditOpen = not (Form.isFinished personMsg)
               }
             , Cmd.map PersonEditMsg cmd
+            )
+
+    PersonImageOpen ->
+      case model.info of
+        Nothing ->
+          ( model
+          , Cmd.none
+          )
+        Just info ->
+          ( { model
+            | personImageOpen = True
+            }
+          , Cmd.map PersonImageMsg <| PersonImageForm.setup Nothing
+          )
+
+    PersonImageClose ->
+      ( { model | personImageOpen = False }
+      , Cmd.none
+      )
+
+    PersonImageMsg personMsg ->
+      case model.info of
+        Nothing -> (model, Cmd.none)
+        Just person ->
+          let
+            config =
+              { id = person.id
+              , finish = Page.goTo pageInfo Page.Studio
+              }
+            (personImage, cmd) = PersonImageForm.updateWith config personMsg model.personImage
+          in
+            ( { model
+              | personImage = personImage
+              , personImageOpen = not (Form.isFinished personMsg)
+              }
+            , Cmd.map PersonImageMsg cmd
             )
 
     ReplyMsg preMsg ->
@@ -334,6 +378,9 @@ dotMenu =
   [ { label = "Edit Profile"
     , message = PersonEditOpen
     }
+  , { label = "Change Profile Photo"
+    , message = PersonImageOpen
+    }
   , { label = "Create New Unit"
     , message = UnitCreateOpen
     }
@@ -409,6 +456,10 @@ view model =
       , Modal.view model.personEditOpen PersonEditClose <|
           Html.map PersonEditMsg <|
           Form.viewWith "Edit Profile" PersonForm.view model.personEdit
+
+      , Modal.view model.personImageOpen PersonImageClose <|
+          Html.map PersonImageMsg <|
+          Form.viewWith "Profile Photo" PersonImageForm.view model.personImage
 
       , Modal.view model.unitCreateOpen UnitCreateClose <|
           Html.map UnitCreateMsg <|

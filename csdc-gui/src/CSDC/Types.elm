@@ -74,7 +74,6 @@ decodePerson =
 type alias PersonUpdate =
   { name : String
   , description : String
-  , image : Maybe String
   }
 
 encodePersonUpdate : PersonUpdate -> Value
@@ -82,11 +81,6 @@ encodePersonUpdate person =
   Encoder.object
     [ ("name", Encoder.string person.name)
     , ("description", Encoder.string person.description)
-    , ("image",
-       case person.image of
-         Nothing -> Encoder.null
-         Just image -> Encoder.string image
-      )
     ]
 
 type alias PersonMember =
@@ -516,6 +510,21 @@ decodeSearchResult decode =
   Decoder.map2 SearchResult
     (Decoder.field "name" Decoder.string)
     (Decoder.field "id" decode)
+
+--------------------------------------------------------------------------------
+-- File
+
+type alias Base64File =
+  { name : String
+  , contents : String
+  }
+
+encodeBase64File : Base64File -> Value
+encodeBase64File file =
+  Encoder.object
+    [ ("name", Encoder.string file.name)
+    , ("contents", Encoder.string file.contents)
+    ]
 
 --------------------------------------------------------------------------------
 -- Helpers

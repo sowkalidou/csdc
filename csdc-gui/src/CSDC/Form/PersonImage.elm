@@ -1,7 +1,7 @@
-module CSDC.Form.Person exposing
+module CSDC.Form.PersonImage exposing
   ( Model
   , initial
-  , fromPerson
+  , setup
   , Msg
   , updateWith
   , view
@@ -25,46 +25,43 @@ import Html.Events
 -- Model
 
 type alias Model =
-  { name : Field String String
-  , description : Field String String
+  { image : Field (Maybe String) String
+  , imageUpload : ImageUpload.Model
   , notification : Notification
   }
 
 initial : Model
 initial =
-  { name = Field.requiredString "Name"
-  , description = Field.requiredString "Description"
+  { image = Field.required "Profile Picture"
+  , imageUpload = ImageUpload.initial
   , notification = Notification.Empty
-  }
-
-fromPerson : Person -> Model
-fromPerson person =
-  { initial
-  | name = Field.set person.name initial.name
-  , description = Field.set person.description initial.description
   }
 
 reload : Model -> Model
 reload model =
   { model
-  | name = Field.reload model.name
-  , description = Field.reload model.description
+  | image = Field.reload model.image
   }
 
-parse : Model -> Maybe PersonUpdate
+parse : Model -> Maybe Base64File
 parse model =
   let
     result =
-      Validation.andThen (Field.validate model.name) <| \name ->
-      Validation.andThen (Field.validate model.description) <| \description ->
-      Validation.valid
-        { name = name
-        , description = description
-        }
+      Validation.andThen (Field.validate model.image) <| \image ->
+      case model.imageUpload.name of
+        Nothing -> Validation.invalid "An image must be uploaded."
+        Just name ->
+          Validation.valid
+            { name = name
+            , contents = image
+            }
   in
     case Validation.validate result of
       Err _ -> Nothing
       Ok unit -> Just unit
+
+setup : Maybe String -> Cmd Msg
+setup mimage = Cmd.map (Form.ModelMsg << ImageUploadMsg) (ImageUpload.setup mimage)
 
 --------------------------------------------------------------------------------
 -- Update
@@ -80,34 +77,42 @@ updateWith config = Form.update
   , update = update
   , reload = reload
   , parse = \_ -> parse
-  , request = API.updatePerson config.id
+  , request = API.updatePersonImage config.id
   , finish = \_ -> config.finish
   }
 
 type ModelMsg
-  = SetName String
-  | SetDescription String
+  = SetImage (Croppie.Result ModelMsg)
+  | ImageUploadMsg ImageUpload.Msg
 
 type alias Msg = Form.Msg ModelMsg () ()
 
 update : ModelMsg -> Model -> (Model, Cmd ModelMsg)
 update msg model =
   case msg of
-    SetName val ->
-      ( { model | name = Field.set val model.name }
-      , Cmd.none
-      )
-    SetDescription val ->
-      ( { model | description = Field.set val model.description }
-      , Cmd.none
-      )
+    SetImage result ->
+      case result of
+        Croppie.Base64 val ->
+          ( { model | image = Field.set (Just val) model.image }
+          , Cmd.none
+          )
+        _ ->
+          (model, Cmd.none)
+    ImageUploadMsg imsg ->
+      let
+        (imageUpload, cmd) = ImageUpload.update imsg model.imageUpload
+      in
+        ( { model | imageUpload = imageUpload }
+        , Cmd.map ImageUploadMsg cmd
+        )
 
 --------------------------------------------------------------------------------
 -- View
 
 view : Model -> List (Html Msg)
 view model =
-  [ Input.text model.name SetName
-  , Input.textarea model.description SetDescription
+  [ Input.wrapper model.image <|
+    Html.map Form.ModelMsg <|
+    ImageUpload.view model.imageUpload ImageUploadMsg SetImage
   , Input.button "Save" ()
   ]

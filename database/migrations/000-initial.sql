@@ -106,10 +106,12 @@ CREATE TABLE replies_subpart
 -- Files
 
 CREATE TABLE files
-  ( filepath text PRIMARY KEY
+  ( folder text NOT NULL
+  , name text NOT NULL
   , contents bytea NOT NULL
   , size int8 NOT NULL
   , hash bytea NOT NULL
   , modified_at int8 NOT NULL
+  , PRIMARY KEY(folder, name)
   );
 

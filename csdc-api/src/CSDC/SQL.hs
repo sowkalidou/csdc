@@ -11,6 +11,7 @@ module CSDC.SQL
     -- * Action
   , Action (..)
   , run
+  , runAndThrow
   , query
     -- * Migration
   , migrate
@@ -125,6 +126,13 @@ run (Context config secret) (Action m) = liftIO $ do
 
     Right conn ->
       try (runReaderT m conn) `finally` (Connection.release conn)
+
+runAndThrow :: MonadIO m => Context -> Action a -> m a
+runAndThrow ctx act = do
+  result <- run ctx act
+  case result of
+    Left e -> liftIO $ throwIO e
+    Right a -> pure a
 
 -- | Lift a SQL statement into an action.
 query :: Statement a b -> a -> Action b

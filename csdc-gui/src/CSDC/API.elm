@@ -87,6 +87,14 @@ updatePerson id person =
     , expect = Http.expectJson identity decodeNull
     }
 
+updatePersonImage : Id Person -> Base64File -> Cmd (Response ())
+updatePersonImage id file =
+  Http.post
+    { url = baseUrl ++ "person/" ++ idToString id ++ "/image"
+    , body = Http.jsonBody (encodeBase64File file)
+    , expect = Http.expectJson identity decodeNull
+    }
+
 --------------------------------------------------------------------------------
 -- Unit
 

@@ -4,6 +4,7 @@ module CSDC.API.DAO
   , serveAPI
   ) where
 
+import CSDC.Data.File (Base64File)
 import CSDC.DAO
 import CSDC.Prelude hiding (JSON)
 
@@ -37,11 +38,13 @@ serveUserAPI =
 
 type PersonAPI =
        CaptureId Person :> PostJSON PersonUpdate ()
+  :<|> CaptureId Person :> "image" :> PostJSON Base64File ()
   :<|> CaptureId Person :> "info" :> GetJSON (Maybe PersonInfo)
 
 servePersonAPI :: Server PersonAPI
 servePersonAPI =
        updatePerson
+  :<|> updatePersonImage
   :<|> getPersonInfo
 
 --------------------------------------------------------------------------------

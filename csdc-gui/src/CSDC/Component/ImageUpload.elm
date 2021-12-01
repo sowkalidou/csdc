@@ -22,12 +22,13 @@ port croppie : Croppie.Data -> Cmd msg
 
 type alias Model =
   { image : Maybe String
+  , name : Maybe String
   }
-
 
 initial : Model
 initial =
   { image = Nothing
+  , name = Nothing
   }
 
 defaultImage : String
@@ -59,7 +60,7 @@ update msg model =
       )
 
     GotFile file ->
-      ( model
+      ( { model | name = Just <| File.name file }
       , Task.perform GotUrl <| File.toUrl file
       )
 
