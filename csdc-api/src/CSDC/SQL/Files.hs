@@ -106,7 +106,8 @@ selectFolderSubfolders :: Statement Text [Text]
 selectFolderSubfolders = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT regexp_replace(folder, $1, '') as result"
+      [ "SELECT DISTINCT ON (result)"
+      , "regexp_replace(regexp_replace(folder, $1, ''), '/(.)+', '') as result"
       , "FROM files"
       , "WHERE folder LIKE $2"
       , "ORDER BY result"
