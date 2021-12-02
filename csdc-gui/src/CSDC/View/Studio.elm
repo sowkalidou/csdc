@@ -18,7 +18,7 @@ import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
 import CSDC.Form.Unit as UnitForm
 import CSDC.Form.Person as PersonForm
-import CSDC.Form.PersonImage as PersonImageForm
+import CSDC.Form.Image as ImageForm
 import CSDC.Form.ReplySeen as ReplySeenForm
 import CSDC.Form.Reply as ReplyForm
 import CSDC.Notification as Notification
@@ -53,7 +53,7 @@ type alias Model =
   , unitCreateOpen : Bool
   , personEdit : PersonForm.Model
   , personEditOpen : Bool
-  , personImage : PersonImageForm.Model
+  , personImage : ImageForm.Model
   , personImageOpen : Bool
   , previewMessage : ReplyForm.Model
   , previewReply : ReplySeenForm.Model
@@ -71,7 +71,7 @@ initial =
   , unitCreateOpen = False
   , personEdit = PersonForm.initial
   , personEditOpen = False
-  , personImage = PersonImageForm.initial
+  , personImage = ImageForm.initial
   , personImageOpen = False
   , previewMessage = ReplyForm.initial
   , previewReply = ReplySeenForm.initial
@@ -100,9 +100,9 @@ type Msg
   | PersonEditMsg PersonForm.Msg
   | PersonEditOpen
   | PersonEditClose
-  | PersonImageMsg PersonImageForm.Msg
-  | PersonImageOpen
-  | PersonImageClose
+  | ImageMsg ImageForm.Msg
+  | ImageOpen
+  | ImageClose
   | View (Id Unit)
   | CloseModal
   | Reset
@@ -215,7 +215,7 @@ update pageInfo msg model =
             , Cmd.map PersonEditMsg cmd
             )
 
-    PersonImageOpen ->
+    ImageOpen ->
       case model.info of
         Nothing ->
           ( model
@@ -225,30 +225,30 @@ update pageInfo msg model =
           ( { model
             | personImageOpen = True
             }
-          , Cmd.map PersonImageMsg <| PersonImageForm.setup Nothing
+          , Cmd.map ImageMsg <| ImageForm.setup Nothing
           )
 
-    PersonImageClose ->
+    ImageClose ->
       ( { model | personImageOpen = False }
       , Cmd.none
       )
 
-    PersonImageMsg personMsg ->
+    ImageMsg personMsg ->
       case model.info of
         Nothing -> (model, Cmd.none)
         Just person ->
           let
             config =
-              { id = person.id
+              { request = API.updatePersonImage person.id
               , finish = Page.reload
               }
-            (personImage, cmd) = PersonImageForm.updateWith config personMsg model.personImage
+            (personImage, cmd) = ImageForm.updateWith config personMsg model.personImage
           in
             ( { model
               | personImage = personImage
               , personImageOpen = not (Form.isFinished personMsg)
               }
-            , Cmd.map PersonImageMsg cmd
+            , Cmd.map ImageMsg cmd
             )
 
     ReplyMsg preMsg ->
@@ -379,7 +379,7 @@ dotMenu =
     , message = PersonEditOpen
     }
   , { label = "Change Profile Photo"
-    , message = PersonImageOpen
+    , message = ImageOpen
     }
   , { label = "Create New Unit"
     , message = UnitCreateOpen
@@ -457,9 +457,9 @@ view model =
           Html.map PersonEditMsg <|
           Form.viewWith "Edit Profile" PersonForm.view model.personEdit
 
-      , Modal.view model.personImageOpen PersonImageClose <|
-          Html.map PersonImageMsg <|
-          Form.viewWith "Profile Photo" PersonImageForm.view model.personImage
+      , Modal.view model.personImageOpen ImageClose <|
+          Html.map ImageMsg <|
+          Form.viewWith "Profile Photo" ImageForm.view model.personImage
 
       , Modal.view model.unitCreateOpen UnitCreateClose <|
           Html.map UnitCreateMsg <|

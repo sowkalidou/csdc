@@ -1,4 +1,4 @@
-module CSDC.Form.PersonImage exposing
+module CSDC.Form.Image exposing
   ( Model
   , initial
   , setup
@@ -67,7 +67,7 @@ setup mimage = Cmd.map (Form.ModelMsg << ImageUploadMsg) (ImageUpload.setup mima
 -- Update
 
 type alias Config =
-  { id : Id Person
+  { request : Base64File -> Cmd (API.Response ())
   , finish : Cmd Msg
   }
 
@@ -77,7 +77,7 @@ updateWith config = Form.update
   , update = update
   , reload = reload
   , parse = \_ -> parse
-  , request = API.updatePersonImage config.id
+  , request = config.request
   , finish = \_ -> config.finish
   }
 
