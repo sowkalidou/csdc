@@ -171,7 +171,8 @@ view model =
                                       case person.person.image of
                                         Nothing -> "https://bulma.io/images/placeholders/96x96.png"
                                         Just image -> image
-                                  , Html.Attributes.alt "Profile image"
+                                  , Html.Attributes.style "border-radius" "10%"
+                                  , Html.Attributes.alt "Profile photo"
                                   ]
                                   []
                               ]
