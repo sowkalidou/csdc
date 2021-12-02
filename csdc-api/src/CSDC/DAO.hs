@@ -5,6 +5,7 @@ module CSDC.DAO where
 
 import CSDC.Auth.User (User (..))
 import CSDC.Data.File
+import CSDC.Image
 import CSDC.Prelude
 
 import qualified CSDC.Auth.ORCID as ORCID
@@ -80,15 +81,19 @@ runSQL act = do
 getUserFromToken :: UserToken -> Action user (Id Person)
 getUserFromToken (User token) =
   selectPersonORCID (ORCID.token_orcid token) >>= \case
-    Nothing ->
+    Nothing -> do
       let
         person = NewPerson
           { newPerson_name = ORCID.token_name token
           , newPerson_orcid = ORCID.token_orcid token
           , newPerson_description = ""
+          , newPerson_image = ""
           }
-      in
-        insertPerson person
+      pid <- insertPerson person
+      imageBS <- liftIO $ generateImageFromName $ ORCID.token_name token
+      let image = base64FileFromByteString "profile.svg" imageBS
+      updatePersonImage pid image
+      pure pid
     Just uid ->
       pure uid
 
@@ -110,14 +115,8 @@ updatePerson i p = do
 
 updatePersonImage :: Id Person -> Base64File -> Action user ()
 updatePersonImage i image = do
-  let
-    fileName = personImageName (base64File_name image)
-    fileFolder = personImageFolder i
-    filePath = fileFolder <> "/" <> fileName
-    newImage = image { base64File_name = fileName }
-  filedb <- toNewFileDB (personImageFolder i) $ fromBase64File newImage
-  runSQL $ SQL.query SQL.Files.upsertFile filedb
-  runSQL $ SQL.query SQL.Persons.updateImage (i,filePath)
+  imagePath <- base64FileToPath i image
+  runSQL $ SQL.query SQL.Persons.updateImage (i,imagePath)
 
 deletePerson :: Id Person -> Action user ()
 deletePerson i = runSQL $ SQL.query SQL.Persons.delete i
@@ -401,3 +400,14 @@ personImageName name =
 
 personImageFolder :: Id Person -> Text
 personImageFolder (Id n) = Text.pack $ "person/" <> show n
+
+base64FileToPath :: Id Person -> Base64File -> Action user Text
+base64FileToPath i image = do
+  let
+    fileName = personImageName (base64File_name image)
+    fileFolder = personImageFolder i
+    imagePath = fileFolder <> "/" <> fileName
+    newImage = image { base64File_name = fileName }
+  filedb <- toNewFileDB (personImageFolder i) $ fromBase64File newImage
+  runSQL $ SQL.query SQL.Files.upsertFile filedb
+  return imagePath

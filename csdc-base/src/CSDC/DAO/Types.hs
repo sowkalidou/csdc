@@ -67,6 +67,7 @@ data Person = Person
 data NewPerson = NewPerson
   { newPerson_name :: Text
   , newPerson_description :: Text
+  , newPerson_image :: Text
   , newPerson_orcid :: ORCID.Id
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON NewPerson

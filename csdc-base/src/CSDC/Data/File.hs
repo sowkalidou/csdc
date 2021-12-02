@@ -2,6 +2,7 @@
 
 module CSDC.Data.File
   ( Base64File (..)
+  , base64FileFromByteString
   , File (..)
   , fromBase64File
   , NewFileDB (..)
@@ -16,13 +17,14 @@ import Data.Aeson (ToJSON, FromJSON)
 import Data.ByteString (ByteString)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import Data.Text.Encoding (encodeUtf8)
+import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Foreign.C.Types (CTime (..))
 import GHC.Generics (Generic)
 import System.Posix.Types (EpochTime)
 
 import qualified Crypto.Hash.MD5 as MD5
+import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.Text as Text
@@ -33,6 +35,13 @@ data Base64File = Base64File
   , base64File_contents :: Text
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Base64File
+
+base64FileFromByteString :: Text -> Lazy.ByteString -> Base64File
+base64FileFromByteString name contents = Base64File
+  { base64File_name = name
+  , base64File_contents = "image/svg+xml;base64," <>
+      decodeUtf8 (Base64.encode (Lazy.toStrict contents))
+  }
 
 parseBase64Contents :: Text -> ByteString
 parseBase64Contents =

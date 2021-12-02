@@ -74,15 +74,16 @@ insert :: Statement NewPerson (Id Person)
 insert = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "INSERT INTO persons (name, description, orcid)"
-      , "VALUES ($1, $2, $3)"
+      [ "INSERT INTO persons (name, description, orcid, image)"
+      , "VALUES ($1, $2, $3, $4)"
       , "RETURNING id"
       ]
 
     encoder =
       (contramap newPerson_name Encoder.text) <>
       (contramap newPerson_description Encoder.text) <>
-      (contramap newPerson_orcid Encoder.orcidId)
+      (contramap newPerson_orcid Encoder.orcidId) <>
+      (contramap newPerson_image Encoder.text)
 
     decoder = Decoder.singleRow Decoder.id
 

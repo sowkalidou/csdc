@@ -6,7 +6,7 @@ CREATE TABLE persons
   , name text NOT NULL
   , description text NOT NULL
   , orcid text NOT NULL
-  , image text
+  , image text NOT NULL
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 

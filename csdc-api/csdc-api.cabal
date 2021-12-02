@@ -32,13 +32,19 @@ common dependencies
     hasql-transaction,
     mtl,
     network-uri,
+    random,
     servant,
     servant-server,
     text,
     time,
     wai,
     wai-app-static,
-    wai-extra
+    wai-extra,
+    -- Just for image generation
+    colour,
+    svg-builder,
+    diagrams-lib,
+    diagrams-svg,
 
 common extensions
   default-extensions:
@@ -63,6 +69,7 @@ library
     CSDC.API.DAO
     CSDC.DAO
     CSDC.FileServer
+    CSDC.Image
     CSDC.SQL
     CSDC.SQL.Decoder
     CSDC.SQL.Encoder
