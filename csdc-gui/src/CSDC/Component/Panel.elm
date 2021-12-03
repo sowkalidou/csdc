@@ -12,8 +12,6 @@ import CSDC.Component.Column as Column
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Dict
-import Dict exposing (Dict)
 import List
 
 --------------------------------------------------------------------------------

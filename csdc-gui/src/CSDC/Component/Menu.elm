@@ -8,17 +8,11 @@ module CSDC.Component.Menu exposing
   )
 
 import CSDC.Types exposing (..)
-import CSDC.API as API
 import CSDC.Page as Page
 
-import Browser
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Json.Decode as Json
-import Maybe
-import Maybe exposing (withDefault)
-import String
 
 --------------------------------------------------------------------------------
 -- Model

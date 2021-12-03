@@ -15,8 +15,6 @@ import Form
 import Validation
 
 import Html exposing (Html)
-import Html.Attributes
-import Html.Events
 
 --------------------------------------------------------------------------------
 -- Model

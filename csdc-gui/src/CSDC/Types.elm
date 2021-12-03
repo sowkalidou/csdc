@@ -1,13 +1,8 @@
 module CSDC.Types exposing (..)
 
-import Dict
-import Dict exposing (Dict)
-import Json.Decode as Decoder
-import Json.Decode exposing (Decoder)
-import Json.Encode as Encoder
-import Json.Encode exposing (Value)
+import Json.Decode as Decoder exposing (Decoder)
+import Json.Encode as Encoder exposing (Value)
 import String
-import Tuple exposing (pair)
 
 --------------------------------------------------------------------------------
 -- Id
@@ -24,10 +19,7 @@ idToString : Id a -> String
 idToString (Id n) = String.fromInt n
 
 idFromString : String -> Maybe (Id a)
-idFromString s =
-  case String.toInt s of
-    Nothing -> Nothing
-    Just n -> Just (Id n)
+idFromString s = Maybe.map Id (String.toInt s)
 
 type alias WithId a =
   { id : Id a

@@ -10,18 +10,14 @@ module CSDC.View.Unit exposing
 
 import CSDC.API as API
 import CSDC.Component.Column as Column
-import CSDC.Component.DotMenu as DotMenu
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
-import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
 import CSDC.Form.Unit as UnitForm
 import CSDC.Form.UnitDelete as UnitDeleteForm
 import CSDC.Form.Message as MessageForm
 import CSDC.Form.SubmissionMember as SubmissionMemberForm
-import CSDC.Input as Input
-import CSDC.Notification as Notification
-import CSDC.Notification exposing (Notification)
+import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 import CSDC.View.PersonPreview as PersonPreview
@@ -30,9 +26,6 @@ import Form
 
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
-import String
-import Tuple exposing (pair)
 
 --------------------------------------------------------------------------------
 -- Model

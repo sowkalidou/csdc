@@ -11,22 +11,15 @@ import CSDC.API as API
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
 import CSDC.Component.Preview as Preview
-import CSDC.Input as Input
-import CSDC.Notification as Notification
-import CSDC.Notification exposing (Notification)
+import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 import CSDC.Form.Reply as ReplyForm
 import CSDC.Form.ReplySeen as ReplySeenForm
-import CSDC.View.PersonPreview as PersonPreview
-import CSDC.View.UnitPreview as UnitPreview
 import Form
 
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
-import String
-import Tuple exposing (pair)
 
 --------------------------------------------------------------------------------
 -- Model

@@ -29,6 +29,7 @@ let
             localHaskellPackages.ghcid
             # Elm
             elmPackages.elm
+            elmPackages.elm-analyse
             elm2nix
             nodePackages.uglify-js
             # Database

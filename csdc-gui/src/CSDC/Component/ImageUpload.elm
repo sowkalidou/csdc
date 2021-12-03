@@ -1,12 +1,10 @@
 port module CSDC.Component.ImageUpload exposing (..)
 
-import Browser
 import File exposing (File)
 import File.Select as Select
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Json.Decode as D
 import Task
 
 import Croppie
@@ -82,7 +80,7 @@ update msg model =
 -- View
 
 view : Model -> (Msg -> msg) -> (Croppie.Result msg -> msg) -> Html msg
-view model makeMsg gotResult =
+view _ makeMsg gotResult =
   Html.div
     [ Html.Attributes.class "box has-text-centered"
     , Html.Attributes.style "height" "240px"

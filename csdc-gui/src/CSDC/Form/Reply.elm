@@ -7,7 +7,6 @@ module CSDC.Form.Reply exposing
   , viewMessage
   )
 
-import CSDC.Component.Preview as Preview
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Types exposing (..)
 import CSDC.Input as Input
@@ -18,7 +17,6 @@ import Validation
 
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
 
 --------------------------------------------------------------------------------
 -- Model

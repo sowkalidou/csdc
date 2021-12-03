@@ -7,13 +7,10 @@ module CSDC.Page exposing
   )
 
 import CSDC.Types exposing (..)
-import CSDC.API as API
 
 import Browser
 import Browser.Navigation as Nav
-import Html exposing (Html)
 import Maybe
-import Maybe exposing (withDefault)
 import String
 import Url exposing (Url)
 
@@ -63,12 +60,6 @@ toFragments page =
 toFragmentId : Id a -> String
 toFragmentId (Id a) = String.fromInt a
 
-toFragmentMessageType : MessageType -> String
-toFragmentMessageType mtype =
-  case mtype of
-    Invitation -> "invitation"
-    Submission -> "submission"
-
 --------------------------------------------------------------------------------
 -- Conversion from URL fragment
 
@@ -98,10 +89,3 @@ fromFragments l =
 
 fromFragmentId : String -> Maybe (Id a)
 fromFragmentId s = Maybe.map Id (String.toInt s)
-
-fromFragmentMessageType : String -> Maybe MessageType
-fromFragmentMessageType s =
-  case s of
-    "invitation" -> Just Invitation
-    "submission" -> Just Submission
-    _ -> Nothing

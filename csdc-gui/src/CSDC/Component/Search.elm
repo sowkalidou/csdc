@@ -14,7 +14,6 @@ import FeatherIcons
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Json.Decode as Decode
 
 --------------------------------------------------------------------------------
 -- Model

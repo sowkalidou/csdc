@@ -6,7 +6,6 @@ import CSDC.Types exposing (..)
 
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
 
 make : List (Html msg) -> Html msg
 make children =

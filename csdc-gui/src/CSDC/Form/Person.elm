@@ -8,7 +8,6 @@ module CSDC.Form.Person exposing
   )
 
 import CSDC.API as API
-import CSDC.Component.ImageUpload as ImageUpload
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Types exposing (..)
 import CSDC.Input as Input
@@ -16,10 +15,7 @@ import Field exposing (Field)
 import Validation
 import Form
 
-import Croppie
 import Html exposing (Html)
-import Html.Attributes
-import Html.Events
 
 --------------------------------------------------------------------------------
 -- Model

@@ -6,7 +6,6 @@ module CSDC.Component.DotMenu exposing
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Json.Decode as Decode
 
 type alias Item msg =
   { label: String

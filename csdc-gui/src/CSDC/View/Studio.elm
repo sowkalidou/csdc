@@ -11,18 +11,15 @@ module CSDC.View.Studio exposing
 import CSDC.API as API
 import CSDC.Component.Column as Column
 import CSDC.Component.DotMenu as DotMenu
-import CSDC.Component.ImageUpload exposing (defaultImage)
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
-import CSDC.Component.Preview as Preview
 import CSDC.Component.Progress as Progress
 import CSDC.Form.Unit as UnitForm
 import CSDC.Form.Person as PersonForm
 import CSDC.Form.Image as ImageForm
 import CSDC.Form.ReplySeen as ReplySeenForm
 import CSDC.Form.Reply as ReplyForm
-import CSDC.Notification as Notification
-import CSDC.Notification exposing (Notification)
+import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 import CSDC.View.UnitPreview as UnitPreview
@@ -30,9 +27,6 @@ import Form
 
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
-import String
-import Tuple exposing (pair)
 
 --------------------------------------------------------------------------------
 -- Model
@@ -161,22 +155,19 @@ update pageInfo msg model =
       )
 
     UnitCreateMsg unitMsg ->
-      case model.info of
-        Nothing -> (model, Cmd.none)
-        Just person ->
-          let
-            config =
-              { request = API.createUnit
-              , finish = \id -> Page.goTo pageInfo (Page.Unit id)
-              }
-            (unitCreate, cmd) = UnitForm.updateWith config unitMsg model.unitCreate
-          in
-            ( { model
-              | unitCreate = unitCreate
-              , unitCreateOpen = not (Form.isFinished unitMsg)
-              }
-            , Cmd.map UnitCreateMsg cmd
-            )
+      let
+        config =
+          { request = API.createUnit
+          , finish = \id -> Page.goTo pageInfo (Page.Unit id)
+          }
+        (unitCreate, cmd) = UnitForm.updateWith config unitMsg model.unitCreate
+      in
+        ( { model
+          | unitCreate = unitCreate
+          , unitCreateOpen = not (Form.isFinished unitMsg)
+          }
+        , Cmd.map UnitCreateMsg cmd
+        )
 
     PersonEditOpen ->
       case model.info of
@@ -216,17 +207,11 @@ update pageInfo msg model =
             )
 
     ImageOpen ->
-      case model.info of
-        Nothing ->
-          ( model
-          , Cmd.none
-          )
-        Just info ->
-          ( { model
-            | personImageOpen = True
-            }
-          , Cmd.map ImageMsg <| ImageForm.setup Nothing
-          )
+      ( { model
+        | personImageOpen = True
+        }
+      , Cmd.map ImageMsg <| ImageForm.setup Nothing
+      )
 
     ImageClose ->
       ( { model | personImageOpen = False }

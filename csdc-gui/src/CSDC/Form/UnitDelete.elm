@@ -6,17 +6,13 @@ module CSDC.Form.UnitDelete exposing
   , view
   )
 
-import CSDC.Component.Preview as Preview
 import CSDC.Types exposing (..)
 import CSDC.Input as Input
-import CSDC.Form.Reply exposing (viewMessage)
 import CSDC.API as API
 import CSDC.Notification as Notification exposing (Notification)
 import Form
 
 import Html exposing (Html)
-import Html.Attributes
-import Html.Events
 
 --------------------------------------------------------------------------------
 -- Model

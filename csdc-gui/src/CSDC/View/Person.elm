@@ -12,9 +12,7 @@ import CSDC.Component.Column as Column
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
 import CSDC.Component.Progress as Progress
-import CSDC.Input exposing (button)
-import CSDC.Notification as Notification
-import CSDC.Notification exposing (Notification)
+import CSDC.Notification as Notification exposing (Notification)
 import CSDC.View.UnitPreview as UnitPreview
 import CSDC.Form.Message as MessageForm
 import CSDC.Page as Page
@@ -23,9 +21,6 @@ import Form
 
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
-import String
-import Tuple exposing (pair)
 
 --------------------------------------------------------------------------------
 -- Model
@@ -97,22 +92,19 @@ update pageInfo msg model =
       )
 
     MessageCreateMsg messageMsg ->
-      case model.person of
-        Nothing -> (model, Cmd.none)
-        Just person ->
-          let
-            config =
-              { request = API.sendMessageMember
-              , finish = Cmd.none
-              }
-            (messageCreate, cmd) = MessageForm.updateWith config messageMsg model.messageCreate
-          in
-            ( { model
-              | messageCreate = messageCreate
-              , messageCreateOpen = not (Form.isFinished messageMsg)
-              }
-            , Cmd.map MessageCreateMsg cmd
-            )
+      let
+        config =
+          { request = API.sendMessageMember
+          , finish = Cmd.none
+          }
+        (messageCreate, cmd) = MessageForm.updateWith config messageMsg model.messageCreate
+      in
+        ( { model
+          | messageCreate = messageCreate
+          , messageCreateOpen = not (Form.isFinished messageMsg)
+          }
+        , Cmd.map MessageCreateMsg cmd
+        )
 
     Reset ->
       ( { model | notification = Notification.Empty }

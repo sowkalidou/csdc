@@ -1,7 +1,15 @@
-module Form exposing (..)
+module Form exposing
+  ( Msg (..)
+  , isFinished
+  , update
+  , Config
+  , StatelessConfig
+  , statelessConfig
+  , viewWith
+  )
 
 import CSDC.Component.Preview as Preview
-import CSDC.Notification as Notification exposing (Notification, Has)
+import CSDC.Notification as Notification exposing (Has)
 import CSDC.API as API
 import Html exposing (Html)
 import Delay

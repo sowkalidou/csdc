@@ -1,13 +1,10 @@
-module Main exposing (..)
+module Main exposing (main)
 
-import CSDC.API as API
 import CSDC.Component.Menu as Menu
 import CSDC.Component.Navbar as Navbar
 import CSDC.Component.Search as Search
-import CSDC.Notification as Notification
-import CSDC.Notification exposing (Notification)
-import CSDC.Page as Page
-import CSDC.Page exposing (Page)
+import CSDC.Notification as Notification exposing (Notification)
+import CSDC.Page as Page exposing (Page)
 import CSDC.Types exposing (..)
 import CSDC.View.Explorer as Explorer
 import CSDC.View.Studio as Studio
@@ -17,17 +14,9 @@ import CSDC.View.UnitAdmin as UnitAdmin
 
 import Browser
 import Browser.Navigation as Nav
-import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events exposing (..)
-import Element.Input as Input
 import Html exposing (Html)
 import Html.Attributes
 import List
-import Maybe
-import Maybe exposing (withDefault)
-import String
 import Url
 
 --------------------------------------------------------------------------------
@@ -200,7 +189,7 @@ update msg model =
 -- Subscriptions
 
 subscriptions : Model -> Sub Msg
-subscriptions model = Sub.none
+subscriptions _ = Sub.none
 
 --------------------------------------------------------------------------------
 -- View
@@ -238,36 +227,24 @@ menuPanel model =
 
 mainPanel : Model -> List (Html Msg)
 mainPanel model =
-  let
-    wrapElements elements =
-      [ layout [] <|
-        column
-          [ height fill
-          , width <| fillPortion 5
-          , spacing 10
-          , padding 10
-          ]
-          elements
-      ]
-  in
-    case model.page of
-      Page.Studio ->
-        List.map (Html.map StudioMsg) <|
-        Studio.view model.studio
+  case model.page of
+    Page.Studio ->
+      List.map (Html.map StudioMsg) <|
+      Studio.view model.studio
 
-      Page.Explorer ->
-        List.map (Html.map ExplorerMsg) <|
-        Explorer.view model.explorer
+    Page.Explorer ->
+      List.map (Html.map ExplorerMsg) <|
+      Explorer.view model.explorer
 
-      Page.Person _ ->
-        List.map (Html.map PersonMsg) <|
-        Person.view model.viewPerson
+    Page.Person _ ->
+      List.map (Html.map PersonMsg) <|
+      Person.view model.viewPerson
 
-      Page.Unit _ ->
-        List.map (Html.map UnitMsg) <|
-        Unit.view model.viewUnit
+    Page.Unit _ ->
+      List.map (Html.map UnitMsg) <|
+      Unit.view model.viewUnit
 
-      Page.UnitAdmin _ ->
-        List.map (Html.map UnitAdminMsg) <|
-        UnitAdmin.view model.viewUnitAdmin
+    Page.UnitAdmin _ ->
+      List.map (Html.map UnitAdminMsg) <|
+      UnitAdmin.view model.viewUnitAdmin
 

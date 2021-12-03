@@ -6,7 +6,6 @@ module CSDC.Form.ReplySeen exposing
   , view
   )
 
-import CSDC.Component.Preview as Preview
 import CSDC.Types exposing (..)
 import CSDC.Input exposing (button)
 import CSDC.Form.Reply exposing (viewMessage)

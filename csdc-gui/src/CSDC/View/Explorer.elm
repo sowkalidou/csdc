@@ -11,18 +11,15 @@ import CSDC.API as API
 import CSDC.Component.Modal as Modal
 import CSDC.Component.Panel as Panel
 import CSDC.View.UnitPreview as UnitPreview
-import CSDC.Notification as Notification
-import CSDC.Notification exposing (Notification)
+import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
 
 import Browser.Dom as Dom
 import Delay
-import Dict
 import List
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
 import Task
 
 --------------------------------------------------------------------------------
