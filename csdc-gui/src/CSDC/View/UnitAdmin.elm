@@ -286,12 +286,6 @@ update pageInfo msg model =
 --------------------------------------------------------------------------------
 -- View
 
-canEdit : Maybe PersonInfo -> UnitInfo -> Bool
-canEdit muser unitInfo =
-  case muser of
-    Nothing -> False
-    Just person -> person.id == unitInfo.unit.chair
-
 view : Model -> List (Html Msg)
 view model =
   case model.unit of
