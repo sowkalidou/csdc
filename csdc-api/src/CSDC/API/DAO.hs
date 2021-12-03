@@ -8,14 +8,15 @@ import CSDC.Types.File (Base64File)
 import CSDC.DAO
 import CSDC.Prelude hiding (JSON)
 
-import Servant hiding (Server)
+import Servant hiding (Server, Post)
+import qualified Servant
 
 --------------------------------------------------------------------------------
 -- Synonyms
 
 type Server api = ServerT api (Action (Id Person))
 type GetJSON a = Get '[JSON] a
-type PostJSON a b = ReqBody '[JSON] a :> Post '[JSON] b
+type PostJSON a b = ReqBody '[JSON] a :> Servant.Post '[JSON] b
 type DeleteJSON a = Delete '[JSON] a
 type CaptureId a = Capture "id" (Id a)
 
@@ -144,6 +145,22 @@ serveSearchAPI =
   :<|> searchAll
 
 --------------------------------------------------------------------------------
+-- Forum
+
+type ForumAPI =
+       "forums" :> CaptureId Unit :> PostJSON NewThread (Id Thread)
+  :<|> "forums" :> CaptureId Unit :> GetJSON [ThreadInfo]
+  :<|> "threads" :> CaptureId Thread :> PostJSON NewPost (Id Post)
+  :<|> "threads" :> CaptureId Thread :> GetJSON [PostInfo]
+
+serveForumAPI :: Server ForumAPI
+serveForumAPI =
+       createThread
+  :<|> getThreads
+  :<|> createPost
+  :<|> getPosts
+
+--------------------------------------------------------------------------------
 -- API
 
 type API =
@@ -154,6 +171,7 @@ type API =
   :<|> "subpart" :> SubpartAPI
   :<|> "message" :> MessageAPI
   :<|> "search" :> SearchAPI
+  :<|> "forum" :> ForumAPI
 
 serveAPI :: Server API
 serveAPI =
@@ -164,3 +182,4 @@ serveAPI =
   :<|> serveSubpartAPI
   :<|> serveMessageAPI
   :<|> serveSearchAPI
+  :<|> serveForumAPI

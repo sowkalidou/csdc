@@ -1,11 +1,14 @@
 {-# LANGUAGE StrictData #-}
 
 module CSDC.Types.Forum
-  ( Thread (..)
+  ( -- Thread
+    Thread (..)
   , NewThread (..)
-  , ThreadSummary (..)
   , ThreadInfo (..)
-  , ThreadMessage (..)
+    -- Post
+  , Post (..)
+  , NewPost (..)
+  , PostInfo (..)
   ) where
 
 import CSDC.Aeson (JSON (..))
@@ -21,43 +24,47 @@ import GHC.Generics (Generic)
 -- Forum
 
 data NewThread = NewThread
-  { newThread_unit :: Id Unit
-  , newThread_author :: Id Person
-  , newThread_subject :: Text
-  , newThread_message :: Text
+  { newThread_subject :: Text
+  , newThread_text :: Text
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON NewThread
 
 data Thread = Thread
   { thread_unit :: Id Unit
-  , thread_person :: Id Unit
+  , thread_author :: Id Person
   , thread_subject :: Text
-  , thread_createdAt :: UTCTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Thread
 
-data ThreadSummary = ThreadSummary
-  { threadSummary_id :: Id Thread
-  , threadSummary_unit :: Id Unit
-  , threadSummary_author :: Id Unit
-  , threadSummary_authorName :: Text
-  , threadSummary_subject :: Text
-  , threadSummary_createdAt :: UTCTime
-  , threadSummary_last :: UTCTime
-  , threadSummary_messages :: Int
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON ThreadSummary
-
 data ThreadInfo = ThreadInfo
-  { threadInfo_summary :: ThreadSummary
-  , threadInfo_messages :: [WithId ThreadMessage]
+  { threadInfo_id :: Id Thread
+  , threadInfo_unit :: Id Unit
+  , threadInfo_author :: Id Person
+  , threadInfo_authorName :: Text
+  , threadInfo_subject :: Text
+  , threadInfo_createdAt :: UTCTime
+  , threadInfo_last :: UTCTime
+  , threadInfo_messages :: Int
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON ThreadInfo
 
-data ThreadMessage = ThreadMessage
-  { threadMessage_author :: Id Person
-  , threadMessage_authorName :: Text
-  , threadMessage_message :: Text
-  , threadMessage_createdAt :: UTCTime
+data NewPost = NewPost
+  { newPost_text :: Text
   } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON ThreadMessage
+    deriving (FromJSON, ToJSON) via JSON NewPost
+
+data Post = Post
+  { post_thread :: Id Thread
+  , post_author :: Id Person
+  , post_text :: Text
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON Post
+
+data PostInfo = PostInfo
+  { postInfo_id :: Id Post
+  , postInfo_author :: Id Person
+  , postInfo_authorName :: Text
+  , postInfo_text :: Text
+  , postInfo_createdAt :: UTCTime
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON PostInfo

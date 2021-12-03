@@ -1,4 +1,4 @@
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE LambdaCase #-}
 
 module CSDC.DAO where
@@ -11,6 +11,7 @@ import CSDC.Types.File
 import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.SQL as SQL
 import qualified CSDC.SQL.Files as SQL.Files
+import qualified CSDC.SQL.Forum as SQL.Forum
 import qualified CSDC.SQL.Members as SQL.Members
 import qualified CSDC.SQL.MessageMembers as SQL.MessageMembers
 import qualified CSDC.SQL.MessageSubparts as SQL.MessageSubparts
@@ -399,3 +400,41 @@ base64FileToPath i image = do
   filedb <- toNewFileDB (personImageFolder i) $ fromBase64File newImage
   runSQL $ SQL.query SQL.Files.upsertFile filedb
   return imagePath
+
+--------------------------------------------------------------------------------
+-- Forum
+
+createThread :: Id Unit -> NewThread -> ActionAuth (Id Thread)
+createThread uid NewThread {..} = do
+  user <- getUser
+  let thread = Thread
+        { thread_unit = uid
+        , thread_author = user
+        , thread_subject = newThread_subject
+        }
+  tid <- runSQL $ SQL.query SQL.Forum.insertThread thread
+
+  let post = Post
+        { post_thread = tid
+        , post_author = user
+        , post_text = newThread_text
+        }
+  _ <- runSQL $ SQL.query SQL.Forum.insertPost post
+
+  pure tid
+
+getThreads :: Id Unit -> ActionAuth [ThreadInfo]
+getThreads uid = runSQL $ SQL.query SQL.Forum.selectThreads uid
+
+createPost :: Id Thread -> NewPost -> ActionAuth (Id Post)
+createPost tid NewPost {..} = do
+  user <- getUser
+  let post = Post
+        { post_thread = tid
+        , post_author = user
+        , post_text = newPost_text
+        }
+  runSQL $ SQL.query SQL.Forum.insertPost post
+
+getPosts :: Id Thread -> ActionAuth [PostInfo]
+getPosts tid = runSQL $ SQL.query SQL.Forum.selectPosts tid

@@ -115,3 +115,21 @@ CREATE TABLE files
   , PRIMARY KEY(folder, name)
   );
 
+--------------------------------------------------------------------------------
+-- Forum
+
+CREATE TABLE threads
+  ( id serial PRIMARY KEY
+  , unit integer NOT NULL REFERENCES units(id)
+  , author integer NOT NULL REFERENCES persons(id)
+  , subject text NOT NULL
+  , created_at timestamptz NOT NULL DEFAULT NOW()
+  );
+
+CREATE TABLE posts
+  ( id serial PRIMARY KEY
+  , thread integer NOT NULL REFERENCES threads(id)
+  , author integer NOT NULL REFERENCES persons(id)
+  , text text NOT NULL
+  , created_at timestamptz NOT NULL DEFAULT NOW()
+  );
