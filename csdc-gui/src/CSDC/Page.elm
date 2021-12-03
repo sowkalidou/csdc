@@ -8,7 +8,6 @@ module CSDC.Page exposing
 
 import CSDC.Types exposing (..)
 
-import Browser
 import Browser.Navigation as Nav
 import Maybe
 import String
