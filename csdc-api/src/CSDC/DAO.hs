@@ -246,67 +246,48 @@ createUnit unit = do
 getUserInbox :: ActionAuth Inbox
 getUserInbox = do
   pid <- getUser
-  allMessageMembers <- runSQL $
-    SQL.query SQL.MessageMembers.select $
+  messageMembers <- runSQL $
+    SQL.query SQL.MessageMembers.selectMessages $
     SQL.MessageMembers.Filter (Just pid) Nothing
 
-  allReplyMembers <- runSQL $
-    SQL.query SQL.MessageMembers.messageReplies $ fmap messageInfo_id allMessageMembers
+  replyMembers <- runSQL $
+    SQL.query SQL.MessageMembers.selectReplies $
+    SQL.MessageMembers.Filter (Just pid) Nothing
 
-  let
-    predMessage m =
-      messageInfo_status m == Waiting &&
-      messageInfo_type m == Invitation
+  let userInbox = Inbox
+        { inbox_messageMember = messageMembers
+        , inbox_replyMember = replyMembers
+        , inbox_messageSubpart = []
+        , inbox_replySubpart = []
+        }
 
-    predReply r =
-      replyInfo_status r == NotSeen &&
-      replyInfo_mtype r == Submission
+  units <- getUnitsWhoseChairIsUser
 
-  pure Inbox
-    { inbox_messageMember = filter predMessage allMessageMembers
-    , inbox_replyMember = filter predReply allReplyMembers
-    , inbox_messageSubpart = []
-    , inbox_replySubpart = []
-    }
+  unitInboxes <- mapM (getUnitInbox . withId_id) units
 
-inboxUnit :: Id Unit -> Action user Inbox
-inboxUnit uid = do
-  allMessageSubparts <- runSQL $
-    SQL.query SQL.MessageSubparts.select uid
+  pure $ mconcat (userInbox : unitInboxes)
 
-  allReplySubparts <- runSQL $
-    SQL.query SQL.MessageSubparts.messageReplies $
-    fmap messageInfo_id allMessageSubparts
+getUnitInbox :: Id Unit -> Action user Inbox
+getUnitInbox uid = do
+  messageSubparts <- runSQL $
+    SQL.query SQL.MessageSubparts.selectMessagesForUnit uid
 
-  let
-    predMessageSubpart m =
-      messageInfo_status m == Waiting
+  replySubparts <- runSQL $
+    SQL.query SQL.MessageSubparts.selectRepliesForUnit uid
 
-    predReplySubpart r =
-      replyInfo_status r == NotSeen
-
-  allMessageMembers <- runSQL $
-    SQL.query SQL.MessageMembers.select $
+  messageMembers <- runSQL $
+    SQL.query SQL.MessageMembers.selectMessages $
     SQL.MessageMembers.Filter Nothing (Just uid)
 
-  allReplyMembers <- runSQL $
-    SQL.query SQL.MessageMembers.messageReplies $
-    fmap messageInfo_id allMessageMembers
-
-  let
-    predMessageMember m =
-      messageInfo_status m == Waiting &&
-      messageInfo_type m == Submission
-
-    predReplyMember r =
-      replyInfo_status r == NotSeen &&
-      replyInfo_mtype r == Invitation
+  replyMembers <- runSQL $
+    SQL.query SQL.MessageMembers.selectReplies $
+    SQL.MessageMembers.Filter Nothing (Just uid)
 
   pure Inbox
-    { inbox_messageMember = filter predMessageMember allMessageMembers
-    , inbox_replyMember = filter predReplyMember allReplyMembers
-    , inbox_messageSubpart = filter predMessageSubpart allMessageSubparts
-    , inbox_replySubpart = filter predReplySubpart allReplySubparts
+    { inbox_messageMember = messageMembers
+    , inbox_replyMember = replyMembers
+    , inbox_messageSubpart = messageSubparts
+    , inbox_replySubpart = replySubparts
     }
 
 getUserInfo :: ActionAuth (Maybe PersonInfo)
@@ -314,16 +295,20 @@ getUserInfo = do
   uid <- getUser
   getPersonInfo uid
 
-getPersonInfo :: Id Person -> Action user (Maybe PersonInfo)
+getPersonInfo :: Id Person -> ActionAuth (Maybe PersonInfo)
 getPersonInfo uid =
   selectPerson uid >>= \case
     Nothing -> pure Nothing
     Just person -> do
+      userId <- getUser
       members <- runSQL $ SQL.query SQL.Members.selectByPerson uid
+      unitsForMessage <- runSQL $
+        SQL.query SQL.MessageMembers.getUnitsForMessage (userId, uid)
       pure $ Just PersonInfo
         { personInfo_id = uid
         , personInfo_person = person
         , personInfo_members = members
+        , personInfo_unitsForMessage = unitsForMessage
         }
 
 getUnitMembers :: Id Unit -> Action user [UnitMember]
@@ -346,6 +331,8 @@ getUnitInfo uid = do
       members <- getUnitMembers uid
       children <- getUnitChildren uid
       parents <- getUnitParents uid
+      unitsForMessage <- runSQL $
+        SQL.query SQL.MessageSubparts.getUnitsForMessage (userId, uid)
       pure $ Just UnitInfo
         { unitInfo_id = uid
         , unitInfo_unit = unit
@@ -356,6 +343,7 @@ getUnitInfo uid = do
         , unitInfo_isAdmin = unit_chair unit == userId
         , unitInfo_isMember = any (\m -> unitMember_id m == userId) members
         , unitInfo_isMembershipPending = isMembershipPending
+        , unitInfo_unitsForMessage = unitsForMessage
         }
 
 getUnitsWhoseChairIsUser :: ActionAuth [WithId Unit]

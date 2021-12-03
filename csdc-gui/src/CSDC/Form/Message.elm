@@ -1,7 +1,8 @@
 module CSDC.Form.Message exposing
   ( Model
   , initial
-  , setup
+  , fromUnitInfo
+  , fromPersonInfo
   , Msg
   , updateWith
   , view
@@ -37,10 +38,16 @@ initial =
   , notification = Notification.Empty
   }
 
-fromId : Id Unit -> Model
-fromId id =
+fromUnitInfo : UnitInfo -> Model
+fromUnitInfo info =
   { initial
-  | id = Field.set (Just id) initial.id
+  | units = info.unitsForMessage
+  }
+
+fromPersonInfo : PersonInfo -> Model
+fromPersonInfo info =
+  { initial
+  | units = info.unitsForMessage
   }
 
 reload : Model -> Model
@@ -66,9 +73,6 @@ parse (mtype, make) model =
       Err _ -> Nothing
       Ok reason -> Just reason
 
-setup : Cmd (Msg a)
-setup = Cmd.map (Form.ModelMsg << SetUnits) API.getUserUnits
-
 --------------------------------------------------------------------------------
 -- Update
 
@@ -92,7 +96,6 @@ type alias Msg a = Form.Msg ModelMsg (MessageType, Id Unit -> a) (Id (Message a)
 type ModelMsg
   = SetReason String
   | SetId (Maybe (Id Unit))
-  | SetUnits (API.Response (List (WithId Unit)))
 
 update : ModelMsg -> Model -> (Model, Cmd ModelMsg)
 update msg model =
@@ -105,10 +108,6 @@ update msg model =
       ( { model | id = Field.set val model.id }
       , Cmd.none
       )
-    SetUnits response ->
-      case response of
-        Err _ -> (model, Cmd.none)
-        Ok units -> ({ model | units = units }, Cmd.none)
 
 --------------------------------------------------------------------------------
 -- View

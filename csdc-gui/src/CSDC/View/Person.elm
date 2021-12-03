@@ -82,8 +82,13 @@ update pageInfo msg model =
       )
 
     MessageCreateOpen ->
-      ( { model | messageCreateOpen = True }
-      , Cmd.map MessageCreateMsg MessageForm.setup
+      ( { model
+        | messageCreateOpen = True
+        , messageCreate = case model.person of
+            Nothing -> MessageForm.initial
+            Just info -> MessageForm.fromPersonInfo info
+        }
+      , Cmd.none
       )
 
     MessageCreateClose ->
@@ -152,10 +157,15 @@ view model =
           [ Html.div
               [ Html.Attributes.class "column is-two-thirds" ]
               [ Column.make "Information"
-                  [ { label = "Invite this person to your unit"
-                    , message = MessageCreateOpen
-                    }
-                  ]
+                  ( if List.isEmpty person.unitsForMessage
+                    then
+                      []
+                    else
+                      [ { label = "Invite this person to your unit"
+                        , message = MessageCreateOpen
+                        }
+                      ]
+                  )
                   [ Html.div
                       [ Html.Attributes.class "media"
                       , Html.Attributes.style "padding-bottom" "25px"

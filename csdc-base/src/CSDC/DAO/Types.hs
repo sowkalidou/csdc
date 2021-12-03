@@ -193,6 +193,7 @@ data PersonInfo = PersonInfo
   { personInfo_id :: Id Person
   , personInfo_person :: Person
   , personInfo_members :: [PersonMember]
+  , personInfo_unitsForMessage :: [WithId Unit]
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON PersonInfo
 
@@ -220,6 +221,7 @@ data UnitInfo = UnitInfo
   , unitInfo_isMember :: Bool
   , unitInfo_isAdmin :: Bool
   , unitInfo_isMembershipPending :: Bool
+  , unitInfo_unitsForMessage :: [WithId Unit]
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON UnitInfo
 
@@ -251,6 +253,13 @@ data Inbox = Inbox
   , inbox_replySubpart :: [ReplyInfo NewSubpart]
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Inbox
+
+instance Semigroup Inbox where
+  Inbox mm1 rm1 ms1 rs1 <> Inbox mm2 rm2 ms2 rs2 =
+    Inbox (mm1 <> mm2) (rm1 <> rm2) (ms1 <> ms2) (rs1 <> rs2)
+
+instance Monoid Inbox where
+  mempty = Inbox [] [] [] []
 
 --------------------------------------------------------------------------------
 -- Search

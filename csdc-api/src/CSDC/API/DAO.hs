@@ -127,7 +127,7 @@ serveMessageAPI :: Server MessageAPI
 serveMessageAPI =
        serveMessageMemberAPI
   :<|> serveMessageSubpartAPI
-  :<|> inboxUnit
+  :<|> getUnitInbox
 
 --------------------------------------------------------------------------------
 -- Search

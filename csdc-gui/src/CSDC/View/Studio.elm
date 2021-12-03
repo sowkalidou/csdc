@@ -553,7 +553,9 @@ inboxToItems inbox =
   let
     fmm m =
       { index = MessageMemberId m.id
-      , title = "Invitation from " ++ m.right
+      , title = case m.mtype of
+          Invitation -> "Invitation from " ++ m.right
+          Submission -> "Submission from " ++ m.left
       , description = m.text
       }
     frm r =
@@ -565,7 +567,9 @@ inboxToItems inbox =
       }
     fms m =
       { index = MessageSubpartId m.id
-      , title = "Submission from " ++ m.left
+      , title = case m.mtype of
+          Invitation -> "Invitation from " ++ m.right
+          Submission -> "Submission from " ++ m.left
       , description = m.text
       }
     frs r =

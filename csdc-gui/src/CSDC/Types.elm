@@ -100,14 +100,16 @@ type alias PersonInfo =
   { id : Id Person
   , person : Person
   , members : List PersonMember
+  , unitsForMessage : List (WithId Unit)
   }
 
 decodePersonInfo : Decoder PersonInfo
 decodePersonInfo =
-  Decoder.map3 PersonInfo
+  Decoder.map4 PersonInfo
     (Decoder.field "id" decodeId)
     (Decoder.field "person" decodePerson)
     (Decoder.field "members" (Decoder.list decodePersonMember))
+    (Decoder.field "unitsForMessage" (Decoder.list (decodeWithId decodeUnit)))
 
 --------------------------------------------------------------------------------
 -- Unit
@@ -187,6 +189,7 @@ type alias UnitInfo =
   , isMember : Bool
   , isAdmin : Bool
   , isMembershipPending : Bool
+  , unitsForMessage : List (WithId Unit)
   }
 
 decodeUnitInfo : Decoder UnitInfo
@@ -201,6 +204,7 @@ decodeUnitInfo =
     |> andMap (Decoder.field "isMember" Decoder.bool)
     |> andMap (Decoder.field "isAdmin" Decoder.bool)
     |> andMap (Decoder.field "isMembershipPending" Decoder.bool)
+    |> andMap (Decoder.field "unitsForMessage" (Decoder.list (decodeWithId decodeUnit)))
 
 andMap : Decoder a -> Decoder (a -> b) -> Decoder b
 andMap = Decoder.map2 (\a f -> f a)

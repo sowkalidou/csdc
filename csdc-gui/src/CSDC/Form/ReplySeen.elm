@@ -52,7 +52,9 @@ type alias Msg = Form.Msg () () ()
 view : ReplyInfo a -> Model -> List (Html Msg)
 view msg _ =
   [ Html.p []
-      [ Html.text "Your application was "
+      [ Html.text <| case msg.message.mtype of
+          Invitation -> "Your invitation was "
+          Submission -> "Your submission was "
       , Html.strong []
           [ Html.text <| case msg.rtype of
               Accept -> "accepted."

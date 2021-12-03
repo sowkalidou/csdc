@@ -26,6 +26,7 @@ library
     CSDC.Error
     CSDC.DAO.Types
     CSDC.Prelude
+    CSDC.SQL.QQ
   build-depends:
     csdc-auth,
     aeson,
@@ -37,6 +38,7 @@ library
     http-api-data,
     lens,
     mtl,
+    template-haskell,
     text,
     time
   hs-source-dirs:

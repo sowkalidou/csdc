@@ -261,7 +261,7 @@ update pageInfo msg model =
         Just unit ->
           let
             config =
-              { finish = Cmd.none
+              { finish = Page.goTo pageInfo <| Page.Unit unit.id
               }
             (submissionMember, cmd) = SubmissionMemberForm.updateWith config subpartMsg model.submissionMember
           in
@@ -276,8 +276,11 @@ update pageInfo msg model =
       ( { model
         | subpartCreateOpen = True
         , subpartCreateType = mtype
+        , subpartCreate = case model.info of
+            Nothing -> MessageForm.initial
+            Just info -> MessageForm.fromUnitInfo info
         }
-      , Cmd.map SubpartCreateMsg MessageForm.setup
+      , Cmd.none
       )
 
     SubpartCreateClose ->
@@ -292,7 +295,7 @@ update pageInfo msg model =
           let
             config =
               { request = API.sendMessageSubpart
-              , finish = Cmd.none
+              , finish = Page.goTo pageInfo <| Page.Unit unit.id
               }
             (subpartCreate, cmd) = MessageForm.updateWith config subpartMsg model.subpartCreate
           in
@@ -366,13 +369,17 @@ view model =
               [ Column.make
                   "Information"
                   ( List.concat
-                      [ [ { label = "Invitation for this unit"
-                          , message = SubpartCreateOpen Invitation
-                          }
-                        , { label = "Submission to this unit"
-                          , message = SubpartCreateOpen Submission
-                          }
-                        ]
+                      [ if List.isEmpty info.unitsForMessage
+                        then
+                          []
+                        else
+                          [ { label = "Invitation for this unit"
+                            , message = SubpartCreateOpen Invitation
+                            }
+                          , { label = "Submission to this unit"
+                            , message = SubpartCreateOpen Submission
+                            }
+                          ]
 
                       , if info.isAdmin
                           then

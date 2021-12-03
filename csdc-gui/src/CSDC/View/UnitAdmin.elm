@@ -90,6 +90,9 @@ update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
   let
     onSuccess = Notification.withResponse Reset model
+    reload = case model.unit of
+      Nothing -> Cmd.none
+      Just info -> Page.goTo pageInfo <| Page.UnitAdmin info.id
   in
   case msg of
     PanelMemberMsg m ->
@@ -133,7 +136,7 @@ update pageInfo msg model =
             config =
               { request = \(rtype, reason) ->
                   API.sendReplyMember { rtype = rtype, text = reason, message = id }
-              , finish = Page.goTo pageInfo Page.Studio
+              , finish = reload
               }
 
             (previewMessage, cmd) = ReplyForm.updateWith config preMsg model.previewMessage
@@ -151,7 +154,7 @@ update pageInfo msg model =
             config =
               { request = \(rtype, reason) ->
                   API.sendReplySubpart { rtype = rtype, text = reason, message = id }
-              , finish = Page.goTo pageInfo Page.Studio
+              , finish = reload
               }
 
             (previewMessage, cmd) = ReplyForm.updateWith config preMsg model.previewMessage
@@ -173,7 +176,7 @@ update pageInfo msg model =
           let
             config =
               { request = API.viewReplyMember id
-              , finish = Page.goTo pageInfo Page.Studio
+              , finish = reload
               }
 
             (previewReply, cmd) = ReplySeenForm.updateWith config preMsg model.previewReply
@@ -190,7 +193,7 @@ update pageInfo msg model =
           let
             config =
               { request = API.viewReplySubpart id
-              , finish = Page.goTo pageInfo Page.Studio
+              , finish = reload
               }
 
             (previewReply, cmd) = ReplySeenForm.updateWith config preMsg model.previewReply
@@ -222,7 +225,9 @@ update pageInfo msg model =
           let
             fmm m =
               { index = MemberMessage m.id
-              , title = "Invitation from " ++ m.right
+              , title = case m.mtype of
+                  Invitation -> "Invitation from " ++ m.right
+                  Submission -> "Submission from " ++ m.left
               , description = m.text
               }
 
@@ -241,7 +246,9 @@ update pageInfo msg model =
           let
             fms m =
               { index = SubpartMessage m.id
-              , title = "Submission from " ++ m.left
+              , title = case m.mtype of
+                  Invitation -> "Invitation from " ++ m.right
+                  Submission -> "Submission from " ++ m.left
               , description = m.text
               }
 
@@ -300,7 +307,7 @@ view model =
         else
           [ Html.h1
               [ Html.Attributes.class "title" ]
-              [ Html.text "Unit Admin" ]
+              [ Html.text <| unit.unit.name ++ " - Admin" ]
           , Html.div
               [ Html.Attributes.class "columns"
               , Html.Attributes.style "height" "100%"

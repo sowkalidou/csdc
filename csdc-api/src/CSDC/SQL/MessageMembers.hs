@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module CSDC.SQL.MessageMembers
@@ -8,12 +9,15 @@ module CSDC.SQL.MessageMembers
   , sendReply
   , viewReply
   , Filter (..)
-  , select
-  , messageReplies
+  , selectMessages
+  , selectReplies
   , isMembershipPending
+  , getUnitsForMessage
   ) where
 
 import CSDC.DAO.Types
+import CSDC.Data.Id
+import CSDC.SQL.QQ
 
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder
@@ -106,22 +110,24 @@ data Filter = Filter
   , filter_unit :: Maybe (Id Unit)
   }
 
-select :: Statement Filter [MessageInfo NewMember]
-select = Statement sql encoder decoder True
+selectMessages :: Statement Filter [MessageInfo NewMember]
+selectMessages = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "SELECT m.id, m.type, m.status, m.message, m.person, m.unit, p.name, u.name"
-      , "FROM"
-      , "  messages_member m"
-      , "JOIN"
-      , "  persons p ON p.id = m.person"
-      , "JOIN"
-      , "  units u ON u.id = m.unit"
-      , "WHERE"
-      , "  COALESCE (person = $1, TRUE)"
-      , "AND"
-      , "  COALESCE (unit = $2, TRUE)"
-      ]
+    sql = [sqlqq|
+      SELECT
+        m.id, m.type, m.status, m.message, m.person, m.unit, p.name, u.name
+      FROM
+        messages_member m
+      JOIN
+        persons p ON p.id = m.person
+      JOIN
+        units u ON u.id = m.unit
+      WHERE
+        m.status = 'Waiting' AND (
+          COALESCE(m.person = $1 AND m.type = 'Invitation', FALSE) OR
+          COALESCE(m.unit = $2 AND m.type = 'Submission', FALSE)
+        )
+      |]
 
     encoder =
       contramap filter_person Encoder.idNullable <>
@@ -140,23 +146,30 @@ select = Statement sql encoder decoder True
       messageInfo_right <- Decoder.text
       pure MessageInfo {..}
 
-messageReplies :: Statement [Id (Message NewMember)] [ReplyInfo NewMember]
-messageReplies = Statement sql encoder decoder True
+selectReplies :: Statement Filter [ReplyInfo NewMember]
+selectReplies = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "SELECT r.id, r.type, m.type, r.reply, r.status, m.id, m.type, m.status, m.message, m.person, m.unit, p.name, u.name"
-      , "FROM"
-      , "  replies_member r"
-      , "JOIN"
-      , "  messages_member m ON m.id = r.message"
-      , "JOIN"
-      , "  persons p ON p.id = m.person"
-      , "JOIN"
-      , "  units u ON u.id = m.unit"
-      , "WHERE r.message = ANY($1)"
-      ]
+    sql = [sqlqq|
+      SELECT
+        r.id, r.type, m.type, r.reply, r.status, m.id, m.type, m.status, m.message, m.person, m.unit, p.name, u.name
+      FROM
+        replies_member r
+      JOIN
+        messages_member m ON m.id = r.message
+      JOIN
+        persons p ON p.id = m.person
+      JOIN
+        units u ON u.id = m.unit
+      WHERE
+        r.status = 'NotSeen' AND (
+          COALESCE(m.person = $1 AND m.type = 'Submission', FALSE) OR
+          COALESCE(m.unit = $1 AND m.type = 'Invitation', FALSE)
+        )
+      |]
 
-    encoder = Encoder.idList
+    encoder =
+      contramap filter_person Encoder.idNullable <>
+      contramap filter_unit Encoder.idNullable
 
     decoder = Decoder.rowList $ do
       replyInfo_id <- Decoder.id
@@ -178,6 +191,7 @@ messageReplies = Statement sql encoder decoder True
         pure MessageInfo {..}
       pure ReplyInfo {..}
 
+
 isMembershipPending :: Statement (Id Person, Id Unit) Bool
 isMembershipPending =  Statement sql encoder decoder True
   where
@@ -194,3 +208,51 @@ isMembershipPending =  Statement sql encoder decoder True
       contramap snd Encoder.id
 
     decoder = Decoder.singleRow Decoder.bool
+
+getUnitsForMessage :: Statement (Id Person, Id Person) [WithId Unit]
+getUnitsForMessage = Statement sql encoder decoder True
+  where
+    sql = [sqlqq|
+      WITH
+        -- Units eligible for member messages
+        units_user AS (
+          SELECT id FROM units WHERE chair = $1
+        ),
+
+        -- Units which have the unit as member
+        units_member AS (
+          SELECT units_user.id AS id
+          FROM units_user
+          JOIN members ON units_user.id = members.unit
+          WHERE members.person = $2
+        ),
+
+        -- Units which have pending messages
+        units_member_message AS (
+          SELECT units_user.id AS id
+          FROM units_user
+          JOIN messages_member ON units_user.id = messages_member.unit
+          WHERE messages_member.person = $2 AND status = 'Waiting'
+        )
+
+      SELECT id, name, description, chair, created_at
+      FROM units
+      WHERE chair = $1 AND id NOT IN (
+        SELECT id FROM units_member UNION
+        SELECT id FROM units_member_message
+      )
+      |]
+
+    encoder =
+      contramap fst Encoder.id <>
+      contramap snd Encoder.id
+
+    decoder = Decoder.rowList $ do
+      withId_id <- Decoder.id
+      withId_value <- do
+        unit_name <- Decoder.text
+        unit_description <- Decoder.text
+        unit_chair <- Decoder.id
+        unit_createdAt <- Decoder.timestamptz
+        pure Unit {..}
+      pure WithId {..}
