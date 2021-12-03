@@ -1,4 +1,4 @@
-module CSDC.Data.Id
+module CSDC.Types.Id
   ( Id (..)
   , zero
   , next

@@ -13,8 +13,7 @@ module CSDC.SQL.MessageSubparts
   , getUnitsForMessage
   ) where
 
-import CSDC.DAO.Types
-import CSDC.Data.Id
+import CSDC.Prelude
 import CSDC.SQL.QQ
 
 import qualified CSDC.SQL.Decoder as Decoder

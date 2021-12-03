@@ -4,9 +4,9 @@
 module CSDC.DAO where
 
 import CSDC.Auth.User (User (..))
-import CSDC.Data.File
 import CSDC.Image
 import CSDC.Prelude
+import CSDC.Types.File
 
 import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.SQL as SQL

@@ -9,7 +9,7 @@ module CSDC.SQL.Subparts
   , deleteUnit
   ) where
 
-import CSDC.DAO.Types
+import CSDC.Prelude
 
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder

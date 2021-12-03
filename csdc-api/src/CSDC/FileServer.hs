@@ -2,7 +2,7 @@ module CSDC.FileServer
   ( serveSQLFileServer
   ) where
 
-import CSDC.Data.File (FileDB (..))
+import CSDC.Types.File (FileDB (..))
 
 import qualified CSDC.SQL as SQL
 import qualified CSDC.SQL.Files as SQL.Files

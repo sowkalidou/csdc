@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module CSDC.Data.File
+module CSDC.Types.File
   ( Base64File (..)
   , base64FileFromByteString
   , File (..)

@@ -10,7 +10,7 @@ module CSDC.SQL.Files
   ) where
 
 import CSDC.Prelude
-import CSDC.Data.File (FileDB (..), NewFileDB (..))
+import CSDC.Types.File (FileDB (..), NewFileDB (..))
 
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder

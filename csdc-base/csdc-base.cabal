@@ -20,13 +20,13 @@ cabal-version:
 library
   exposed-modules:
     CSDC.Aeson
-    CSDC.Data.Id
-    CSDC.Data.File
-    CSDC.Data.RIO
-    CSDC.Error
-    CSDC.DAO.Types
     CSDC.Prelude
     CSDC.SQL.QQ
+    CSDC.Types.Id
+    CSDC.Types.File
+    CSDC.Types.Forum
+    CSDC.Types.GUI
+    CSDC.Types.DAO
   build-depends:
     csdc-auth,
     aeson,
@@ -44,20 +44,10 @@ library
   hs-source-dirs:
     src
   default-extensions:
-    ConstraintKinds
-    DeriveFoldable
-    DeriveFunctor
     DeriveGeneric
-    DeriveTraversable
     DerivingStrategies
     DerivingVia
-    FlexibleContexts
-    FlexibleInstances
     GeneralizedNewtypeDeriving
-    InstanceSigs
-    MultiParamTypeClasses
-    FunctionalDependencies
-    RankNTypes
   ghc-options:
     -Wall
   default-language:

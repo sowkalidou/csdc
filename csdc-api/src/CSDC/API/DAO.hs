@@ -4,7 +4,7 @@ module CSDC.API.DAO
   , serveAPI
   ) where
 
-import CSDC.Data.File (Base64File)
+import CSDC.Types.File (Base64File)
 import CSDC.DAO
 import CSDC.Prelude hiding (JSON)
 
