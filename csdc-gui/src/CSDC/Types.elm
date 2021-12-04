@@ -525,6 +525,83 @@ encodeBase64File file =
     ]
 
 --------------------------------------------------------------------------------
+-- Forum
+
+type alias NewThread =
+  { subject : String
+  , text : String
+  }
+
+encodeNewThread : NewThread -> Value
+encodeNewThread newThread =
+  Encoder.object
+    [ ("subject", Encoder.string newThread.subject)
+    , ("text", Encoder.string newThread.text)
+    ]
+
+type alias Thread =
+  { unit : Id Unit
+  , author : Id Person
+  , subject : String
+  }
+
+type alias ThreadInfo =
+  { id : Id Thread
+  , unit : Id Unit
+  , author : Id Person
+  , authorName : String
+  , subject : String
+  , createdAt : String
+  , last : String
+  , messages : Int
+  }
+
+decodeThreadInfo : Decoder ThreadInfo
+decodeThreadInfo =
+  Decoder.map8 ThreadInfo
+    (Decoder.field "id" decodeId)
+    (Decoder.field "unit" decodeId)
+    (Decoder.field "author" decodeId)
+    (Decoder.field "authorName" Decoder.string)
+    (Decoder.field "subject" Decoder.string)
+    (Decoder.field "createdAt" Decoder.string)
+    (Decoder.field "last" Decoder.string)
+    (Decoder.field "messages" Decoder.int)
+
+type alias NewPost =
+  { text : String
+  }
+
+type alias Post =
+  { thread : Id Thread
+  , author : Id Person
+  , text : String
+  }
+
+encodeNewPost : NewPost -> Value
+encodeNewPost newPost =
+  Encoder.object
+    [ ("text", Encoder.string newPost.text)
+    ]
+
+type alias PostInfo =
+  { id : Id Post
+  , author : Id Person
+  , authorName : String
+  , text : String
+  , createdAt : String
+  }
+
+decodePostInfo : Decoder PostInfo
+decodePostInfo =
+  Decoder.map5 PostInfo
+    (Decoder.field "id" decodeId)
+    (Decoder.field "author" decodeId)
+    (Decoder.field "authorName" Decoder.string)
+    (Decoder.field "text" Decoder.string)
+    (Decoder.field "createdAt" Decoder.string)
+
+--------------------------------------------------------------------------------
 -- Helpers
 
 decodeString : (String -> Decoder a) -> Decoder a

@@ -148,8 +148,8 @@ serveSearchAPI =
 -- Forum
 
 type ForumAPI =
-       "forums" :> CaptureId Unit :> PostJSON NewThread (Id Thread)
-  :<|> "forums" :> CaptureId Unit :> GetJSON [ThreadInfo]
+       "unit" :> CaptureId Unit :> PostJSON NewThread (Id Thread)
+  :<|> "unit" :> CaptureId Unit :> GetJSON [ThreadInfo]
   :<|> "threads" :> CaptureId Thread :> PostJSON NewPost (Id Post)
   :<|> "threads" :> CaptureId Thread :> GetJSON [PostInfo]
 
