@@ -572,17 +572,17 @@ type alias NewPost =
   { text : String
   }
 
-type alias Post =
-  { thread : Id Thread
-  , author : Id Person
-  , text : String
-  }
-
 encodeNewPost : NewPost -> Value
 encodeNewPost newPost =
   Encoder.object
     [ ("text", Encoder.string newPost.text)
     ]
+
+type alias Post =
+  { thread : Id Thread
+  , author : Id Person
+  , text : String
+  }
 
 type alias PostInfo =
   { id : Id Post

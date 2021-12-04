@@ -102,9 +102,15 @@ update pageInfo msg model =
       )
 
     SetTab tab ->
-      ( { model | tab = tab }
-        , Cmd.none
-      )
+      case model.info of
+        Nothing -> (model, Cmd.none)
+        Just info ->
+          ( { model | tab = tab }
+            , case tab of
+                Info -> setup info.id
+                Admin -> Cmd.map UnitAdminMsg <| UnitAdmin.setup info.id
+                Forum -> Cmd.none
+          )
 
     ResetNotification ->
       ( { model | notification = Notification.Empty }
