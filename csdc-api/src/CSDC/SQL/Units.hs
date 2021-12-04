@@ -5,6 +5,7 @@ module CSDC.SQL.Units
   ( select
   , selectByChair
   , search
+  , searchUnits
   , insert
   , update
   , updateImage
@@ -77,6 +78,29 @@ search = Statement sql encoder decoder True
       searchResult_id <- Decoder.id
       searchResult_name <- Decoder.text
       pure SearchResult {..}
+
+searchUnits :: Statement [Text] [WithId Unit]
+searchUnits = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "SELECT id, name, description, chair, 'files/' || image, created_at"
+      , "FROM units"
+      , "WHERE name ILIKE ALL ($1)"
+      ]
+
+    encoder = Encoder.textList
+
+    decoder = Decoder.rowList $ do
+      withId_id <- Decoder.id
+      withId_value <- do
+        unit_name <- Decoder.text
+        unit_description <- Decoder.text
+        unit_chair <- Decoder.id
+        unit_image <- Decoder.text
+        unit_createdAt <- Decoder.timestamptz
+        pure Unit {..}
+      pure WithId {..}
+
 
 insert :: Statement Unit (Id Unit)
 insert = Statement sql encoder decoder True

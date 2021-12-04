@@ -136,14 +136,12 @@ serveMessageAPI =
 -- Search
 
 type SearchAPI =
-       "units" :> Capture "query" Text :> GetJSON [SearchResult (Id Unit)]
-  :<|> "persons" :> Capture "query" Text :> GetJSON [SearchResult (Id Person)]
+       "units" :> Capture "query" Text :> GetJSON [WithId Unit]
   :<|> "all":> Capture "query" Text :> GetJSON [SearchResult SearchId]
 
 serveSearchAPI :: Server SearchAPI
 serveSearchAPI =
        searchUnits
-  :<|> searchPersons
   :<|> searchAll
 
 --------------------------------------------------------------------------------

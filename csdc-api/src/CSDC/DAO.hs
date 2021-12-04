@@ -365,26 +365,20 @@ getUnitsWhoseChairIsUser = do
 --------------------------------------------------------------------------------
 -- Search
 
-searchUnits :: Text -> Action user [SearchResult (Id Unit)]
-searchUnits query =
+searchUnits :: Text -> Action user [WithId Unit]
+searchUnits query = do
   let
     parts = Text.words query
     toPattern part = "%" <> part <> "%"
-  in
-    runSQL $ SQL.query SQL.Units.search $ fmap toPattern parts
-
-searchPersons :: Text -> Action user [SearchResult (Id Person)]
-searchPersons query =
-  let
-    parts = Text.words query
-    toPattern part = "%" <> part <> "%"
-  in
-    runSQL $ SQL.query SQL.Persons.search $ fmap toPattern parts
+  runSQL $ SQL.query SQL.Units.searchUnits $ fmap toPattern parts
 
 searchAll :: Text -> Action user [SearchResult SearchId]
 searchAll query = do
-  persons <- searchPersons query
-  units <- searchUnits query
+  let
+    parts = Text.words query
+    toPattern part = "%" <> part <> "%"
+  persons <- runSQL $ SQL.query SQL.Persons.search $ fmap toPattern parts
+  units <- runSQL $ SQL.query SQL.Units.search $ fmap toPattern parts
   pure $ fmap (fmap SearchPerson) persons <> fmap (fmap SearchUnit) units
 
 --------------------------------------------------------------------------------

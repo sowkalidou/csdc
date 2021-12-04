@@ -21,6 +21,7 @@ import Delay
 import List
 import Html exposing (Html)
 import Html.Attributes
+import Html.Events
 import Task
 
 --------------------------------------------------------------------------------
@@ -30,9 +31,11 @@ type alias Model =
   { left : List (WithId Unit)
   , center : List (WithId Unit)
   , right : List (WithId Unit)
-  , notification : Notification
   , selected : Maybe (Id Unit)
   , isModalOpen : Bool
+  , search : String
+  , searchIsLoading : Bool
+  , notification : Notification
   }
 
 initial : Model
@@ -40,9 +43,11 @@ initial =
   { left = []
   , center = []
   , right = []
-  , notification = Notification.Empty
   , selected = Nothing
   , isModalOpen = False
+  , search = ""
+  , searchIsLoading = False
+  , notification = Notification.Empty
   }
 
 setup : Cmd Msg
@@ -66,6 +71,8 @@ type Msg
   | GetUnitParents (API.Response (List UnitSubpart))
   | GetUnitChildren (API.Response (List UnitSubpart))
   | SelectUnit Column (Id Unit)
+  | SearchInput String
+  | SearchUnits (API.Response (List (WithId Unit)))
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
@@ -106,7 +113,7 @@ update pageInfo msg model =
       )
 
     GetUserUnits res -> onSuccess res <| \units ->
-      ( { model | center = units }
+      ( { model | center = units, search = "" }
       , Cmd.none
       )
 
@@ -137,6 +144,22 @@ update pageInfo msg model =
             , getUnitContext id
             )
 
+    SearchInput input ->
+      if String.length input == 0
+      then
+        ( { model | search = input, searchIsLoading = True }
+        , setup
+        )
+      else if String.length input < 3
+      then
+        ( { model | search = input, searchIsLoading = False }
+        , Cmd.none
+        )
+      else
+        ( { model | search = input, searchIsLoading = True }
+        , Cmd.map SearchUnits <| API.searchUnits input
+        )
+
     GetUnitChildren res -> onSuccess res <| \units ->
       ( { model | right = List.map fromUnitSubpart units }
       , Cmd.none
@@ -144,6 +167,16 @@ update pageInfo msg model =
 
     GetUnitParents res -> onSuccess res <| \units ->
       ( { model | left = List.map fromUnitSubpart units }
+      , Cmd.none
+      )
+
+    SearchUnits res -> onSuccess res <| \units ->
+      ( { model
+        | center = units
+        , left = []
+        , right = []
+        , searchIsLoading = False
+        }
       , Cmd.none
       )
 
@@ -161,13 +194,19 @@ view model =
       ]
       [ Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Column.view "Parents" [] (viewUnits Left model.selected model.left) ]
+          [ Column.view "Parents" [] <|
+            viewUnits Left model.selected model.left
+          ]
       , Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Column.view "Units" [] (viewUnits Center model.selected model.center) ]
+          [ Column.view "Units" [viewSearch model.search] <|
+            viewUnits Center model.selected model.center
+          ]
       , Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Column.view "Children" [] (viewUnits Right model.selected model.right) ]
+          [ Column.view "Children" [] <|
+            viewUnits Right model.selected model.right
+          ]
       ]
   , Modal.view model.isModalOpen CloseModal <|
       case model.selected of
@@ -208,4 +247,17 @@ getUnitContext id =
     [ Cmd.map GetUnitChildren <| API.getUnitChildren id
     , Cmd.map GetUnitParents <| API.getUnitParents id
     ]
+
+viewSearch : String -> Html Msg
+viewSearch input =
+  Html.input
+    [ Html.Attributes.class "input"
+    , Html.Attributes.type_ "text"
+    , Html.Attributes.placeholder "Search"
+    , Html.Attributes.value input
+    , Html.Events.onInput SearchInput
+    , Html.Attributes.style "width" "50%"
+    , Html.Attributes.style "margin-top" "-10px"
+    ]
+    []
 

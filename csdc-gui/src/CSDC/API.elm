@@ -48,18 +48,11 @@ getUserUnits =
     , expect = Http.expectJson identity (D.list (decodeWithId decodeUnit))
     }
 
-searchUnits : String -> Cmd (Response (List (SearchResult (Id Unit))))
+searchUnits : String -> Cmd (Response (List (WithId Unit)))
 searchUnits input =
   Http.get
     { url = url ["search", "units", input]
-    , expect = Http.expectJson identity (D.list (decodeSearchResult decodeId))
-    }
-
-searchPersons : String -> Cmd (Response (List (SearchResult (Id Person))))
-searchPersons input =
-  Http.get
-    { url = url ["search", "persons", input]
-    , expect = Http.expectJson identity (D.list (decodeSearchResult decodeId))
+    , expect = Http.expectJson identity (D.list (decodeWithId decodeUnit))
     }
 
 searchAll : String -> Cmd (Response (List (SearchResult SearchId)))
