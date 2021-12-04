@@ -17,7 +17,7 @@ view =
     , Html.div
         [ Html.Attributes.class "column is-one-third" ]
         [ Html.progress
-            [ Html.Attributes.class "progress is-small is-primary"
+            [ Html.Attributes.class "progress is-small is-info"
             , Html.Attributes.attribute "max" "100"
             ]
             []

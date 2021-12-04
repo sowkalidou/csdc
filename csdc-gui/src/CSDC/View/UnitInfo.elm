@@ -291,10 +291,19 @@ view info model =
           ]
       , Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Column.view "Sub-Units" [] (viewUnits info.children) ]
+          [ Column.view "Members" [] (viewPersons info.members) ]
       , Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Column.view "Members" [] (viewPersons info.members) ]
+          [ Html.div
+              [ Html.Attributes.style "height" "calc(50% - 10px)"
+              ]
+              [ Column.view "Part Of" [] (viewUnits info.parents) ]
+          , Html.div
+              [ Html.Attributes.style "height" "calc(50% - 10px)"
+              , Html.Attributes.style "margin-top" "20px"
+              ]
+              [ Column.view "Sub-Units" [] (viewUnits info.children) ]
+          ]
       ]
 
   , Modal.view model.unitEditOpen UnitEditClose <|
