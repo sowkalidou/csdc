@@ -100,7 +100,7 @@ update pageInfo msg model =
         calculate p e = e.element.y - p.element.y - p.element.height / 2 + e.element.height / 2
       in
       ( model
-      , Task.map2 (\p e -> (p,e)) (Dom.getElement "Units-items") (Dom.getElement "Units-selected-item")
+      , Task.map2 (\p e -> (p,e)) (Dom.getElement "Units-items") (Dom.getElement "selected-item")
         |> Task.andThen (\(p,e) -> Dom.setViewportOf "Units-items" 0 (calculate p e))
         |> Task.attempt FocusResult
       )

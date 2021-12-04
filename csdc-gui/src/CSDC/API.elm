@@ -258,8 +258,8 @@ createUnitThread uid newThread =
     , expect = Http.expectJson identity decodeId
     }
 
-getUnitThread : Id Unit -> Cmd (Response (List ThreadInfo))
-getUnitThread uid =
+getUnitThreads : Id Unit -> Cmd (Response (List ThreadInfo))
+getUnitThreads uid =
   Http.get
     { url = baseUrl ++ "forum/unit/" ++ idToString uid
     , expect = Http.expectJson identity (D.list decodeThreadInfo)
@@ -273,8 +273,8 @@ createThreadPost uid newPost =
     , expect = Http.expectJson identity decodeId
     }
 
-getThreadPost : Id Thread -> Cmd (Response (List PostInfo))
-getThreadPost uid =
+getThreadPosts : Id Thread -> Cmd (Response (List PostInfo))
+getThreadPosts uid =
   Http.get
     { url = baseUrl ++ "forum/thread/" ++ idToString uid
     , expect = Http.expectJson identity (D.list decodePostInfo)

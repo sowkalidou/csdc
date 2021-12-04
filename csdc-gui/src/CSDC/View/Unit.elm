@@ -24,6 +24,7 @@ import CSDC.Page as Page
 import CSDC.Types exposing (..)
 import CSDC.View.UnitInfo as UnitInfo
 import CSDC.View.UnitAdmin as UnitAdmin
+import CSDC.View.UnitForum as UnitForum
 import Form
 
 import Html exposing (Html)
@@ -40,6 +41,7 @@ type alias Model =
   , tab : Tab
   , unitInfo : UnitInfo.Model
   , unitAdmin : UnitAdmin.Model
+  , unitForum : UnitForum.Model
   , notification : Notification
   }
 
@@ -49,6 +51,7 @@ initial =
   , tab = Info
   , unitInfo = UnitInfo.initial
   , unitAdmin = UnitAdmin.initial
+  , unitForum = UnitForum.initial
   , notification = Notification.Empty
   }
 
@@ -67,6 +70,7 @@ type Msg
   | ResetNotification
   | UnitInfoMsg UnitInfo.Msg
   | UnitAdminMsg UnitAdmin.Msg
+  | UnitForumMsg UnitForum.Msg
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
@@ -96,8 +100,19 @@ update pageInfo msg model =
             , Cmd.map UnitAdminMsg cmd
             )
 
+    UnitForumMsg umsg ->
+      case model.info of
+        Nothing -> (model, Cmd.none)
+        Just info ->
+          let
+            (unitForum, cmd) = UnitForum.update info pageInfo umsg model.unitForum
+          in
+            ( { model | unitForum = unitForum }
+            , Cmd.map UnitForumMsg cmd
+            )
+
     GetUnitInfo result -> onSuccess result <| \info ->
-      ( { model | info = Just info }
+      ( { model | info = Just info, tab = Info }
       , Cmd.none
       )
 
@@ -109,7 +124,7 @@ update pageInfo msg model =
             , case tab of
                 Info -> setup info.id
                 Admin -> Cmd.map UnitAdminMsg <| UnitAdmin.setup info.id
-                Forum -> Cmd.none
+                Forum -> Cmd.map UnitForumMsg <| UnitForum.setup info.id
           )
 
     ResetNotification ->
@@ -153,5 +168,9 @@ view model =
           Admin ->
             List.map (Html.map UnitAdminMsg) <|
             UnitAdmin.view info model.unitAdmin
-          Forum -> []
+          Forum ->
+            List.map (Html.map UnitForumMsg) <|
+            UnitForum.view info model.unitForum
+
       ] ++ Notification.view model.notification
+
