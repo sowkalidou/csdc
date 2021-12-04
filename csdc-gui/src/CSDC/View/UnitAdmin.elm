@@ -39,8 +39,7 @@ type Selected
   | SelectedSubpart SubpartId
 
 type alias Model =
-  { unit : Maybe UnitInfo
-  , inbox : Inbox
+  { inbox : Inbox
   , selected : Maybe Selected
   , notification : Notification
   , previewMessage : ReplyForm.Model
@@ -49,8 +48,7 @@ type alias Model =
 
 initial : Model
 initial =
-  { unit = Nothing
-  , inbox = emptyInbox
+  { inbox = emptyInbox
   , selected = Nothing
   , notification = Notification.Empty
   , previewMessage = ReplyForm.initial
@@ -59,29 +57,25 @@ initial =
 
 setup : Id Unit -> Cmd Msg
 setup id = Cmd.batch
-  [ Cmd.map GetUnitInfo <| API.getUnitInfo id
-  , Cmd.map UnitInbox <| API.unitInbox id
+  [ Cmd.map UnitInbox <| API.unitInbox id
   ]
 
 --------------------------------------------------------------------------------
 -- Update
 
 type Msg
-  = GetUnitInfo (API.Response UnitInfo)
-  | UnitInbox (API.Response Inbox)
+  = UnitInbox (API.Response Inbox)
   | ReplyMsg ReplyForm.Msg
   | ReplySeenMsg ReplySeenForm.Msg
   | SetSelected Selected
   | Reset
   | CloseModal
 
-update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
-update pageInfo msg model =
+update : UnitInfo -> Page.Info -> Msg -> Model -> (Model, Cmd Msg)
+update info pageInfo msg model =
   let
     onSuccess = Notification.withResponse Reset model
-    reload = case model.unit of
-      Nothing -> Cmd.none
-      Just info -> Page.goTo pageInfo <| Page.UnitAdmin info.id
+    reload = Page.goTo pageInfo <| Page.Unit info.id
   in
   case msg of
     SetSelected selected ->
@@ -184,99 +178,85 @@ update pageInfo msg model =
       , Cmd.none
       )
 
-    GetUnitInfo result -> onSuccess result <| \info ->
-      ( { model | unit = Just info }
-      , Cmd.none
-      )
-
 --------------------------------------------------------------------------------
 -- View
 
-view : Model -> List (Html Msg)
-view model =
-  case model.unit of
-    Nothing ->
-      [ Html.text "Loading..."
-      ] ++ Notification.view model.notification
-
-    Just unit ->
-      if not unit.isAdmin
-        then
-          [ Html.text "You cannot edit this unit."
+view : UnitInfo -> Model -> List (Html Msg)
+view unit model =
+  if not unit.isAdmin
+    then
+      [ Html.text "You cannot edit this unit."
+      ]
+    else
+      [ Html.div
+          [ Html.Attributes.class "columns"
+          , Html.Attributes.style "height" "100%"
           ]
-        else
-          [ Html.h1
-              [ Html.Attributes.class "title" ]
-              [ Html.text <| unit.unit.name ++ " - Admin" ]
+          [ Html.div
+              [ Html.Attributes.class "column is-half" ]
+              [ Column.view "Member Messages" [] (viewInboxMember model.inbox) ]
           , Html.div
-              [ Html.Attributes.class "columns"
-              , Html.Attributes.style "height" "100%"
-              ]
-              [ Html.div
-                  [ Html.Attributes.class "column is-half" ]
-                  [ Column.view "Member Messages" [] (viewInboxMember model.inbox) ]
-              , Html.div
-                  [ Html.Attributes.class "column is-half" ]
-                  [ Column.view "Subpart Messages" [] (viewInboxSubpart model.inbox) ]
-              ]
+              [ Html.Attributes.class "column is-half" ]
+              [ Column.view "Subpart Messages" [] (viewInboxSubpart model.inbox) ]
+          ]
 
-          , Modal.viewMaybe model.selected CloseModal <| \selected ->
-              case selected of
-                SelectedMember memberId ->
-                  Html.div [] <|
-                    case memberId of
-                      MessageMemberId rid ->
-                        case lookupById rid model.inbox.messageMember of
-                          Nothing ->
-                            [ Html.text "Error." ]
-                          Just msg ->
-                            List.singleton <|
-                            Html.map ReplyMsg <|
-                            Preview.make <|
-                            ReplyForm.view msg model.previewMessage
+      , Modal.viewMaybe model.selected CloseModal <| \selected ->
+          case selected of
+            SelectedMember memberId ->
+              Html.div [] <|
+                case memberId of
+                  MessageMemberId rid ->
+                    case lookupById rid model.inbox.messageMember of
+                      Nothing ->
+                        [ Html.text "Error." ]
+                      Just msg ->
+                        List.singleton <|
+                        Html.map ReplyMsg <|
+                        Preview.make <|
+                        ReplyForm.view msg model.previewMessage
 
-                      ReplyMemberId rid ->
-                        case lookupById rid model.inbox.replyMember of
-                          Nothing ->
-                            [ Html.text "Error." ]
-                          Just msg ->
-                            let
-                              title = case msg.mtype of
-                                Invitation -> "Invitation Reply"
-                                Submission -> "Submission Reply"
-                            in
-                              List.singleton <|
-                              Html.map ReplySeenMsg <|
-                              Form.viewWith title (ReplySeenForm.view msg) model.previewReply
+                  ReplyMemberId rid ->
+                    case lookupById rid model.inbox.replyMember of
+                      Nothing ->
+                        [ Html.text "Error." ]
+                      Just msg ->
+                        let
+                          title = case msg.mtype of
+                            Invitation -> "Invitation Reply"
+                            Submission -> "Submission Reply"
+                        in
+                          List.singleton <|
+                          Html.map ReplySeenMsg <|
+                          Form.viewWith title (ReplySeenForm.view msg) model.previewReply
 
-                SelectedSubpart subpartId ->
-                  Html.div [] <|
-                    case subpartId of
-                      MessageSubpartId rid ->
-                        case lookupById rid model.inbox.messageSubpart of
-                          Nothing ->
-                            [ Html.text "Error." ]
-                          Just msg ->
-                            List.singleton <|
-                            Html.map ReplyMsg <|
-                            Preview.make <|
-                            ReplyForm.view msg model.previewMessage
+            SelectedSubpart subpartId ->
+              Html.div [] <|
+                case subpartId of
+                  MessageSubpartId rid ->
+                    case lookupById rid model.inbox.messageSubpart of
+                      Nothing ->
+                        [ Html.text "Error." ]
+                      Just msg ->
+                        List.singleton <|
+                        Html.map ReplyMsg <|
+                        Preview.make <|
+                        ReplyForm.view msg model.previewMessage
 
-                      ReplySubpartId rid ->
-                        case lookupById rid model.inbox.replySubpart of
-                          Nothing ->
-                            [ Html.text "Error." ]
-                          Just msg ->
-                            let
-                              title = case msg.mtype of
-                                Invitation -> "Invitation Reply"
-                                Submission -> "Submission Reply"
-                            in
-                              List.singleton <|
-                              Html.map ReplySeenMsg <|
-                              Form.viewWith title (ReplySeenForm.view msg) model.previewReply
-          ] ++
-          Notification.view model.notification
+                  ReplySubpartId rid ->
+                    case lookupById rid model.inbox.replySubpart of
+                      Nothing ->
+                        [ Html.text "Error." ]
+                      Just msg ->
+                        let
+                          title = case msg.mtype of
+                            Invitation -> "Invitation Reply"
+                            Submission -> "Submission Reply"
+                        in
+                          List.singleton <|
+                          Html.map ReplySeenMsg <|
+                          Form.viewWith title (ReplySeenForm.view msg) model.previewReply
+      ] ++
+      Notification.view model.notification
 
 viewInboxMember : Inbox -> List (Html Msg)
 viewInboxMember inbox =

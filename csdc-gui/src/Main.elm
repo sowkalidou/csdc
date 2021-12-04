@@ -10,7 +10,6 @@ import CSDC.View.Explorer as Explorer
 import CSDC.View.Studio as Studio
 import CSDC.View.Person as Person
 import CSDC.View.Unit as Unit
-import CSDC.View.UnitAdmin as UnitAdmin
 
 import Browser
 import Browser.Navigation as Nav
@@ -42,7 +41,6 @@ type alias Model =
   , page : Page
   , viewPerson : Person.Model
   , viewUnit : Unit.Model
-  , viewUnitAdmin : UnitAdmin.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
   , search : Search.Model
@@ -61,7 +59,6 @@ init _ url key =
       , studio = Studio.initial
       , viewPerson = Person.initial
       , viewUnit = Unit.initial
-      , viewUnitAdmin = UnitAdmin.initial
       , search = Search.initial
       , notification = Notification.Empty
       }
@@ -80,7 +77,6 @@ type Msg
   | ExplorerMsg Explorer.Msg
   | PersonMsg Person.Msg
   | UnitMsg Unit.Msg
-  | UnitAdminMsg UnitAdmin.Msg
   | StudioMsg Studio.Msg
   | SearchMsg Search.Msg
 
@@ -93,8 +89,6 @@ routeCmd page =
       Cmd.map ExplorerMsg Explorer.setup
     Page.Unit uid ->
       Cmd.map UnitMsg (Unit.setup uid)
-    Page.UnitAdmin uid ->
-      Cmd.map UnitAdminMsg (UnitAdmin.setup uid)
     Page.Person uid ->
       Cmd.map PersonMsg (Person.setup uid)
 
@@ -169,14 +163,6 @@ update msg model =
         , Cmd.map UnitMsg cmd
         )
 
-    UnitAdminMsg m ->
-      let
-        (viewUnitAdmin, cmd) = UnitAdmin.update pageInfo m model.viewUnitAdmin
-      in
-        ( { model | viewUnitAdmin = viewUnitAdmin }
-        , Cmd.map UnitAdminMsg cmd
-        )
-
     SearchMsg m ->
       let
         (search, cmd) = Search.update pageInfo m model.search
@@ -243,8 +229,4 @@ viewMain model =
     Page.Unit _ ->
       List.map (Html.map UnitMsg) <|
       Unit.view model.viewUnit
-
-    Page.UnitAdmin _ ->
-      List.map (Html.map UnitAdminMsg) <|
-      UnitAdmin.view model.viewUnitAdmin
 

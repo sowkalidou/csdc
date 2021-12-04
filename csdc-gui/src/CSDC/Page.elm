@@ -21,7 +21,6 @@ type Page
   | Studio
   | Person (Id Person)
   | Unit (Id Unit)
-  | UnitAdmin (Id Unit)
 
 type alias Info =
   { key : Nav.Key
@@ -54,7 +53,6 @@ toFragments page =
     Studio -> ["studio"]
     Person uid -> ["person", toFragmentId uid]
     Unit uid -> ["unit", toFragmentId uid]
-    UnitAdmin uid -> ["unit-admin", toFragmentId uid]
 
 toFragmentId : Id a -> String
 toFragmentId (Id a) = String.fromInt a
@@ -79,10 +77,6 @@ fromFragments l =
     ["unit", uid] ->
       default <|
       Maybe.map Unit
-        (fromFragmentId uid)
-    ["unit-admin",uid] ->
-      default <|
-      Maybe.map UnitAdmin
         (fromFragmentId uid)
     _ -> Studio
 
