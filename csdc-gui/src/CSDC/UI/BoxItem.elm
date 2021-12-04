@@ -37,6 +37,10 @@ view model =
       , Html.Attributes.style "overflow" "hidden"
       , Html.Attributes.style "text-overflow" "ellipsis"
       , Html.Attributes.style "white-space" "nowrap"
+      , Html.Attributes.style "margin-bottom" <|
+          if model.size == Big
+          then "1.5em"
+          else "1.0em"
       ] ++
       case model.onClick of
         Nothing -> []
