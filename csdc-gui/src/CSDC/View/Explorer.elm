@@ -161,13 +161,13 @@ view model =
       ]
       [ Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Column.view "Parents" [] (viewUnits Left model.left) ]
+          [ Column.view "Parents" [] (viewUnits Left model.selected model.left) ]
       , Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Column.view "Units" [] (viewUnits Center model.center) ]
+          [ Column.view "Units" [] (viewUnits Center model.selected model.center) ]
       , Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Column.view "Children" [] (viewUnits Right model.right) ]
+          [ Column.view "Children" [] (viewUnits Right model.selected model.right) ]
       ]
   , Modal.view model.isModalOpen CloseModal <|
       case model.selected of
@@ -184,12 +184,15 @@ view model =
 --------------------------------------------------------------------------------
 -- Helpers
 
-viewUnits : Column -> List (WithId Unit) -> List (Html Msg)
-viewUnits column units =
+viewUnits : Column -> Maybe (Id Unit) -> List (WithId Unit) -> List (Html Msg)
+viewUnits column selected units =
   let
     toBox unit =
-      Html.map (SelectUnit column) <|
-      BoxImageText.view False unit.id unit.value
+      let
+        isSelected = column == Center && selected == Just unit.id
+      in
+        Html.map (SelectUnit column) <|
+        BoxImageText.view isSelected unit.id unit.value
   in
     List.map toBox units
 
