@@ -113,7 +113,7 @@ update pageInfo msg model =
       )
 
     GetUserUnits res -> onSuccess res <| \units ->
-      ( { model | center = units, search = "" }
+      ( { initial | center = units }
       , Cmd.none
       )
 

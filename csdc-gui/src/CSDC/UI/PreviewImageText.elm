@@ -21,8 +21,8 @@ view value msg = Preview.make
 
      , Html.figure
          [ Html.Attributes.class "image is-96x96"
-         , Html.Attributes.style "float" "right"
-         , Html.Attributes.style "margin" "5px 0px 10px 30px"
+         , Html.Attributes.style "float" "left"
+         , Html.Attributes.style "margin" "5px 30px 10px 0px"
          ]
          [ Html.img
              [ Html.Attributes.src value.image
@@ -33,7 +33,9 @@ view value msg = Preview.make
          ]
 
      , Markdown.toHtml
-         [ Html.Attributes.class "content"]
+         [ Html.Attributes.class "content"
+         , Html.Attributes.style "list-style-position" "inside"
+         ]
          value.description
      ]
 
