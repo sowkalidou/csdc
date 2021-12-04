@@ -50,7 +50,7 @@ type alias Person =
   { name : String
   , orcid : String
   , description : String
-  , image : Maybe String
+  , image : String
   , createdAt : String
   }
 
@@ -60,7 +60,7 @@ decodePerson =
     (Decoder.field "name" Decoder.string)
     (Decoder.field "orcid" Decoder.string)
     (Decoder.field "description" Decoder.string)
-    (Decoder.field "image" (Decoder.nullable Decoder.string))
+    (Decoder.field "image" Decoder.string)
     (Decoder.field "createdAt" Decoder.string)
 
 type alias PersonUpdate =
@@ -110,15 +110,17 @@ type alias Unit =
   { name : String
   , description : String
   , chair : Id Person
+  , image : String
   , createdAt : String
   }
 
 decodeUnit : Decoder Unit
 decodeUnit =
-  Decoder.map4 Unit
+  Decoder.map5 Unit
     (Decoder.field "name" Decoder.string)
     (Decoder.field "description" Decoder.string)
     (Decoder.field "chair" decodeId)
+    (Decoder.field "image" Decoder.string)
     (Decoder.field "createdAt" Decoder.string)
 
 type alias NewUnit =

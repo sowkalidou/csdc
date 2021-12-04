@@ -9,11 +9,14 @@ module CSDC.View.Studio exposing
   )
 
 import CSDC.API as API
+import CSDC.UI.BoxMessage as BoxMessage
+import CSDC.UI.BoxReply as BoxReply
+import CSDC.UI.BoxImageText as BoxImageText
 import CSDC.UI.Column as Column
 import CSDC.UI.DotMenu as DotMenu
 import CSDC.UI.Modal as Modal
-import CSDC.UI.Panel as Panel
 import CSDC.UI.Progress as Progress
+import CSDC.UI.PreviewImageText as PreviewImageText
 import CSDC.Form.Unit as UnitForm
 import CSDC.Form.Person as PersonForm
 import CSDC.Form.Image as ImageForm
@@ -22,27 +25,24 @@ import CSDC.Form.Reply as ReplyForm
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
-import CSDC.View.UnitPreview as UnitPreview
 import Form
 
 import Html exposing (Html)
 import Html.Attributes
+import Markdown
 
 --------------------------------------------------------------------------------
 -- Model
 
 type Selected
-  = SelectedNothing
-  | SelectedUnit (Id Unit)
+  = SelectedUnit (Id Unit)
   | SelectedInbox InboxId
 
 type alias Model =
   { info : Maybe PersonInfo
-  , panelUnits : Panel.Model (Id Unit)
-  , panelMessages : Panel.Model InboxId
   , notification : Notification
   , inbox : Inbox
-  , selected : Selected
+  , selected : Maybe Selected
   , unitCreate : UnitForm.Model
   , unitCreateOpen : Bool
   , personEdit : PersonForm.Model
@@ -56,11 +56,9 @@ type alias Model =
 initial : Model
 initial =
   { info = Nothing
-  , panelUnits = Panel.initial "Units"
-  , panelMessages = Panel.initial "Inbox"
   , notification = Notification.Empty
   , inbox = emptyInbox
-  , selected = SelectedNothing
+  , selected = Nothing
   , unitCreate = UnitForm.initial
   , unitCreateOpen = False
   , personEdit = PersonForm.initial
@@ -84,8 +82,6 @@ setup =
 type Msg
   = GetUserInfo (API.Response PersonInfo)
   | GetUserInbox (API.Response Inbox)
-  | UnitsMsg (Panel.Msg (Id Unit))
-  | MessagesMsg (Panel.Msg InboxId)
   | ReplyMsg ReplyForm.Msg
   | ReplySeenMsg ReplySeenForm.Msg
   | UnitCreateMsg (UnitForm.Msg (Id Unit))
@@ -97,6 +93,7 @@ type Msg
   | ImageMsg ImageForm.Msg
   | ImageOpen
   | ImageClose
+  | SetSelected Selected
   | View (Id Unit)
   | CloseModal
   | Reset
@@ -109,38 +106,14 @@ update pageInfo msg model =
   case msg of
     Reset ->
       ({ model | notification = Notification.Empty }, Cmd.none)
-    UnitsMsg m ->
-      case m of
-        Panel.SetSelected (Just id) ->
-          ( { model
-            | panelUnits = Panel.update m model.panelUnits
-            , selected = SelectedUnit id
-            }
-          , Cmd.none
-          )
 
-        _ ->
-          ( { model | panelUnits = Panel.update m model.panelUnits }
-          , Cmd.none
-          )
-
-    MessagesMsg m ->
-      case m of
-        Panel.SetSelected (Just id) ->
-          ( { model
-            | panelMessages = Panel.update m model.panelMessages
-            , selected = SelectedInbox id
-            }
-          , Cmd.none
-          )
-
-        _ ->
-          ( { model | panelMessages = Panel.update m model.panelMessages }
-          , Cmd.none
-          )
+    SetSelected selected ->
+      ( { model | selected = Just selected }
+      , Cmd.none
+      )
 
     View id ->
-      ( { model | selected = SelectedNothing }
+      ( { model | selected = Nothing }
       , Page.goTo pageInfo (Page.Unit id)
       )
 
@@ -238,7 +211,7 @@ update pageInfo msg model =
 
     ReplyMsg preMsg ->
       case model.selected of
-        SelectedInbox inboxId ->
+        Just (SelectedInbox inboxId) ->
           case inboxId of
             MessageMemberId id ->
               let
@@ -253,7 +226,7 @@ update pageInfo msg model =
                 ( { model
                   | previewMessage = previewMessage
                   , selected =
-                      if Form.isFinished preMsg then SelectedNothing else model.selected
+                      if Form.isFinished preMsg then Nothing else model.selected
                   }
                 , Cmd.map ReplyMsg cmd
                 )
@@ -271,7 +244,7 @@ update pageInfo msg model =
                 ( { model
                   | previewMessage = previewMessage
                   , selected =
-                      if Form.isFinished preMsg then SelectedNothing else model.selected
+                      if Form.isFinished preMsg then Nothing else model.selected
                   }
                 , Cmd.map ReplyMsg cmd
                 )
@@ -283,7 +256,7 @@ update pageInfo msg model =
 
     ReplySeenMsg preMsg ->
       case model.selected of
-        SelectedInbox inboxId ->
+        Just (SelectedInbox inboxId) ->
           case inboxId of
             ReplyMemberId id ->
               let
@@ -297,7 +270,7 @@ update pageInfo msg model =
                 ( { model
                   | previewReply = previewReply
                   , selected =
-                      if Form.isFinished preMsg then SelectedNothing else model.selected
+                      if Form.isFinished preMsg then Nothing else model.selected
                   }
                 , Cmd.map ReplySeenMsg cmd
                 )
@@ -314,7 +287,7 @@ update pageInfo msg model =
                 ( { model
                   | previewReply = previewReply
                   , selected =
-                      if Form.isFinished preMsg then SelectedNothing else model.selected
+                      if Form.isFinished preMsg then Nothing else model.selected
                   }
                 , Cmd.map ReplySeenMsg cmd
                 )
@@ -325,41 +298,25 @@ update pageInfo msg model =
           (model, Cmd.none)
 
     CloseModal ->
-      ( { model | selected = SelectedNothing }
+      ( { model | selected = Nothing }
       , Cmd.none
       )
 
     GetUserInfo result -> onSuccess result <| \info ->
-      let
-        pairs =
-          info.members |>
-          List.map (\personMember ->
-            { index = personMember.id
-            , title = personMember.unit.name
-            , description = personMember.unit.description
-            }
-          )
-
-        panelUnits = Panel.update (Panel.SetItems pairs) model.panelUnits
-      in
-        ( { model | info = Just info, panelUnits = panelUnits }
-        , Cmd.none
-        )
+      ( { model | info = Just info }
+      , Cmd.none
+      )
 
     GetUserInbox result -> onSuccess result <| \inbox ->
-      let
-        panelMessages =
-          Panel.update (Panel.SetItems <| inboxToItems inbox) model.panelMessages
-      in
-        ( { model | inbox = inbox, panelMessages = panelMessages }
-        , Cmd.none
-        )
+      ( { model | inbox = inbox }
+      , Cmd.none
+      )
 
 --------------------------------------------------------------------------------
 -- View
 
-dotMenu : List (DotMenu.Item Msg)
-dotMenu =
+dotMenu : Html Msg
+dotMenu = DotMenu.make
   [ { label = "Edit Profile"
     , message = PersonEditOpen
     }
@@ -388,7 +345,7 @@ view model =
           ]
           [ Html.div
               [ Html.Attributes.class "column is-one-third" ]
-              [ Column.make "Information" dotMenu
+              [ Column.view "Information" [dotMenu]
                   [ Html.div
                       [ Html.Attributes.class "media"
                       , Html.Attributes.style "padding-bottom" "25px"
@@ -400,10 +357,7 @@ view model =
                               , Html.Attributes.style "margin" "0"
                               ]
                               [ Html.img
-                                  [ Html.Attributes.src <|
-                                      case info.person.image of
-                                        Nothing -> "https://bulma.io/images/placeholders/96x96.png"
-                                        Just image -> image
+                                  [ Html.Attributes.src info.person.image
                                   , Html.Attributes.style "border-radius" "10%"
                                   , Html.Attributes.alt "Profile Photo"
                                   ]
@@ -426,17 +380,17 @@ view model =
                               ]
                           ]
                       ]
-                  , Html.div
+                  , Markdown.toHtml
                       [ Html.Attributes.class "content"]
-                      [ Html.text info.person.description ]
+                      (info.person.description)
                   ]
               ]
           , Html.div
               [ Html.Attributes.class "column is-one-third" ]
-              [ Html.map UnitsMsg <| Panel.view model.panelUnits ]
+              [ Column.view "Units" [] (viewUnits info.members) ]
           , Html.div
               [ Html.Attributes.class "column is-one-third" ]
-              [ Html.map MessagesMsg <| Panel.view model.panelMessages ]
+              [ Column.view "Inbox" [] (viewInbox model.inbox) ]
           ]
 
       , Modal.view model.personEditOpen PersonEditClose <|
@@ -451,76 +405,68 @@ view model =
           Html.map UnitCreateMsg <|
           Form.viewWith "Create Unit" UnitForm.view model.unitCreate
 
-      , let
-          isActive = case model.selected of
-            SelectedNothing -> False
-            _ -> True
-        in
-          Modal.view isActive CloseModal <|
-            case model.selected of
-              SelectedNothing ->
-                Html.div [] []
+      , Modal.viewMaybe model.selected CloseModal <| \selected ->
+          case selected of
+            SelectedUnit id ->
+              case lookupById id info.members of
+                Nothing ->
+                  Html.text "Error."
+                Just personMember ->
+                  PreviewImageText.view personMember.unit (View personMember.id)
 
-              SelectedUnit id ->
-                case lookupById id info.members of
-                  Nothing ->
-                    Html.text "Error."
-                  Just personMember ->
-                    UnitPreview.view personMember.unit (View personMember.id)
+            SelectedInbox inboxId ->
+              case inboxId of
+                ReplyMemberId id ->
+                  case lookupById id model.inbox.replyMember of
+                    Nothing ->
+                      Html.text "Error."
+                    Just msg ->
+                      let
+                        title = case msg.mtype of
+                          Invitation -> "Invitation Reply"
+                          Submission -> "Submission Reply"
+                      in
+                        Html.map ReplySeenMsg <|
+                        Form.viewWith title (ReplySeenForm.view msg) model.previewReply
 
-              SelectedInbox inboxId ->
-                case inboxId of
-                  ReplyMemberId id ->
-                    case lookupById id model.inbox.replyMember of
-                      Nothing ->
-                        Html.text "Error."
-                      Just msg ->
-                        let
-                          title = case msg.mtype of
-                            Invitation -> "Invitation Reply"
-                            Submission -> "Submission Reply"
-                        in
-                          Html.map ReplySeenMsg <|
-                          Form.viewWith title (ReplySeenForm.view msg) model.previewReply
+                MessageMemberId id ->
+                  case lookupById id model.inbox.messageMember of
+                    Nothing ->
+                      Html.text "Error."
+                    Just msg ->
+                      let
+                        title = case msg.mtype of
+                          Invitation -> "Invitation"
+                          Submission -> "Submission"
+                      in
+                        Html.map ReplyMsg <|
+                        Form.viewWith title (ReplyForm.view msg) model.previewMessage
 
-                  MessageMemberId id ->
-                    case lookupById id model.inbox.messageMember of
-                      Nothing ->
-                        Html.text "Error."
-                      Just msg ->
-                        let
-                          title = case msg.mtype of
-                            Invitation -> "Invitation"
-                            Submission -> "Submission"
-                        in
-                          Html.map ReplyMsg <|
-                          Form.viewWith title (ReplyForm.view msg) model.previewMessage
+                MessageSubpartId id ->
+                  case lookupById id model.inbox.messageSubpart of
+                    Nothing ->
+                      Html.text "Error."
+                    Just msg ->
+                      let
+                        title = case msg.mtype of
+                          Invitation -> "Invitation"
+                          Submission -> "Submission"
+                      in
+                        Html.map ReplyMsg <|
+                        Form.viewWith title (ReplyForm.view msg) model.previewMessage
 
-                  MessageSubpartId id ->
-                    case lookupById id model.inbox.messageSubpart of
-                      Nothing ->
-                        Html.text "Error."
-                      Just msg ->
-                        let
-                          title = case msg.mtype of
-                            Invitation -> "Invitation"
-                            Submission -> "Submission"
-                        in
-                          Html.map ReplyMsg <|
-                          Form.viewWith title (ReplyForm.view msg) model.previewMessage
-
-                  ReplySubpartId id ->
-                    case lookupById id model.inbox.replySubpart of
-                      Nothing ->
-                        Html.text "Error."
-                      Just msg ->
-                        let
-                          title = case msg.mtype of
-                            Invitation -> "Invitation Reply"
-                            Submission -> "Submission Reply"
-                        in
-                          Html.map ReplySeenMsg <|
-                          Form.viewWith title (ReplySeenForm.view msg) model.previewReply
+                ReplySubpartId id ->
+                  case lookupById id model.inbox.replySubpart of
+                    Nothing ->
+                      Html.text "Error."
+                    Just msg ->
+                      let
+                        title = case msg.mtype of
+                          Invitation -> "Invitation Reply"
+                          Submission -> "Submission Reply"
+                      in
+                        Html.map ReplySeenMsg <|
+                        Form.viewWith title (ReplySeenForm.view msg) model.previewReply
 
       ] ++ Notification.view model.notification
 
@@ -533,39 +479,30 @@ type InboxId
   | MessageSubpartId (Id (Message NewSubpart))
   | ReplySubpartId (Id (Reply NewSubpart))
 
-inboxToItems : Inbox -> List (Panel.Item InboxId)
-inboxToItems inbox =
+viewInbox : Inbox -> List (Html Msg)
+viewInbox inbox =
   let
-    fmm m =
-      { index = MessageMemberId m.id
-      , title = case m.mtype of
-          Invitation -> "Invitation from " ++ m.right
-          Submission -> "Submission from " ++ m.left
-      , description = m.text
-      }
-    frm r =
-      { index = ReplyMemberId r.id
-      , title = case r.mtype of
-          Invitation -> "Reply from " ++ r.message.left
-          Submission -> "Reply from " ++ r.message.right
-      , description = r.text
-      }
-    fms m =
-      { index = MessageSubpartId m.id
-      , title = case m.mtype of
-          Invitation -> "Invitation from " ++ m.right
-          Submission -> "Submission from " ++ m.left
-      , description = m.text
-      }
-    frs r =
-      { index = ReplySubpartId r.id
-      , title = case r.mtype of
-          Invitation -> "Reply from " ++ r.message.left
-          Submission -> "Reply from " ++ r.message.right
-      , description = r.text
-      }
+    toMsg iid =
+      SetSelected (SelectedInbox iid)
+    toBoxMessageMember =
+      Html.map (toMsg << MessageMemberId) << BoxMessage.view False
+    toBoxReplyMember =
+      Html.map (toMsg << ReplyMemberId) << BoxReply.view False
+    toBoxMessageSubpart =
+      Html.map (toMsg << MessageSubpartId) << BoxMessage.view False
+    toBoxReplySubpart =
+      Html.map (toMsg << ReplySubpartId) << BoxReply.view False
   in
-    List.map fmm inbox.messageMember ++
-    List.map frm inbox.replyMember ++
-    List.map fms inbox.messageSubpart ++
-    List.map frs inbox.replySubpart
+    List.map toBoxMessageMember inbox.messageMember ++
+    List.map toBoxReplyMember inbox.replyMember ++
+    List.map toBoxMessageSubpart inbox.messageSubpart ++
+    List.map toBoxReplySubpart inbox.replySubpart
+
+viewUnits : List PersonMember -> List (Html Msg)
+viewUnits members =
+  let
+    toBox member =
+      Html.map (SetSelected << SelectedUnit) <|
+      BoxImageText.view False member.id member.unit
+  in
+    List.map toBox members

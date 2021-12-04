@@ -142,6 +142,14 @@ updateUnit id unit =
     , expect = Http.expectJson identity decodeNull
     }
 
+updateUnitImage : Id Unit -> Base64File -> Cmd (Response ())
+updateUnitImage id file =
+  Http.post
+    { url = baseUrl ++ "unit/" ++ idToString id ++ "/image"
+    , body = Http.jsonBody (encodeBase64File file)
+    , expect = Http.expectJson identity decodeNull
+    }
+
 deleteUnit : Id Unit -> Cmd (Response ())
 deleteUnit = delete "unit" identity
 

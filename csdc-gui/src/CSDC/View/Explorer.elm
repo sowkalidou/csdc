@@ -8,9 +8,10 @@ module CSDC.View.Explorer exposing
   )
 
 import CSDC.API as API
+import CSDC.UI.BoxImageText as BoxImageText
+import CSDC.UI.Column as Column
 import CSDC.UI.Modal as Modal
-import CSDC.UI.Panel as Panel
-import CSDC.View.UnitPreview as UnitPreview
+import CSDC.UI.PreviewImageText as PreviewImageText
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
@@ -26,22 +27,22 @@ import Task
 -- Model
 
 type alias Model =
-  { left : Panel.Model (Id Unit)
-  , center : Panel.Model (Id Unit)
-  , right : Panel.Model (Id Unit)
+  { left : List (WithId Unit)
+  , center : List (WithId Unit)
+  , right : List (WithId Unit)
   , notification : Notification
   , selected : Maybe (Id Unit)
-  , preview : Maybe (WithId Unit)
+  , isModalOpen : Bool
   }
 
 initial : Model
 initial =
-  { left = Panel.initial "Parents"
-  , center = Panel.initial "Units"
-  , right = Panel.initial "Children"
+  { left = []
+  , center = []
+  , right = []
   , notification = Notification.Empty
   , selected = Nothing
-  , preview = Nothing
+  , isModalOpen = False
   }
 
 setup : Cmd Msg
@@ -50,16 +51,13 @@ setup = Cmd.map GetUserUnits API.getUserUnits
 --------------------------------------------------------------------------------
 -- Update
 
-type UI
+type Column
   = Left
   | Center
   | Right
 
 type Msg
-  = LeftMsg (Panel.Msg (Id Unit))
-  | CenterMsg (Panel.Msg (Id Unit))
-  | RightMsg (Panel.Msg (Id Unit))
-  | Unit (Id Unit)
+  = ViewUnit (Id Unit)
   | CloseModal
   | Reset
   | Focus
@@ -67,7 +65,7 @@ type Msg
   | GetUserUnits (API.Response (List (WithId Unit)))
   | GetUnitParents (API.Response (List UnitSubpart))
   | GetUnitChildren (API.Response (List UnitSubpart))
-  | SelectUnit UI (Id Unit) (API.Response Unit)
+  | SelectUnit Column (Id Unit)
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
@@ -75,75 +73,13 @@ update pageInfo msg model =
    onSuccess = Notification.withResponse Reset model
   in
   case msg of
-    CenterMsg m ->
-      ( { model | center = Panel.update m model.center }
-      , case m of
-          Panel.SetSelected (Just id) ->
-            Cmd.map (SelectUnit Center id) (API.selectUnit id)
-          _ ->
-            Cmd.none
-      )
-
-    LeftMsg m ->
-      case m of
-        Panel.SetSelected (Just id) ->
-          ( { model
-            | left =
-                Panel.update
-                  (Panel.SetItems []) model.left
-
-            , center =
-                Panel.update
-                  (Panel.SetItems model.left.items)
-                  model.center
-
-            , right =
-                Panel.update
-                  (Panel.SetItems model.center.items)
-                  model.right
-            }
-          , Cmd.map (SelectUnit Left id) (API.selectUnit id)
-          )
-
-        _ ->
-          ( model
-          , Cmd.none
-          )
-
-    RightMsg m ->
-      case m of
-        Panel.SetSelected (Just id) ->
-          ( { model
-            | left =
-                Panel.update
-                  (Panel.SetItems model.center.items)
-                  model.left
-            , center =
-                Panel.update
-                  (Panel.SetItems model.right.items)
-                  model.center
-            , right =
-                Panel.update
-                  (Panel.SetItems []) model.right
-            }
-          , Cmd.batch
-              [ Cmd.map (SelectUnit Right id) (API.selectUnit id)
-              , Delay.after 0.1 Delay.Second Focus
-              ]
-          )
-
-        _ ->
-          ( model
-          , Cmd.none
-          )
-
-    Unit m ->
-      ( { model | preview = Nothing }
+    ViewUnit m ->
+      ( { model | isModalOpen = False }
       , Page.goTo pageInfo (Page.Unit m)
       )
 
     CloseModal ->
-      ( { model | preview = Nothing }
+      ( { model | isModalOpen = False }
       , Cmd.none
       )
 
@@ -170,87 +106,46 @@ update pageInfo msg model =
       )
 
     GetUserUnits res -> onSuccess res <| \units ->
-      let
-        toItem w =
-          { index = w.id
-          , title = w.value.name
-          , description = w.value.description
-          }
-        dict = List.map toItem units
-        center = Panel.update (Panel.SetItems dict) model.center
-      in
-        ( { model | center = center }
-        , Cmd.none
-        )
+      ( { model | center = units }
+      , Cmd.none
+      )
 
-    SelectUnit component id res -> onSuccess res <| \unit ->
+    SelectUnit component id ->
       case component of
-        -- When the message comes from the center:
-        --
-        -- - change selected
-        -- - display preview
-        -- - launch commands for parents and children
-        --
         Center ->
           let
-            center =
-              Panel.update (Panel.SetSelected (Just id)) model.center
-
             selected = Just id
-
-            -- The preview only shows after clicking a second time in the
-            -- same unit, after it is selected
-            preview =
-              if model.selected == Just id
-              then Just { id = id, value = unit }
-              else Nothing
+            isModalOpen = model.selected == selected
           in
-            ( { model | center = center, selected = selected, preview = preview }
-            , Cmd.batch
-                [ Cmd.map GetUnitChildren <| API.getUnitChildren id
-                , Cmd.map GetUnitParents <| API.getUnitParents id
-                ]
+            ( { model | selected = selected, isModalOpen = isModalOpen }
+            , getUnitContext id
             )
 
         Left ->
           let
-            center =
-              Panel.update (Panel.SetSelected (Just id)) model.center
-
             selected = Just id
           in
-            ( { model | center = center, selected = selected }
-            , Cmd.map GetUnitParents <| API.getUnitParents id
+            ( { model | left = [], center = model.left, selected = selected }
+            , getUnitContext id
             )
 
         Right ->
           let
-            center =
-              Panel.update (Panel.SetSelected (Just id)) model.center
-
             selected = Just id
           in
-            ( { model | center = center, selected = selected }
-            , Cmd.map GetUnitChildren <| API.getUnitChildren id
+            ( { model | right = [], center = model.right, selected = selected }
+            , getUnitContext id
             )
 
     GetUnitChildren res -> onSuccess res <| \units ->
-      let
-        pairs = toItems units
-        right = Panel.update (Panel.SetItems pairs) model.right
-      in
-        ( { model | right = right }
-        , Cmd.none
-        )
+      ( { model | right = List.map fromUnitSubpart units }
+      , Cmd.none
+      )
 
     GetUnitParents res -> onSuccess res <| \units ->
-      let
-        pairs = toItems units
-        left = Panel.update (Panel.SetItems pairs) model.left
-      in
-        ( { model | left = left }
-        , Cmd.none
-        )
+      ( { model | left = List.map fromUnitSubpart units }
+      , Cmd.none
+      )
 
 --------------------------------------------------------------------------------
 -- View
@@ -266,33 +161,48 @@ view model =
       ]
       [ Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Html.map LeftMsg <| Panel.view model.left ]
+          [ Column.view "Parents" [] (viewUnits Left model.left) ]
       , Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Html.map CenterMsg <| Panel.view model.center ]
+          [ Column.view "Units" [] (viewUnits Center model.center) ]
       , Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Html.map RightMsg <| Panel.view model.right ]
+          [ Column.view "Children" [] (viewUnits Right model.right) ]
       ]
-  , case model.preview of
-      Nothing ->
-        Html.div [] []
-      Just unit ->
-        Modal.view True CloseModal <|
-          UnitPreview.view unit.value (Unit unit.id)
+  , Modal.view model.isModalOpen CloseModal <|
+      case model.selected of
+        Nothing -> Html.div [] []
+        Just uid ->
+          case lookupById uid model.center of
+            Nothing ->
+              Html.div [] []
+            Just unit ->
+              PreviewImageText.view unit.value (ViewUnit unit.id)
   ] ++
   Notification.view model.notification
 
 --------------------------------------------------------------------------------
 -- Helpers
 
-toItems : List UnitSubpart -> List (Panel.Item (Id Unit))
-toItems =
+viewUnits : Column -> List (WithId Unit) -> List (Html Msg)
+viewUnits column units =
   let
-    toItem unitSubpart =
-      { index = unitSubpart.id
-      , title = unitSubpart.unit.name
-      , description = unitSubpart.unit.description
-      }
+    toBox unit =
+      Html.map (SelectUnit column) <|
+      BoxImageText.view False unit.id unit.value
   in
-    List.map toItem
+    List.map toBox units
+
+fromUnitSubpart : UnitSubpart -> WithId Unit
+fromUnitSubpart unitSubpart =
+  { id = unitSubpart.id
+  , value = unitSubpart.unit
+  }
+
+getUnitContext : Id Unit -> Cmd Msg
+getUnitContext id =
+  Cmd.batch
+    [ Cmd.map GetUnitChildren <| API.getUnitChildren id
+    , Cmd.map GetUnitParents <| API.getUnitParents id
+    ]
+

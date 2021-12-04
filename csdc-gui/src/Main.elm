@@ -206,7 +206,7 @@ view model =
           [ Html.div
               [ Html.Attributes.class "column is-one-fifth"
               ]
-              [ menuPanel model
+              [ viewMenu model
               ]
           , Html.div
               [ Html.Attributes.class "column is-four-fifths"
@@ -215,18 +215,18 @@ view model =
                   [ Html.Attributes.class "content"
                   , Html.Attributes.style "height" "100%"
                   ]
-                  (mainPanel model)
+                  (viewMain model)
               ]
           ]
       ]
   }
 
-menuPanel : Model -> Html Msg
-menuPanel model =
+viewMenu : Model -> Html Msg
+viewMenu model =
   Html.map MenuMsg <| Menu.view (Menu.fromPage model.page)
 
-mainPanel : Model -> List (Html Msg)
-mainPanel model =
+viewMain : Model -> List (Html Msg)
+viewMain model =
   case model.page of
     Page.Studio ->
       List.map (Html.map StudioMsg) <|

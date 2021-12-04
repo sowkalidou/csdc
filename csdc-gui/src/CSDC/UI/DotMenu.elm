@@ -14,6 +14,9 @@ type alias Item msg =
 
 make : List (Item msg) -> Html msg
 make items =
+  if List.isEmpty items
+  then Html.div [] []
+  else
   Html.div
     [ Html.Attributes.class "dropdown is-hoverable is-right"
     , Html.Attributes.style "height" "26px"

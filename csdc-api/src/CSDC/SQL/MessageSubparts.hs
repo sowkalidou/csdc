@@ -220,7 +220,7 @@ getUnitsForMessage = Statement sql encoder decoder True
           WHERE messages_subpart.child = $2 AND status = 'Waiting'
         )
 
-      SELECT id, name, description, chair, created_at
+      SELECT id, name, description, chair, 'files/' || image, created_at
       FROM units
       WHERE chair = $1 AND id != $2 AND id NOT IN (
         SELECT id FROM units_parent UNION
@@ -240,6 +240,7 @@ getUnitsForMessage = Statement sql encoder decoder True
         unit_name <- Decoder.text
         unit_description <- Decoder.text
         unit_chair <- Decoder.id
+        unit_image <- Decoder.text
         unit_createdAt <- Decoder.timestamptz
         pure Unit {..}
       pure WithId {..}

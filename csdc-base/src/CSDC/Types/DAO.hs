@@ -67,6 +67,7 @@ data Unit = Unit
   { unit_name :: Text
   , unit_description :: Text
   , unit_chair :: Id Person
+  , unit_image :: Text
   , unit_createdAt :: UTCTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Unit

@@ -23,7 +23,7 @@ selectByPerson :: Statement (Id Person) [PersonMember]
 selectByPerson = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT members.id, unit, units.name, units.description, units.chair, units.created_at"
+      [ "SELECT members.id, unit, units.name, units.description, units.chair, 'files/'|| units.image, units.created_at"
       , "FROM members"
       , "JOIN units ON units.id = unit"
       , "WHERE person = $1"
@@ -38,6 +38,7 @@ selectByPerson = Statement sql encoder decoder True
         unit_name <- Decoder.text
         unit_description <- Decoder.text
         unit_chair <- Decoder.id
+        unit_image <- Decoder.text
         unit_createdAt <- Decoder.timestamptz
         pure Unit {..}
       pure PersonMember {..}
@@ -46,7 +47,7 @@ selectByUnit :: Statement (Id Unit) [UnitMember]
 selectByUnit = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT members.id, person, persons.name, persons.description, persons.orcid, persons.image, persons.created_at"
+      [ "SELECT members.id, person, persons.name, persons.description, persons.orcid, 'files/' || persons.image, persons.created_at"
       , "FROM members"
       , "JOIN persons ON persons.id = person"
       , "WHERE unit = $1"

@@ -116,7 +116,7 @@ updatePerson i p = do
 
 updatePersonImage :: Id Person -> Base64File -> Action user ()
 updatePersonImage i image = do
-  imagePath <- base64FileToPath i image
+  imagePath <- base64FileToPath "person" i image
   runSQL $ SQL.query SQL.Persons.updateImage (i,imagePath)
 
 deletePerson :: Id Person -> Action user ()
@@ -136,12 +136,22 @@ insertUnit u = do
         { unit_name = newUnit_name u
         , unit_description = newUnit_description u
         , unit_chair = user
+        , unit_image = "" -- will be updated later
         , unit_createdAt = now -- will be ignored
         }
-  runSQL $ SQL.query SQL.Units.insert unit
+  uid <- runSQL $ SQL.query SQL.Units.insert unit
+  imageBS <- liftIO $ generateImageFromName $ newUnit_name u
+  let image = base64FileFromByteString "profile.svg" imageBS
+  updateUnitImage uid image
+  pure uid
 
 updateUnit :: Id Unit -> UnitUpdate -> Action user ()
 updateUnit i p = runSQL $ SQL.query SQL.Units.update (i,p)
+
+updateUnitImage :: Id Unit -> Base64File -> Action user ()
+updateUnitImage i image = do
+  imagePath <- base64FileToPath "unit" i image
+  runSQL $ SQL.query SQL.Units.updateImage (i,imagePath)
 
 deleteUnit :: Id Unit -> Action user ()
 deleteUnit i = runSQL $ do
@@ -380,24 +390,21 @@ searchAll query = do
 --------------------------------------------------------------------------------
 -- Files
 
-personImageName :: Text -> Text
-personImageName name =
+profileImageName :: Text -> Text
+profileImageName name =
   let
     (_,ext) = splitExtension (Text.unpack name)
   in
     Text.pack $ "photo" <> ext
 
-personImageFolder :: Id Person -> Text
-personImageFolder (Id n) = Text.pack $ "person/" <> show n
-
-base64FileToPath :: Id Person -> Base64File -> Action user Text
-base64FileToPath i image = do
+base64FileToPath :: Text -> Id a -> Base64File -> Action user Text
+base64FileToPath folder (Id i) image = do
   let
-    fileName = personImageName (base64File_name image)
-    fileFolder = personImageFolder i
+    fileName = profileImageName (base64File_name image)
+    fileFolder = folder <> "/" <> Text.pack (show i)
     imagePath = fileFolder <> "/" <> fileName
     newImage = image { base64File_name = fileName }
-  filedb <- toNewFileDB (personImageFolder i) $ fromBase64File newImage
+  filedb <- toNewFileDB fileFolder $ fromBase64File newImage
   runSQL $ SQL.query SQL.Files.upsertFile filedb
   return imagePath
 

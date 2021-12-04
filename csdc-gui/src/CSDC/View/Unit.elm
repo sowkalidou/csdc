@@ -5,13 +5,14 @@ module CSDC.View.Unit exposing
   , Msg (..)
   , update
   , view
-  , ViewSelected (..)
   )
 
 import CSDC.API as API
+import CSDC.UI.BoxImageText as BoxImageText
 import CSDC.UI.Column as Column
+import CSDC.UI.DotMenu as DotMenu
 import CSDC.UI.Modal as Modal
-import CSDC.UI.Panel as Panel
+import CSDC.UI.PreviewImageText as PreviewImageText
 import CSDC.UI.Progress as Progress
 import CSDC.Form.Unit as UnitForm
 import CSDC.Form.UnitDelete as UnitDeleteForm
@@ -20,31 +21,23 @@ import CSDC.Form.SubmissionMember as SubmissionMemberForm
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)
-import CSDC.View.PersonPreview as PersonPreview
-import CSDC.View.UnitPreview as UnitPreview
 import Form
 
 import Html exposing (Html)
 import Html.Attributes
+import Markdown
 
 --------------------------------------------------------------------------------
 -- Model
 
 type Selected
-  = SelectedNothing
-  | SelectedPerson (Id Person)
+  = SelectedPerson (Id Person)
   | SelectedUnit (Id Unit)
-
-type ViewSelected
-  = ViewSelectedPerson (Id Person)
-  | ViewSelectedUnit (Id Unit)
 
 type alias Model =
   { info : Maybe UnitInfo
-  , panelChildren : Panel.Model (Id Unit)
-  , panelMembers : Panel.Model (Id Person)
   , notification : Notification
-  , selected : Selected
+  , selected : Maybe Selected
   , invited : Maybe (Id Unit)
   , unitEdit : UnitForm.Model
   , unitEditOpen : Bool
@@ -60,10 +53,8 @@ type alias Model =
 initial : Model
 initial =
   { info = Nothing
-  , panelChildren = Panel.initial "Sub-Units"
-  , panelMembers = Panel.initial "Members"
   , notification = Notification.Empty
-  , selected = SelectedNothing
+  , selected = Nothing
   , invited = Nothing
   , unitEdit = UnitForm.initial
   , unitEditOpen = False
@@ -87,9 +78,8 @@ setup id =
 
 type Msg
   = GetUnitInfo (API.Response UnitInfo)
-  | SubpartsMsg (Panel.Msg (Id Unit))
-  | MembersMsg (Panel.Msg (Id Person))
-  | View ViewSelected
+  | SetSelected Selected
+  | ViewSelected Selected
   | ViewAdmin (Id Unit)
   | CloseModal
   | UnitEditMsg (UnitForm.Msg ())
@@ -112,44 +102,19 @@ update pageInfo msg model =
     onSuccess = Notification.withResponse Reset model
   in
   case msg of
-    SubpartsMsg m ->
-      case m of
-        Panel.SetSelected (Just id) ->
-          ( { model
-            | panelChildren = Panel.update m model.panelChildren
-            , selected = SelectedUnit id
-            }
-          , Cmd.none
-          )
+    SetSelected selected ->
+      ( { model | selected = Just selected }
+      , Cmd.none
+      )
 
-        _ ->
-          ( { model | panelChildren = Panel.update m model.panelChildren }
-          , Cmd.none
-          )
-
-    MembersMsg m ->
-      case m of
-        Panel.SetSelected (Just id) ->
-          ( { model
-            | panelMembers = Panel.update m model.panelMembers
-            , selected = SelectedPerson id
-            }
-          , Cmd.none
-          )
-
-        _ ->
-          ( { model | panelMembers = Panel.update m model.panelMembers }
-          , Cmd.none
-          )
-
-    View selected ->
+    ViewSelected selected ->
       case selected of
-        ViewSelectedPerson id ->
+        SelectedPerson id ->
           ( initial
           , Page.goTo pageInfo (Page.Person id)
           )
 
-        ViewSelectedUnit id ->
+        SelectedUnit id ->
           ( initial
           , Page.goTo pageInfo (Page.Unit id)
           )
@@ -163,7 +128,7 @@ update pageInfo msg model =
           )
 
     CloseModal ->
-      ( { model | selected = SelectedNothing }
+      ( { model | selected = Nothing }
       , Cmd.none
       )
 
@@ -305,39 +270,9 @@ update pageInfo msg model =
       )
 
     GetUnitInfo result -> onSuccess result <| \info ->
-      let
-        pairsMembers =
-          info.members |>
-          List.map (\unitMember ->
-            { index = unitMember.id
-            , title = unitMember.person.name
-            , description = unitMember.person.description
-            }
-          )
-
-        panelMembers =
-          Panel.update (Panel.SetItems pairsMembers) model.panelMembers
-
-        pairsChildren =
-          info.children |>
-          List.map (\unitSubpart ->
-            { index = unitSubpart.id
-            , title = unitSubpart.unit.name
-            , description = unitSubpart.unit.description
-            }
-          )
-
-        panelChildren =
-          Panel.update (Panel.SetItems pairsChildren) model.panelChildren
-      in
-        ( { model
-          | info = Just info
-          , panelMembers = panelMembers
-          , panelChildren = panelChildren
-          , selected = SelectedNothing
-          }
-        , Cmd.none
-        )
+      ( { model | info = Just info }
+      , Cmd.none
+      )
 
 --------------------------------------------------------------------------------
 -- View
@@ -359,9 +294,9 @@ view model =
           ]
           [ Html.div
               [ Html.Attributes.class "column is-one-third" ]
-              [ Column.make
+              [ Column.view
                   "Information"
-                  ( List.concat
+                  [ DotMenu.make <| List.concat
                       [ if List.isEmpty info.unitsForMessage
                         then
                           []
@@ -396,7 +331,7 @@ view model =
                               }
                             ]
                       ]
-                  )
+                  ]
                   [ Html.div
                       []
                       [ Html.strong [] [ Html.text "Chair: " ]
@@ -405,24 +340,19 @@ view model =
                             Nothing -> "Loading..."
                             Just unitMember -> unitMember.person.name
                       ]
-                  , Html.div
-                      [ Html.Attributes.style "white-space" "pre-wrap"
-                      ]
-                      [ Html.strong [] [ Html.text "Description: " ]
-                      , Html.text info.unit.description
-                      ]
                   , Html.div [] <|
                       if info.isMembershipPending
                       then [ Html.text "Your submission was sent." ]
                       else []
+                  , Markdown.toHtml [] info.unit.description
                   ]
               ]
           , Html.div
               [ Html.Attributes.class "column is-one-third" ]
-              [ Html.map SubpartsMsg <| Panel.view model.panelChildren ]
+              [ Column.view "Sub-Units" [] (viewUnits info.children) ]
           , Html.div
               [ Html.Attributes.class "column is-one-third" ]
-              [ Html.map MembersMsg <| Panel.view model.panelMembers ]
+              [ Column.view "Members" [] (viewPersons info.members) ]
           ]
 
       , Modal.view model.unitEditOpen UnitEditClose <|
@@ -457,28 +387,46 @@ view model =
 
       , let
           isActive = case model.selected of
-            SelectedNothing -> False
+            Nothing -> False
             _ -> True
         in
           Modal.view isActive CloseModal <|
             case model.selected of
-              SelectedNothing ->
+              Nothing ->
                 Html.div [] []
 
-              SelectedPerson id ->
+              Just (SelectedPerson id) ->
                 case lookupById id info.members of
                   Nothing ->
                     Html.div [] [ Html.text "Loading..." ]
                   Just unitMember ->
-                    PersonPreview.view unitMember.person <|
-                    View (ViewSelectedPerson unitMember.id)
+                    PreviewImageText.view unitMember.person <|
+                    ViewSelected (SelectedPerson unitMember.id)
 
-              SelectedUnit id ->
+              Just (SelectedUnit id) ->
                 case lookupById id info.children of
                   Nothing ->
                     Html.div [] [ Html.text "Loading..." ]
                   Just unitSubpart ->
-                    UnitPreview.view unitSubpart.unit <|
-                    View (ViewSelectedUnit unitSubpart.id)
+                    PreviewImageText.view unitSubpart.unit <|
+                    ViewSelected (SelectedUnit unitSubpart.id)
 
       ] ++ Notification.view model.notification
+
+viewUnits : List UnitSubpart -> List (Html Msg)
+viewUnits subparts =
+  let
+    toBox subpart =
+      Html.map (SetSelected << SelectedUnit) <|
+      BoxImageText.view False subpart.id subpart.unit
+  in
+    List.map toBox subparts
+
+viewPersons : List UnitMember -> List (Html Msg)
+viewPersons members =
+  let
+    toBox member =
+      Html.map (SetSelected << SelectedPerson) <|
+      BoxImageText.view False member.id member.person
+  in
+    List.map toBox members

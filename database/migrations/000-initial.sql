@@ -15,6 +15,7 @@ CREATE TABLE units
   , name text NOT NULL
   , description text NOT NULL
   , chair integer NOT NULL REFERENCES persons(id)
+  , image text NOT NULL
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 

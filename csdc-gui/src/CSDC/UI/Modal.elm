@@ -1,5 +1,6 @@
 module CSDC.UI.Modal exposing
   ( view
+  , viewMaybe
   )
 
 import Html exposing (Html)
@@ -29,3 +30,15 @@ view isActive close contents =
         ]
         []
     ]
+
+viewMaybe : Maybe a -> msg -> (a -> Html msg) -> Html msg
+viewMaybe mval close makeContents =
+  let
+    isActive = case mval of
+      Nothing -> False
+      Just _ -> True
+  in
+    view isActive close <|
+      case mval of
+        Nothing -> Html.div [] []
+        Just val -> makeContents val

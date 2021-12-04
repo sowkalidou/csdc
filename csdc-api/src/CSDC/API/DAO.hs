@@ -55,6 +55,7 @@ type UnitAPI =
        CaptureId Unit :> GetJSON (Maybe Unit)
   :<|> CaptureId Unit :> PostJSON UnitUpdate ()
   :<|> CaptureId Unit :> DeleteJSON ()
+  :<|> CaptureId Unit :> "image" :> PostJSON Base64File ()
   :<|> CaptureId Unit :> "info" :> GetJSON (Maybe UnitInfo)
   :<|> CaptureId Unit :> "children" :> GetJSON [UnitSubpart]
   :<|> CaptureId Unit :> "parents" :> GetJSON [UnitSubpart]
@@ -65,6 +66,7 @@ serveUnitAPI =
        selectUnit
   :<|> updateUnit
   :<|> deleteUnit
+  :<|> updateUnitImage
   :<|> getUnitInfo
   :<|> getUnitChildren
   :<|> getUnitParents

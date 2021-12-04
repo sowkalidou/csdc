@@ -4,7 +4,7 @@
 # Server
 
 serve: ## Launch the server.
-	cabal v2-run -- csdc-server config.json secret.json
+	cabal run --ghc-options="-O0" -- csdc-server config.json secret.json
 
 .PHONY: serve
 
@@ -30,22 +30,22 @@ gui-build-optimized: ## Build the GUI into www/app.min.js
 # Haskell development
 
 ghcid-api: ## Launch ghcid for csdc-api.
-	ghcid --command "cabal v2-repl csdc-api"
+	ghcid --command "cabal repl csdc-api"
 
 .PHONY: ghcid-api
 
 ghcid-base: ## Launch ghcid for csdc-base.
-	ghcid --command "cabal v2-repl csdc-base"
+	ghcid --command "cabal repl csdc-base"
 
 .PHONY: ghcid-base
 
 ghcid-auth: ## Launch ghcid for csdc-auth.
-	ghcid --command "cabal v2-repl csdc-auth"
+	ghcid --command "cabal repl csdc-auth"
 
 .PHONY: ghcid-auth
 
 ghcid-server: ## Launch ghcid for the server executable.
-	ghcid --command "cabal v2-repl csdc-api:csdc-server"
+	ghcid --command "cabal repl csdc-api:csdc-server"
 
 .PHONY: ghcid-server
 

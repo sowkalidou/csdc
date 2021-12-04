@@ -7,6 +7,7 @@ module CSDC.SQL.Units
   , search
   , insert
   , update
+  , updateImage
   , delete
   ) where
 
@@ -24,7 +25,7 @@ select :: Statement (Id Unit) (Maybe Unit)
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT name, description, chair, created_at"
+      [ "SELECT name, description, chair, 'files/' || image, created_at"
       , "FROM units"
       , "WHERE id = $1"
       ]
@@ -35,6 +36,7 @@ select = Statement sql encoder decoder True
       unit_name <- Decoder.text
       unit_description <- Decoder.text
       unit_chair <- Decoder.id
+      unit_image <- Decoder.text
       unit_createdAt <- Decoder.timestamptz
       pure Unit {..}
 
@@ -42,7 +44,7 @@ selectByChair :: Statement (Id Person) [WithId Unit]
 selectByChair = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, name, description, chair, created_at"
+      [ "SELECT id, name, description, chair, 'files/' || image, created_at"
       , "FROM units"
       , "WHERE chair = $1"
       ]
@@ -55,6 +57,7 @@ selectByChair = Statement sql encoder decoder True
         unit_name <- Decoder.text
         unit_description <- Decoder.text
         unit_chair <- Decoder.id
+        unit_image <- Decoder.text
         unit_createdAt <- Decoder.timestamptz
         pure Unit {..}
       pure WithId {..}
@@ -79,15 +82,16 @@ insert :: Statement Unit (Id Unit)
 insert = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "INSERT INTO units (name, description, chair)"
-      , "VALUES ($1, $2, $3)"
+      [ "INSERT INTO units (name, description, chair, image)"
+      , "VALUES ($1, $2, $3, $4)"
       , "RETURNING id"
       ]
 
     encoder =
       (contramap unit_name Encoder.text) <>
       (contramap unit_description Encoder.text) <>
-      (contramap unit_chair Encoder.id)
+      (contramap unit_chair Encoder.id) <>
+      (contramap unit_image Encoder.text)
 
     decoder = Decoder.singleRow Decoder.id
 
@@ -104,6 +108,21 @@ update = Statement sql encoder decoder True
       (contramap fst Encoder.id) <>
       (contramap (unitUpdate_name . snd) Encoder.text) <>
       (contramap (unitUpdate_description . snd) Encoder.text)
+
+    decoder = Decoder.noResult
+
+updateImage :: Statement (Id Unit, Text) ()
+updateImage = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "UPDATE units"
+      , "SET image = $2"
+      , "WHERE id = $1"
+      ]
+
+    encoder =
+      contramap fst Encoder.id <>
+      contramap snd Encoder.text
 
     decoder = Decoder.noResult
 

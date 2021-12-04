@@ -1,5 +1,5 @@
 module CSDC.UI.Column exposing
-  ( make
+  ( view
   )
 
 import Html exposing (Html)
@@ -7,8 +7,8 @@ import Html.Attributes
 
 import CSDC.UI.DotMenu as DotMenu
 
-make : String -> List (DotMenu.Item msg) -> List (Html msg) -> Html msg
-make title items children =
+view : String -> List (Html msg) -> List (Html msg) -> Html msg
+view title right children =
   Html.div
     [ Html.Attributes.class "box"
     , Html.Attributes.id (title ++ "-panel")
@@ -22,10 +22,7 @@ make title items children =
         , Html.Attributes.style "padding" "5px"
         ] <|
         [ viewTitle title
-        ] ++
-        if List.length items > 0
-        then [ DotMenu.make items ]
-        else []
+        ] ++ right
     , Html.div
         [ Html.Attributes.id (title ++ "-items")
         , Html.Attributes.style "height" "100%"
