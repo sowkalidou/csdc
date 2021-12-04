@@ -1,4 +1,4 @@
-module CSDC.Component.Preview exposing
+module CSDC.UI.Preview exposing
   ( make
   )
 

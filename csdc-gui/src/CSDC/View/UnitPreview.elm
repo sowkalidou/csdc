@@ -2,7 +2,7 @@ module CSDC.View.UnitPreview exposing
   ( view
   )
 
-import CSDC.Component.Preview as Preview
+import CSDC.UI.Preview as Preview
 import CSDC.Types exposing (..)
 import CSDC.Input exposing (button)
 

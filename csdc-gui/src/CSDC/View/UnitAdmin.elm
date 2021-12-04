@@ -8,9 +8,9 @@ module CSDC.View.UnitAdmin exposing
   )
 
 import CSDC.API as API
-import CSDC.Component.Modal as Modal
-import CSDC.Component.Panel as Panel
-import CSDC.Component.Preview as Preview
+import CSDC.UI.Modal as Modal
+import CSDC.UI.Panel as Panel
+import CSDC.UI.Preview as Preview
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Page as Page
 import CSDC.Types exposing (..)

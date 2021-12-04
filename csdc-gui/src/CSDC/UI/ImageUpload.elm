@@ -1,4 +1,4 @@
-port module CSDC.Component.ImageUpload exposing (..)
+port module CSDC.UI.ImageUpload exposing (..)
 
 import File exposing (File)
 import File.Select as Select

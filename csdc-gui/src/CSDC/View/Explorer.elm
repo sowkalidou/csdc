@@ -8,8 +8,8 @@ module CSDC.View.Explorer exposing
   )
 
 import CSDC.API as API
-import CSDC.Component.Modal as Modal
-import CSDC.Component.Panel as Panel
+import CSDC.UI.Modal as Modal
+import CSDC.UI.Panel as Panel
 import CSDC.View.UnitPreview as UnitPreview
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Page as Page
@@ -50,7 +50,7 @@ setup = Cmd.map GetUserUnits API.getUserUnits
 --------------------------------------------------------------------------------
 -- Update
 
-type Component
+type UI
   = Left
   | Center
   | Right
@@ -67,7 +67,7 @@ type Msg
   | GetUserUnits (API.Response (List (WithId Unit)))
   | GetUnitParents (API.Response (List UnitSubpart))
   | GetUnitChildren (API.Response (List UnitSubpart))
-  | SelectUnit Component (Id Unit) (API.Response Unit)
+  | SelectUnit UI (Id Unit) (API.Response Unit)
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =

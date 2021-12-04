@@ -43,13 +43,17 @@ selectThreads = Statement sql encoder decoder True
     sql = [sqlqq|
       SELECT
         thread.id, unit, thread.author, persons.name, subject,
-        thread.created_at, MAX(posts.created_at), COUNT(posts.id)
+        thread.created_at, MAX(posts.created_at) AS last, COUNT(posts.id) AS number
       FROM
         threads
       JOIN
         posts ON posts.thread = threads.id
       WHERE
-        id = $1
+        unit = $1
+      GROUP BY
+        id
+      ORDER BY
+        last DESC
       |]
 
     encoder = Encoder.id
@@ -96,6 +100,8 @@ selectPosts = Statement sql encoder decoder True
         persons ON persons.id = post.author
       WHERE
         thread = $1
+      ORDER BY
+        created_at ASC
       |]
 
     encoder = Encoder.id

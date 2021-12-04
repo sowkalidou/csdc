@@ -1,4 +1,4 @@
-module CSDC.Component.Search exposing
+module CSDC.UI.Search exposing
   ( Model
   , initial
   , Msg

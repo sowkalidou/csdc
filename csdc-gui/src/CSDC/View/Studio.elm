@@ -9,11 +9,11 @@ module CSDC.View.Studio exposing
   )
 
 import CSDC.API as API
-import CSDC.Component.Column as Column
-import CSDC.Component.DotMenu as DotMenu
-import CSDC.Component.Modal as Modal
-import CSDC.Component.Panel as Panel
-import CSDC.Component.Progress as Progress
+import CSDC.UI.Column as Column
+import CSDC.UI.DotMenu as DotMenu
+import CSDC.UI.Modal as Modal
+import CSDC.UI.Panel as Panel
+import CSDC.UI.Progress as Progress
 import CSDC.Form.Unit as UnitForm
 import CSDC.Form.Person as PersonForm
 import CSDC.Form.Image as ImageForm

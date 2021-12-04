@@ -1,8 +1,8 @@
 module Main exposing (main)
 
-import CSDC.Component.Menu as Menu
-import CSDC.Component.Navbar as Navbar
-import CSDC.Component.Search as Search
+import CSDC.UI.Menu as Menu
+import CSDC.UI.Navbar as Navbar
+import CSDC.UI.Search as Search
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Page as Page exposing (Page)
 import CSDC.Types exposing (..)

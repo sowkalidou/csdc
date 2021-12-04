@@ -1,4 +1,4 @@
-module CSDC.Component.DotMenu exposing
+module CSDC.UI.DotMenu exposing
   ( Item
   , make
   )

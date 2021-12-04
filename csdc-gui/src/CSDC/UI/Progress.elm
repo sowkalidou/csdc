@@ -1,4 +1,4 @@
-module CSDC.Component.Progress exposing
+module CSDC.UI.Progress exposing
   ( view
   )
 

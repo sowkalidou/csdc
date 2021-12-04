@@ -8,7 +8,7 @@ module CSDC.Form.Image exposing
   )
 
 import CSDC.API as API
-import CSDC.Component.ImageUpload as ImageUpload
+import CSDC.UI.ImageUpload as ImageUpload
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Types exposing (..)
 import CSDC.Input as Input

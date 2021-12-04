@@ -1,4 +1,4 @@
-module CSDC.Component.Panel exposing
+module CSDC.UI.Panel exposing
   ( Model
   , Item
   , initial
@@ -7,7 +7,7 @@ module CSDC.Component.Panel exposing
   , view
   )
 
-import CSDC.Component.Column as Column
+import CSDC.UI.Column as Column
 
 import Html exposing (Html)
 import Html.Attributes

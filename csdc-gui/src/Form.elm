@@ -8,7 +8,7 @@ module Form exposing
   , viewWith
   )
 
-import CSDC.Component.Preview as Preview
+import CSDC.UI.Preview as Preview
 import CSDC.Notification as Notification exposing (Has)
 import CSDC.API as API
 import Html exposing (Html)

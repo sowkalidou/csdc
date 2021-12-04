@@ -1,4 +1,4 @@
-module CSDC.Component.Menu exposing
+module CSDC.UI.Menu exposing
   ( Model (..)
   , initial
   , toPage

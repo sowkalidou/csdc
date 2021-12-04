@@ -1,11 +1,11 @@
-module CSDC.Component.Column exposing
+module CSDC.UI.Column exposing
   ( make
   )
 
 import Html exposing (Html)
 import Html.Attributes
 
-import CSDC.Component.DotMenu as DotMenu
+import CSDC.UI.DotMenu as DotMenu
 
 make : String -> List (DotMenu.Item msg) -> List (Html msg) -> Html msg
 make title items children =

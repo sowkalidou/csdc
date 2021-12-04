@@ -1,4 +1,4 @@
-module CSDC.Component.Modal exposing
+module CSDC.UI.Modal exposing
   ( view
   )
 

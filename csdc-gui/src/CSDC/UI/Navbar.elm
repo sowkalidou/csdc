@@ -1,4 +1,4 @@
-module CSDC.Component.Navbar exposing
+module CSDC.UI.Navbar exposing
   ( view
   )
 

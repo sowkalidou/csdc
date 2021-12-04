@@ -8,10 +8,10 @@ module CSDC.View.Person exposing
   )
 
 import CSDC.API as API
-import CSDC.Component.Column as Column
-import CSDC.Component.Modal as Modal
-import CSDC.Component.Panel as Panel
-import CSDC.Component.Progress as Progress
+import CSDC.UI.Column as Column
+import CSDC.UI.Modal as Modal
+import CSDC.UI.Panel as Panel
+import CSDC.UI.Progress as Progress
 import CSDC.Notification as Notification exposing (Notification)
 import CSDC.View.UnitPreview as UnitPreview
 import CSDC.Form.Message as MessageForm
