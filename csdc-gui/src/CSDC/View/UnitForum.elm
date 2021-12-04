@@ -103,10 +103,10 @@ view unit model =
       , Html.Attributes.style "height" "100%"
       ]
       [ Html.div
-          [ Html.Attributes.class "column is-half" ]
+          [ Html.Attributes.class "column is-one-third" ]
           [ Column.view "Threads" [] (viewThreads model.selected model.threads) ]
       , Html.div
-          [ Html.Attributes.class "column is-half" ]
+          [ Html.Attributes.class "column is-two-thirds" ]
           [ Column.view "Posts" [] (viewPosts model.posts) ]
       ]
   ] ++

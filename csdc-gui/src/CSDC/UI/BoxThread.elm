@@ -14,8 +14,12 @@ view : Bool -> ThreadInfo -> Html (Id Thread)
 view selected thread =
   let
     contents =
-      [ Html.strong [] [ Html.text thread.subject ]
-      , Html.br [] []
+      [ Html.div
+          [ Html.Attributes.class "is-flex is-justify-content-space-between"
+          ]
+          [ Html.strong [] [ Html.text thread.subject ]
+          , Html.text <| String.slice 0 10 thread.createdAt
+          ]
       , Html.div
           [ Html.Attributes.class "is-flex is-justify-content-space-between"
           ]
