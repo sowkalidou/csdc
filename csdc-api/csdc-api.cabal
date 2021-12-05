@@ -34,6 +34,7 @@ common dependencies
     network-uri,
     random,
     servant,
+    servant-multipart,
     servant-server,
     text,
     time,

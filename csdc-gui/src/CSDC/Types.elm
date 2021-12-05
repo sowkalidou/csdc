@@ -535,6 +535,19 @@ encodeBase64File file =
     , ("contents", Encoder.string file.contents)
     ]
 
+type alias FileUI =
+  { path : FilePath
+  , name : String
+  , size : Int
+  }
+
+decodeFileUI : Decoder FileUI
+decodeFileUI =
+  Decoder.map3 FileUI
+    (Decoder.field "path" decodeFilePath)
+    (Decoder.field "name" Decoder.string)
+    (Decoder.field "size" Decoder.int)
+
 --------------------------------------------------------------------------------
 -- Forum
 

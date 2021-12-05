@@ -8,6 +8,7 @@ module CSDC.Types.File
   , NewFileDB (..)
   , toNewFileDB
   , FileDB (..)
+  , FileUI (..)
   ) where
 
 import CSDC.Aeson (JSON (..))
@@ -95,3 +96,10 @@ data FileDB = FileDB
   , fileDB_modifiedAt :: EpochTime
   } deriving (Show, Eq)
 
+-- | A file displayed in the UI.
+data FileUI = FileUI
+  { fileUI_path :: Text
+  , fileUI_name :: Text
+  , fileUI_size :: Int
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON FileUI

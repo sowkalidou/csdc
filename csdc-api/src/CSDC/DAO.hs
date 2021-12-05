@@ -402,6 +402,23 @@ base64FileToPath folder (Id i) image = do
   runSQL $ SQL.query SQL.Files.upsertFile filedb
   return imagePath
 
+insertUnitFile :: Id Unit -> File -> Action user ()
+insertUnitFile i file = do
+  let fileFolder = "unit" <> "/" <> Text.pack (show i)
+  filedb <- toNewFileDB fileFolder file
+  runSQL $ SQL.query SQL.Files.upsertFile filedb
+
+getUnitFiles :: Id Unit -> Action user [FileUI]
+getUnitFiles i = do
+  let fileFolder = "unit" <> "/" <> Text.pack (show i)
+  filesDB <-runSQL $ SQL.query SQL.Files.selectFolderFiles fileFolder
+  let toFileUI FileDB {..} = FileUI
+        { fileUI_path = fileDB_folder <> "/" <> fileDB_name
+        , fileUI_name = fileDB_name
+        , fileUI_size = fileDB_size
+        }
+  pure $ fmap toFileUI filesDB
+
 --------------------------------------------------------------------------------
 -- Forum
 

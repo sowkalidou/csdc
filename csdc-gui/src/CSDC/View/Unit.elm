@@ -24,6 +24,7 @@ import CSDC.Page as Page exposing (UnitTab)
 import CSDC.Types exposing (..)
 import CSDC.View.UnitInfo as UnitInfo
 import CSDC.View.UnitAdmin as UnitAdmin
+import CSDC.View.UnitFiles as UnitFiles
 import CSDC.View.UnitForum as UnitForum
 import Form
 
@@ -39,6 +40,7 @@ type alias Model =
   , tab : Page.UnitTab
   , unitInfo : UnitInfo.Model
   , unitAdmin : UnitAdmin.Model
+  , unitFiles : UnitFiles.Model
   , unitForum : UnitForum.Model
   , notification : Notification
   }
@@ -49,6 +51,7 @@ initial =
   , tab = Page.UnitInfo
   , unitInfo = UnitInfo.initial
   , unitAdmin = UnitAdmin.initial
+  , unitFiles = UnitFiles.initial
   , unitForum = UnitForum.initial
   , notification = Notification.Empty
   }
@@ -68,6 +71,7 @@ type Msg
   | ResetNotification
   | UnitInfoMsg UnitInfo.Msg
   | UnitAdminMsg UnitAdmin.Msg
+  | UnitFilesMsg UnitFiles.Msg
   | UnitForumMsg UnitForum.Msg
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
@@ -98,6 +102,17 @@ update pageInfo msg model =
             , Cmd.map UnitAdminMsg cmd
             )
 
+    UnitFilesMsg umsg ->
+      case model.info of
+        Nothing -> (model, Cmd.none)
+        Just info ->
+          let
+            (unitFiles, cmd) = UnitFiles.update info pageInfo umsg model.unitFiles
+          in
+            ( { model | unitFiles = unitFiles }
+            , Cmd.map UnitFilesMsg cmd
+            )
+
     UnitForumMsg umsg ->
       case model.info of
         Nothing -> (model, Cmd.none)
@@ -122,6 +137,7 @@ update pageInfo msg model =
       , case tab of
           Page.UnitInfo -> Cmd.none
           Page.UnitAdmin -> Cmd.map UnitAdminMsg <| UnitAdmin.setup info.id
+          Page.UnitFiles -> Cmd.map UnitFilesMsg <| UnitFiles.setup info.id
           Page.UnitForum mtid -> Cmd.map UnitForumMsg <| UnitForum.setup info.id mtid
       )
 
@@ -133,6 +149,7 @@ update pageInfo msg model =
             , case tab of
                 Page.UnitInfo -> setup info.id Page.UnitInfo
                 Page.UnitAdmin -> Cmd.map UnitAdminMsg <| UnitAdmin.setup info.id
+                Page.UnitFiles -> Cmd.map UnitFilesMsg <| UnitFiles.setup info.id
                 Page.UnitForum mtid -> Cmd.map UnitForumMsg <| UnitForum.setup info.id mtid
           )
 
@@ -159,9 +176,12 @@ view model =
               [ Html.text info.unit.name ]
           , Html.map SetTab <|
             Tabs.view (sameTab model.tab) <| List.concat
-              [ [(Page.UnitInfo, "Information")]
-              , if info.isMember
-                then [(Page.UnitForum Nothing, "Forum")]
+              [ if info.isMember
+                then
+                  [ (Page.UnitInfo, "Information")
+                  , (Page.UnitForum Nothing, "Forum")
+                  , (Page.UnitFiles, "Files")
+                  ]
                 else []
               , if info.isAdmin
                 then [(Page.UnitAdmin, "Admin")]
@@ -180,6 +200,9 @@ view model =
           Page.UnitForum _ ->
             List.map (Html.map UnitForumMsg) <|
             UnitForum.view info model.unitForum
+          Page.UnitFiles ->
+            List.map (Html.map UnitFilesMsg) <|
+            UnitFiles.view info model.unitFiles
 
       ] ++ Notification.view model.notification
 
@@ -188,5 +211,6 @@ sameTab t1 t2 =
   case (t1, t2) of
     (Page.UnitInfo, Page.UnitInfo) -> True
     (Page.UnitAdmin, Page.UnitAdmin) -> True
+    (Page.UnitFiles, Page.UnitFiles) -> True
     (Page.UnitForum _, Page.UnitForum _) -> True
     _ -> False

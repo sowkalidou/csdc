@@ -2,6 +2,7 @@ module CSDC.API exposing (..)
 
 import CSDC.Types exposing (..)
 
+import File exposing (File)
 import Http
 import Json.Decode as D
 import Url.Builder
@@ -145,6 +146,23 @@ updateUnitImage id file =
 
 deleteUnit : Id Unit -> Cmd (Response ())
 deleteUnit = delete "unit" identity
+
+insertUnitFile : Id Unit -> File -> Cmd (Response ())
+insertUnitFile id file =
+  Http.post
+    { url = baseUrl ++ "unit/" ++ idToString id ++ "/files"
+    , body = Http.multipartBody
+        [ Http.filePart "file" file
+        ]
+    , expect = Http.expectJson identity decodeNull
+    }
+
+getUnitFiles : Id Unit -> Cmd (Response (List FileUI))
+getUnitFiles id =
+  Http.get
+    { url = baseUrl ++ "unit/" ++ idToString id ++ "/files"
+    , expect = Http.expectJson identity (D.list decodeFileUI)
+    }
 
 --------------------------------------------------------------------------------
 -- Member

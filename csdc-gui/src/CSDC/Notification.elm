@@ -92,4 +92,9 @@ withResponse resetMsg model result onSuccess =
       , reset resetMsg
       )
     Ok a ->
-      onSuccess a
+      let
+        (modelNew, cmd) = onSuccess a
+      in
+        ( { modelNew | notification = Success }
+        , Cmd.batch [cmd, reset resetMsg]
+        )

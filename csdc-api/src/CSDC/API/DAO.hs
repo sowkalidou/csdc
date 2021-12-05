@@ -1,14 +1,20 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module CSDC.API.DAO
   ( Server
   , API
   , serveAPI
   ) where
 
-import CSDC.Types.File (Base64File)
+import CSDC.Types.File (Base64File, File (..), FileUI)
 import CSDC.DAO
 import CSDC.Prelude hiding (JSON)
 
 import Servant hiding (Server, Post)
+import Servant.Multipart
+
+import qualified Data.ByteString.Lazy as Lazy
 import qualified Servant
 
 --------------------------------------------------------------------------------
@@ -52,25 +58,37 @@ servePersonAPI =
 -- Unit API
 
 type UnitAPI =
-       CaptureId Unit :> GetJSON (Maybe Unit)
+       PostJSON NewUnit (Id Unit)
+  :<|> CaptureId Unit :> GetJSON (Maybe Unit)
   :<|> CaptureId Unit :> PostJSON UnitUpdate ()
   :<|> CaptureId Unit :> DeleteJSON ()
   :<|> CaptureId Unit :> "image" :> PostJSON Base64File ()
   :<|> CaptureId Unit :> "info" :> GetJSON (Maybe UnitInfo)
   :<|> CaptureId Unit :> "children" :> GetJSON [UnitSubpart]
   :<|> CaptureId Unit :> "parents" :> GetJSON [UnitSubpart]
-  :<|> PostJSON NewUnit (Id Unit)
+  :<|> CaptureId Unit :> "files" :> GetJSON [FileUI]
+  :<|> CaptureId Unit :> "files" :> MultipartForm Mem File :> Servant.Post '[JSON] ()
 
 serveUnitAPI :: Server UnitAPI
 serveUnitAPI =
-       selectUnit
+       createUnit
+  :<|> selectUnit
   :<|> updateUnit
   :<|> deleteUnit
   :<|> updateUnitImage
   :<|> getUnitInfo
   :<|> getUnitChildren
   :<|> getUnitParents
-  :<|> createUnit
+  :<|> getUnitFiles
+  :<|> insertUnitFile
+
+instance FromMultipart Mem File where
+  fromMultipart parts = do
+    fileData <- lookupFile "file" parts
+    pure File
+      { file_name = fdFileName fileData
+      , file_contents = Lazy.toStrict $ fdPayload fileData
+      }
 
 --------------------------------------------------------------------------------
 -- Member API
