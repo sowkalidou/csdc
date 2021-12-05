@@ -25,7 +25,7 @@ accessible from the Makefile. To list the available commands, run `make`.
 
 In particular:
 
-  - For faster Haskell development, there are many `ghcid-*` targerts.
+  - For faster Haskell development, there are many `ghcid-*` targets.
 
   - For Elm development, there is `make gui-build`.
 
