@@ -10,6 +10,7 @@ module CSDC.Auth
   ) where
 
 import CSDC.Auth.User (User (..))
+import CSDC.Auth.Template (loginTemplate)
 
 import qualified CSDC.Auth.ORCID as ORCID
 
@@ -32,6 +33,7 @@ import Network.Wai.Middleware.Auth
   , defaultAuthSettings
   , mkAuthMiddleware
   , setAuthProviders
+  , setAuthProvidersTemplate
   , setAuthSessionAge
   )
 import Network.Wai.Middleware.Auth.Provider (Provider (..), authLoginState)
@@ -63,6 +65,7 @@ settings config =
         [ ("orcid", Provider $ ORCID.oauth2 $ config_orcid config)
         ]
   in
+    setAuthProvidersTemplate loginTemplate $
     setAuthProviders providers $
     setAuthSessionAge 360000 $
     defaultAuthSettings

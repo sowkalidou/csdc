@@ -40,9 +40,11 @@ library
     CSDC.Auth.OAuth2
     CSDC.Auth.ORCID
     CSDC.Auth.User
+    CSDC.Auth.Template
   build-depends:
     aeson,
     base,
+    blaze-html,
     bytestring,
     exceptions,
     hoauth2,
@@ -50,6 +52,7 @@ library
     http-client-tls,
     http-types,
     network-uri,
+    shakespeare,
     text,
     unordered-containers,
     uri-bytestring,
