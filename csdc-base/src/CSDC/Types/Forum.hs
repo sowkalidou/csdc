@@ -64,6 +64,7 @@ data PostInfo = PostInfo
   { postInfo_id :: Id Post
   , postInfo_author :: Id Person
   , postInfo_authorName :: Text
+  , postInfo_authorImage :: Text
   , postInfo_text :: Text
   , postInfo_createdAt :: UTCTime
   } deriving (Show, Eq, Generic)

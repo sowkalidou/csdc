@@ -40,7 +40,7 @@ view selected pid value =
       ]
   in
     BoxItem.view
-      { id = if selected then "selected-item" else "unselected-item"
+      { id = "box-image"
       , onClick = Just pid
       , size = BoxItem.Small
       , selected = selected

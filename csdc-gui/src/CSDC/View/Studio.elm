@@ -114,7 +114,7 @@ update pageInfo msg model =
 
     View id ->
       ( { model | selected = Nothing }
-      , Page.goTo pageInfo (Page.Unit id)
+      , Page.goTo pageInfo (Page.Unit Page.UnitInfo id)
       )
 
     UnitCreateOpen ->
@@ -131,7 +131,7 @@ update pageInfo msg model =
       let
         config =
           { request = API.createUnit
-          , finish = \id -> Page.goTo pageInfo (Page.Unit id)
+          , finish = \id -> Page.goTo pageInfo (Page.Unit Page.UnitInfo id)
           }
         (unitCreate, cmd) = UnitForm.updateWith config unitMsg model.unitCreate
       in

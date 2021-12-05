@@ -588,16 +588,18 @@ type alias PostInfo =
   { id : Id Post
   , author : Id Person
   , authorName : String
+  , authorImage : String
   , text : String
   , createdAt : String
   }
 
 decodePostInfo : Decoder PostInfo
 decodePostInfo =
-  Decoder.map5 PostInfo
+  Decoder.map6 PostInfo
     (Decoder.field "id" decodeId)
     (Decoder.field "author" decodeId)
     (Decoder.field "authorName" Decoder.string)
+    (Decoder.field "authorImage" Decoder.string)
     (Decoder.field "text" Decoder.string)
     (Decoder.field "createdAt" Decoder.string)
 

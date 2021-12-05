@@ -75,7 +75,7 @@ update : UnitInfo -> Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update info pageInfo msg model =
   let
     onSuccess = Notification.withResponse Reset model
-    reload = Page.goTo pageInfo <| Page.Unit info.id
+    reload = Page.goTo pageInfo <| Page.Unit Page.UnitAdmin info.id
   in
   case msg of
     SetSelected selected ->

@@ -15,10 +15,29 @@ view post =
     , Html.Attributes.style "margin-bottom" "1.0em"
     ]
     [ Html.div
-        [ Html.Attributes.class "is-flex is-justify-content-space-between"
+        [ Html.Attributes.class
+          "is-flex is-flex-direction-row is-justify-content-flex-start"
         ]
-        [ Html.strong [] [ Html.text post.authorName ]
-        , Html.text <| String.slice 0 10 post.createdAt
+        [ Html.figure
+            [ Html.Attributes.class "image is-48x48"
+            , Html.Attributes.style "margin" "0px 10px 10px 0px"
+            ]
+            [ Html.img
+                [ Html.Attributes.src post.authorImage
+                , Html.Attributes.style "border-radius" "10%"
+                , Html.Attributes.alt "Profile photo"
+                ]
+                []
+            ]
+        , Html.div
+            [ Html.Attributes.style "width" "calc(100% - 48px)"
+            , Html.Attributes.style "overflow" "hidden"
+            , Html.Attributes.style "text-overflow" "ellipsis"
+            ]
+            [ Html.strong [] [ Html.text post.authorName ]
+            , Html.br [] []
+            , Html.text <| String.slice 0 10 post.createdAt
+            ]
         ]
     , Markdown.toHtml [] post.text
     ]

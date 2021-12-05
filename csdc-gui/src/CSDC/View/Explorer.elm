@@ -82,7 +82,7 @@ update pageInfo msg model =
   case msg of
     ViewUnit m ->
       ( { model | isModalOpen = False }
-      , Page.goTo pageInfo (Page.Unit m)
+      , Page.goTo pageInfo (Page.Unit Page.UnitInfo m)
       )
 
     CloseModal ->
@@ -97,11 +97,17 @@ update pageInfo msg model =
 
     Focus ->
       let
-        calculate p e = e.element.y - p.element.y - p.element.height / 2 + e.element.height / 2
+        calculate v p e =
+          v.viewport.y
+          + e.element.y + e.element.height / 2
+          - p.element.y - p.element.height / 2
       in
       ( model
-      , Task.map2 (\p e -> (p,e)) (Dom.getElement "Units-items") (Dom.getElement "selected-item")
-        |> Task.andThen (\(p,e) -> Dom.setViewportOf "Units-items" 0 (calculate p e))
+      , Task.map3 (\v p e -> (v,p,e))
+          (Dom.getViewportOf "Units-items")
+          (Dom.getElement "Units-items")
+          (Dom.getElement "box-image-selected-item")
+        |> Task.andThen (\(v,p,e) -> Dom.setViewportOf "Units-items" 0 (calculate v p e))
         |> Task.attempt FocusResult
       )
 
@@ -246,6 +252,7 @@ getUnitContext id =
   Cmd.batch
     [ Cmd.map GetUnitChildren <| API.getUnitChildren id
     , Cmd.map GetUnitParents <| API.getUnitParents id
+    , Delay.after 0.1 Delay.Second Focus
     ]
 
 viewSearch : String -> Html Msg

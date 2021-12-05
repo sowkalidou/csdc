@@ -57,7 +57,7 @@ update pageInfo msg model =
       ( initial
       , Page.goTo pageInfo <|
           case val of
-            SearchUnit id -> Page.Unit id
+            SearchUnit id -> Page.Unit Page.UnitInfo id
             SearchPerson id -> Page.Person id
       )
 

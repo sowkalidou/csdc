@@ -75,7 +75,7 @@ insertPost :: Statement Post (Id Post)
 insertPost = Statement sql encoder decoder True
   where
     sql = [sqlqq|
-      INSERT INTO threads
+      INSERT INTO posts
         (thread, author, text)
       VALUES
         ($1,$2,$3)
@@ -95,7 +95,7 @@ selectPosts = Statement sql encoder decoder True
   where
     sql = [sqlqq|
       SELECT
-        posts.id, author, persons.name, text, posts.created_at
+        posts.id, author, persons.name, 'files/' || persons.image, text, posts.created_at
       FROM
         posts
       JOIN
@@ -112,6 +112,7 @@ selectPosts = Statement sql encoder decoder True
       postInfo_id <- Decoder.id
       postInfo_author <- Decoder.id
       postInfo_authorName <- Decoder.text
+      postInfo_authorImage <- Decoder.text
       postInfo_text <- Decoder.text
       postInfo_createdAt <- Decoder.timestamptz
       pure PostInfo {..}

@@ -1,5 +1,6 @@
 module CSDC.Page exposing
   ( Page (..)
+  , UnitTab (..)
   , Info
   , goTo
   , reload
@@ -20,7 +21,9 @@ type Page
   = Explorer
   | Studio
   | Person (Id Person)
-  | Unit (Id Unit)
+  | Unit UnitTab (Id Unit)
+
+type UnitTab = UnitInfo | UnitAdmin | UnitForum (Maybe (Id Thread))
 
 type alias Info =
   { key : Nav.Key
@@ -52,7 +55,12 @@ toFragments page =
     Explorer -> ["explorer"]
     Studio -> ["studio"]
     Person uid -> ["person", toFragmentId uid]
-    Unit uid -> ["unit", toFragmentId uid]
+    Unit tab uid -> ["unit", toFragmentId uid] ++
+      case tab of
+        UnitInfo -> []
+        UnitAdmin -> ["admin"]
+        UnitForum Nothing -> ["forum"]
+        UnitForum (Just tid) -> ["forum", toFragmentId tid]
 
 toFragmentId : Id a -> String
 toFragmentId (Id a) = String.fromInt a
@@ -71,13 +79,15 @@ fromFragments l =
     ["studio"] -> Studio
     ["explorer"] -> Explorer
     ["person", uid] ->
-      default <|
-      Maybe.map Person
-        (fromFragmentId uid)
+      default <| Maybe.map Person (fromFragmentId uid)
     ["unit", uid] ->
-      default <|
-      Maybe.map Unit
-        (fromFragmentId uid)
+      default <| Maybe.map (Unit UnitInfo) (fromFragmentId uid)
+    ["unit", uid, "admin"] ->
+      default <| Maybe.map (Unit UnitAdmin) (fromFragmentId uid)
+    ["unit", uid, "forum"] ->
+      default <| Maybe.map (Unit (UnitForum Nothing)) (fromFragmentId uid)
+    ["unit", uid, "forum", tid] ->
+      default <| Maybe.map2 (\t -> Unit (UnitForum (Just t))) (fromFragmentId tid) (fromFragmentId uid) 
     _ -> Studio
 
 fromFragmentId : String -> Maybe (Id a)

@@ -87,8 +87,8 @@ routeCmd page =
       Cmd.map StudioMsg Studio.setup
     Page.Explorer ->
       Cmd.map ExplorerMsg Explorer.setup
-    Page.Unit uid ->
-      Cmd.map UnitMsg (Unit.setup uid)
+    Page.Unit tab uid ->
+      Cmd.map UnitMsg (Unit.setup uid tab)
     Page.Person uid ->
       Cmd.map PersonMsg (Person.setup uid)
 
@@ -226,7 +226,6 @@ viewMain model =
       List.map (Html.map PersonMsg) <|
       Person.view model.viewPerson
 
-    Page.Unit _ ->
+    Page.Unit _ _ ->
       List.map (Html.map UnitMsg) <|
       Unit.view model.viewUnit
-

@@ -70,7 +70,7 @@ update pageInfo msg model =
 
     ViewSelectedUnit uid ->
       ( initial
-      , Page.goTo pageInfo (Page.Unit uid)
+      , Page.goTo pageInfo (Page.Unit Page.UnitInfo uid)
       )
 
     CloseModal ->

@@ -10,21 +10,21 @@ import Json.Decode as Decode
 --------------------------------------------------------------------------------
 -- Model
 
-view : tab -> List (tab, String) -> Html tab
-view selected tabs =
+view : (tab -> Bool) -> List (tab, String) -> Html tab
+view isSelected tabs =
   Html.div
     [ Html.Attributes.class "tabs is-toggle"
     , Html.Attributes.style "margin-top" "-40px"
     ]
     [ Html.ul
         []
-        (List.map (viewTab selected) tabs)
+        (List.map (viewTab isSelected) tabs)
     ]
 
-viewTab : tab -> (tab, String) -> Html tab
-viewTab selected (tab, name) =
+viewTab : (tab -> Bool) -> (tab, String) -> Html tab
+viewTab isSelected (tab, name) =
   Html.li
-    ( if selected == tab
+    ( if isSelected tab
       then [ Html.Attributes.class "is-active" ]
       else []
     )

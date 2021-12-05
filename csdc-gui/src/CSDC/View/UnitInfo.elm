@@ -19,7 +19,7 @@ import CSDC.Form.UnitDelete as UnitDeleteForm
 import CSDC.Form.Message as MessageForm
 import CSDC.Form.SubmissionMember as SubmissionMemberForm
 import CSDC.Notification as Notification exposing (Notification)
-import CSDC.Page as Page
+import CSDC.Page as Page exposing (UnitTab)
 import CSDC.Types exposing (..)
 import Form
 
@@ -29,8 +29,6 @@ import Markdown
 
 --------------------------------------------------------------------------------
 -- Model
-
-type Tab = Info | Admin | Forum
 
 type Selected
   = SelectedPerson (Id Person)
@@ -92,6 +90,7 @@ update : UnitInfo -> Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update info pageInfo msg model =
   let
     onSuccess = Notification.withResponse Reset model
+    reload = Page.goTo pageInfo (Page.Unit Page.UnitInfo info.id)
   in
   case msg of
     SetSelected selected ->
@@ -108,7 +107,7 @@ update info pageInfo msg model =
 
         SelectedUnit id ->
           ( initial
-          , Page.goTo pageInfo (Page.Unit id)
+          , Page.goTo pageInfo (Page.Unit Page.UnitInfo id)
           )
 
     CloseModal ->
@@ -133,7 +132,7 @@ update info pageInfo msg model =
       let
         config =
           { request = API.updateUnit info.id
-          , finish = \_ -> Page.goTo pageInfo (Page.Unit info.id)
+          , finish = \_ -> reload
           }
         (unitEdit, cmd) = UnitForm.updateWith config unitMsg model.unitEdit
       in
@@ -158,7 +157,7 @@ update info pageInfo msg model =
       let
         config =
           { request = API.deleteUnit info.id
-          , finish = Page.goTo pageInfo (Page.Unit info.id)
+          , finish = reload
           }
         (unitDelete, cmd) = UnitDeleteForm.updateWith config unitMsg model.unitDelete
       in
@@ -182,7 +181,7 @@ update info pageInfo msg model =
     SubmissionMemberMsg subpartMsg ->
       let
         config =
-          { finish = Page.goTo pageInfo <| Page.Unit info.id
+          { finish = reload
           }
         (submissionMember, cmd) = SubmissionMemberForm.updateWith config subpartMsg model.submissionMember
       in
@@ -211,7 +210,7 @@ update info pageInfo msg model =
       let
         config =
           { request = API.sendMessageSubpart
-          , finish = Page.goTo pageInfo <| Page.Unit info.id
+          , finish = reload
           }
         (subpartCreate, cmd) = MessageForm.updateWith config subpartMsg model.subpartCreate
       in
@@ -355,7 +354,7 @@ view info model =
                 ViewSelected (SelectedPerson unitMember.id)
 
           Just (SelectedUnit id) ->
-            case lookupById id info.children of
+            case lookupById id (info.children ++ info.parents) of
               Nothing ->
                 Html.div [] [ Html.text "Loading..." ]
               Just unitSubpart ->
