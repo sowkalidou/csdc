@@ -53,7 +53,7 @@ ghcid-server: ## Launch ghcid for the server executable.
 # Elm development
 
 elm-nix-update: ## Update Nix files for Elm.
-	cd csdc-gui && elm2nix convert > elm-srcs.nix
+	cd csdc-gui && elm2nix convert > elm-srcs.nix && elm2nix snapshot
 
 .PHONY: elm-nix-update
 

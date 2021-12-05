@@ -68,16 +68,27 @@ text field makeMsg =
 
 textarea : Field String a -> (String -> msg) -> Html (Form.Msg msg r b)
 textarea field makeMsg =
-  wrapper field <|
-    Html.textarea
-      [ case Field.status field of
-          Invalid _ -> Html.Attributes.class "textarea is-danger"
-          _ -> Html.Attributes.class "textarea"
-      , Html.Attributes.placeholder (Field.name field)
-      , Html.Attributes.value (Field.raw field)
-      , Html.Events.onInput (Form.ModelMsg << makeMsg)
-      ]
-      []
+  Html.div []
+    [ wrapper field <|
+      Html.textarea
+        [ case Field.status field of
+            Invalid _ -> Html.Attributes.class "textarea is-danger"
+            _ -> Html.Attributes.class "textarea"
+        , Html.Attributes.placeholder (Field.name field)
+        , Html.Attributes.value (Field.raw field)
+        , Html.Events.onInput (Form.ModelMsg << makeMsg)
+        ]
+        []
+    , Html.span
+        [ Html.Attributes.class "is-size-7" ]
+        [ Html.text "This text can be formated with "
+        , Html.a
+            [ Html.Attributes.href "https://www.markdownguide.org/cheat-sheet/"
+            , Html.Attributes.target "_blank"
+            ]
+            [ Html.text "Markdown" ]
+        ]
+    ]
 
 --------------------------------------------------------------------------------
 -- Text input

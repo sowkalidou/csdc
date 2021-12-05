@@ -114,7 +114,7 @@ update pageInfo msg model =
     FocusResult r ->
       ( model
       , case r of
-          Err e -> Debug.log ("Could not focus: " ++ Debug.toString e) Cmd.none
+          Err e -> Cmd.none -- Debug.log ("Could not focus: " ++ Debug.toString e) Cmd.none
           _ -> Cmd.none
       )
 

@@ -67,8 +67,8 @@ update info pageInfo msg model =
       )
 
     UploadedFile result -> onSuccess result <| \_ ->
-      ( model
-      , setup info.id
+      ( { model | notification = Notification.Success }
+      , Cmd.batch [ setup info.id, Notification.reset ResetNotification ]
       )
 
     FileRequested ->

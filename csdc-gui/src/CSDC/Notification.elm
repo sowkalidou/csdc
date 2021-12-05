@@ -91,10 +91,4 @@ withResponse resetMsg model result onSuccess =
       ( { model | notification = HttpError err }
       , reset resetMsg
       )
-    Ok a ->
-      let
-        (modelNew, cmd) = onSuccess a
-      in
-        ( { modelNew | notification = Success }
-        , Cmd.batch [cmd, reset resetMsg]
-        )
+    Ok a -> onSuccess a
