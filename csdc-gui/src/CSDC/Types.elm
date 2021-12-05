@@ -44,13 +44,24 @@ lookupById id = lookup (\obj -> obj.id == id)
 type alias UserId = Id Person
 
 --------------------------------------------------------------------------------
+-- FilePath
+
+type FilePath = FilePath String
+
+filePath : FilePath -> String
+filePath (FilePath path) = "files/" ++ path
+
+decodeFilePath : Decoder FilePath
+decodeFilePath = Decoder.map FilePath Decoder.string
+
+--------------------------------------------------------------------------------
 -- Person
 
 type alias Person =
   { name : String
   , orcid : String
   , description : String
-  , image : String
+  , image : FilePath
   , createdAt : String
   }
 
@@ -60,7 +71,7 @@ decodePerson =
     (Decoder.field "name" Decoder.string)
     (Decoder.field "orcid" Decoder.string)
     (Decoder.field "description" Decoder.string)
-    (Decoder.field "image" Decoder.string)
+    (Decoder.field "image" decodeFilePath)
     (Decoder.field "createdAt" Decoder.string)
 
 type alias PersonUpdate =
@@ -110,7 +121,7 @@ type alias Unit =
   { name : String
   , description : String
   , chair : Id Person
-  , image : String
+  , image : FilePath
   , createdAt : String
   }
 
@@ -120,7 +131,7 @@ decodeUnit =
     (Decoder.field "name" Decoder.string)
     (Decoder.field "description" Decoder.string)
     (Decoder.field "chair" decodeId)
-    (Decoder.field "image" Decoder.string)
+    (Decoder.field "image" decodeFilePath)
     (Decoder.field "createdAt" Decoder.string)
 
 type alias NewUnit =

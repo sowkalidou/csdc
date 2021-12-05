@@ -3,14 +3,14 @@ module CSDC.UI.BoxImageText exposing
   )
 
 import CSDC.UI.BoxItem as BoxItem
-import CSDC.Types exposing (Id, Person)
+import CSDC.Types exposing (Id, Person, FilePath, filePath)
 
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import List
 
-view : Bool -> id -> { value | name : String, image: String } -> Html id
+view : Bool -> id -> { value | name : String, image: FilePath } -> Html id
 view selected pid value =
   let
     contents =
@@ -24,7 +24,7 @@ view selected pid value =
               , Html.Attributes.style "margin-right" "10px"
               ]
               [ Html.img
-                  [ Html.Attributes.src value.image
+                  [ Html.Attributes.src <| filePath value.image
                   , Html.Attributes.style "border-radius" "10%"
                   , Html.Attributes.alt "Profile photo"
                   ]

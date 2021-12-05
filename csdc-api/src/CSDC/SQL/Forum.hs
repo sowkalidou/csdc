@@ -95,7 +95,7 @@ selectPosts = Statement sql encoder decoder True
   where
     sql = [sqlqq|
       SELECT
-        posts.id, author, persons.name, 'files/' || persons.image, text, posts.created_at
+        posts.id, author, persons.name, persons.image, text, posts.created_at
       FROM
         posts
       JOIN

@@ -26,7 +26,7 @@ select :: Statement (Id Person) (Maybe Person)
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT name, description, orcid, 'files/' || image, created_at"
+      [ "SELECT name, description, orcid, image, created_at"
       , "FROM persons"
       , "WHERE id = $1"
       ]

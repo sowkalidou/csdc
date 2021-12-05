@@ -160,7 +160,7 @@ view model =
                               , Html.Attributes.style "margin" "0"
                               ]
                               [ Html.img
-                                  [ Html.Attributes.src person.person.image
+                                  [ Html.Attributes.src <| filePath person.person.image
                                   , Html.Attributes.style "border-radius" "10%"
                                   , Html.Attributes.alt "Profile photo"
                                   ]

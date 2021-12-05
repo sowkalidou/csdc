@@ -23,7 +23,7 @@ selectByChild :: Statement (Id Unit) [UnitSubpart]
 selectByChild = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT subparts.id, parent, units.name, units.description, units.chair, 'files/' || units.image, units.created_at"
+      [ "SELECT subparts.id, parent, units.name, units.description, units.chair, units.image, units.created_at"
       , "FROM subparts"
       , "JOIN units ON units.id = parent"
       , "WHERE child = $1"
@@ -47,7 +47,7 @@ selectByParent :: Statement (Id Unit) [UnitSubpart]
 selectByParent = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT subparts.id, child, units.name, units.description, units.chair, 'files/' || units.image, units.created_at"
+      [ "SELECT subparts.id, child, units.name, units.description, units.chair, units.image, units.created_at"
       , "FROM subparts"
       , "JOIN units ON units.id = child"
       , "WHERE parent = $1"

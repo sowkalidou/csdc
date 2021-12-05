@@ -26,7 +26,7 @@ select :: Statement (Id Unit) (Maybe Unit)
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT name, description, chair, 'files/' || image, created_at"
+      [ "SELECT name, description, chair, image, created_at"
       , "FROM units"
       , "WHERE id = $1"
       ]
@@ -45,7 +45,7 @@ selectByChair :: Statement (Id Person) [WithId Unit]
 selectByChair = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, name, description, chair, 'files/' || image, created_at"
+      [ "SELECT id, name, description, chair, image, created_at"
       , "FROM units"
       , "WHERE chair = $1"
       ]
@@ -83,7 +83,7 @@ searchUnits :: Statement [Text] [WithId Unit]
 searchUnits = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT id, name, description, chair, 'files/' || image, created_at"
+      [ "SELECT id, name, description, chair, image, created_at"
       , "FROM units"
       , "WHERE name ILIKE ALL ($1)"
       ]

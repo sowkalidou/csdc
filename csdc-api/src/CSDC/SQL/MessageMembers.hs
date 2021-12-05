@@ -234,7 +234,7 @@ getUnitsForMessage = Statement sql encoder decoder True
           WHERE messages_member.person = $2 AND status = 'Waiting'
         )
 
-      SELECT id, name, description, chair, 'files/' || image, created_at
+      SELECT id, name, description, chair, image, created_at
       FROM units
       WHERE chair = $1 AND id NOT IN (
         SELECT id FROM units_member UNION

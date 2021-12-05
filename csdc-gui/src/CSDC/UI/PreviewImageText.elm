@@ -11,7 +11,7 @@ import Html.Attributes
 import Html.Events
 import Markdown
 
-view : { value | name : String, description : String, image : String } -> msg -> Html msg
+view : { value | name : String, description : String, image : FilePath } -> msg -> Html msg
 view value msg = Preview.make
   [ Html.div
      [ Html.Attributes.style "width" "100%"
@@ -25,7 +25,7 @@ view value msg = Preview.make
          , Html.Attributes.style "margin" "5px 30px 10px 0px"
          ]
          [ Html.img
-             [ Html.Attributes.src value.image
+             [ Html.Attributes.src <| filePath value.image
              , Html.Attributes.style "border-radius" "10%"
              , Html.Attributes.alt "Profile photo"
              ]
