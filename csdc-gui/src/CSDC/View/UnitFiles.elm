@@ -77,9 +77,15 @@ update info pageInfo msg model =
       )
 
     FileSelected file ->
-      ( { model | notification = Notification.Processing }
-      , Cmd.map UploadedFile <| API.insertUnitFile info.id file
-      )
+      if File.size file > 1048576
+      then
+        ( { model | notification = Notification.Error ["File cannot be larger than 1MiB"] }
+        , Notification.reset ResetNotification
+        )
+      else
+        ( { model | notification = Notification.Processing }
+        , Cmd.map UploadedFile <| API.insertUnitFile info.id file
+        )
 
     ResetNotification ->
       ( { model | notification = Notification.Empty }
