@@ -19,8 +19,7 @@ import Notification exposing (Notification)
 import Page as Page
 import Types exposing (..)
 import UI.BoxImageText as BoxImageText
-import UI.BoxMessage as BoxMessage
-import UI.BoxReply as BoxReply
+import UI.Inbox as Inbox
 import UI.Column as Column
 import UI.DotMenu as DotMenu
 import UI.Modal as Modal
@@ -36,7 +35,7 @@ import Markdown
 
 type Selected
   = SelectedUnit (Id Unit)
-  | SelectedInbox InboxId
+  | SelectedInbox Inbox.InboxId
 
 type alias Model =
   { info : WebData PersonInfo
@@ -201,7 +200,7 @@ update pageInfo msg model =
       case model.selected of
         Just (SelectedInbox inboxId) ->
           case inboxId of
-            MessageMemberId id ->
+            Inbox.MessageMemberId id ->
               let
                 config =
                   { request = \(rtype, reason) ->
@@ -219,7 +218,7 @@ update pageInfo msg model =
                 , Cmd.map ReplyMsg cmd
                 )
 
-            MessageSubpartId id ->
+            Inbox.MessageSubpartId id ->
               let
                 config =
                   { request = \(rtype, reason) ->
@@ -246,7 +245,7 @@ update pageInfo msg model =
       case model.selected of
         Just (SelectedInbox inboxId) ->
           case inboxId of
-            ReplyMemberId id ->
+            Inbox.ReplyMemberId id ->
               let
                 config =
                   { request = API.viewReplyMember id
@@ -263,7 +262,7 @@ update pageInfo msg model =
                 , Cmd.map ReplySeenMsg cmd
                 )
 
-            ReplySubpartId id ->
+            Inbox.ReplySubpartId id ->
               let
                 config =
                   { request = API.viewReplySubpart id
@@ -369,12 +368,17 @@ view model =
                   info.person.description
               ]
           ]
+
       , Html.div
           [ Html.Attributes.class "column is-one-third" ]
           [ Column.view "Units" [] (viewUnits info.members) ]
+
       , Html.div
           [ Html.Attributes.class "column is-one-third" ]
-          [ Column.view "Inbox" [] (viewInbox model.inbox) ]
+          [ Column.view "Inbox" [] <|
+            List.map (Html.map (SetSelected << SelectedInbox)) <|
+            Inbox.view model.inbox
+          ]
       ]
 
   , Modal.view model.personEditOpen PersonEditClose <|
@@ -400,7 +404,7 @@ view model =
 
         SelectedInbox inboxId ->
           case inboxId of
-            ReplyMemberId id ->
+            Inbox.ReplyMemberId id ->
               case lookupById id model.inbox.replyMember of
                 Nothing ->
                   Html.text "Error."
@@ -413,7 +417,7 @@ view model =
                     Html.map ReplySeenMsg <|
                     Form.viewWith title (ReplySeenForm.view msg) model.previewReply
 
-            MessageMemberId id ->
+            Inbox.MessageMemberId id ->
               case lookupById id model.inbox.messageMember of
                 Nothing ->
                   Html.text "Error."
@@ -426,7 +430,7 @@ view model =
                     Html.map ReplyMsg <|
                     Form.viewWith title (ReplyForm.view msg) model.previewMessage
 
-            MessageSubpartId id ->
+            Inbox.MessageSubpartId id ->
               case lookupById id model.inbox.messageSubpart of
                 Nothing ->
                   Html.text "Error."
@@ -439,7 +443,7 @@ view model =
                     Html.map ReplyMsg <|
                     Form.viewWith title (ReplyForm.view msg) model.previewMessage
 
-            ReplySubpartId id ->
+            Inbox.ReplySubpartId id ->
               case lookupById id model.inbox.replySubpart of
                 Nothing ->
                   Html.text "Error."
@@ -456,31 +460,6 @@ view model =
 
 --------------------------------------------------------------------------------
 -- Helpers
-
-type InboxId
-  = MessageMemberId (Id (Message NewMember))
-  | ReplyMemberId (Id (Reply NewMember))
-  | MessageSubpartId (Id (Message NewSubpart))
-  | ReplySubpartId (Id (Reply NewSubpart))
-
-viewInbox : Inbox -> List (Html Msg)
-viewInbox inbox =
-  let
-    toMsg iid =
-      SetSelected (SelectedInbox iid)
-    toBoxMessageMember =
-      Html.map (toMsg << MessageMemberId) << BoxMessage.view False
-    toBoxReplyMember =
-      Html.map (toMsg << ReplyMemberId) << BoxReply.view False
-    toBoxMessageSubpart =
-      Html.map (toMsg << MessageSubpartId) << BoxMessage.view False
-    toBoxReplySubpart =
-      Html.map (toMsg << ReplySubpartId) << BoxReply.view False
-  in
-    List.map toBoxMessageMember inbox.messageMember ++
-    List.map toBoxReplyMember inbox.replyMember ++
-    List.map toBoxMessageSubpart inbox.messageSubpart ++
-    List.map toBoxReplySubpart inbox.replySubpart
 
 viewUnits : List PersonMember -> List (Html Msg)
 viewUnits members =

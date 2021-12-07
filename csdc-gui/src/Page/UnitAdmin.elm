@@ -10,6 +10,7 @@ module Page.UnitAdmin exposing
 import API as API
 import UI.BoxMessage as BoxMessage
 import UI.BoxReply as BoxReply
+import UI.Inbox as Inbox
 import UI.Modal as Modal
 import UI.Column as Column
 import UI.Preview as Preview
@@ -26,21 +27,9 @@ import Html.Attributes
 --------------------------------------------------------------------------------
 -- Model
 
-type MemberId
-  = MessageMemberId (Id (Message NewMember))
-  | ReplyMemberId (Id (Reply NewMember))
-
-type SubpartId
-  = MessageSubpartId (Id (Message NewSubpart))
-  | ReplySubpartId (Id (Reply NewSubpart))
-
-type Selected
-  = SelectedMember MemberId
-  | SelectedSubpart SubpartId
-
 type alias Model =
   { inbox : Inbox
-  , selected : Maybe Selected
+  , selected : Maybe Inbox.InboxId
   , notification : Notification
   , previewMessage : ReplyForm.Model
   , previewReply : ReplySeenForm.Model
@@ -67,7 +56,7 @@ type Msg
   = UnitInbox (API.Response Inbox)
   | ReplyMsg ReplyForm.Msg
   | ReplySeenMsg ReplySeenForm.Msg
-  | SetSelected Selected
+  | SetSelected Inbox.InboxId
   | Reset
   | CloseModal
 
@@ -85,7 +74,7 @@ update info pageInfo msg model =
 
     ReplyMsg preMsg ->
       case model.selected of
-        Just (SelectedMember (MessageMemberId id)) ->
+        Just (Inbox.MessageMemberId id) ->
           let
             config =
               { request = \(rtype, reason) ->
@@ -103,7 +92,7 @@ update info pageInfo msg model =
             , Cmd.map ReplyMsg cmd
             )
 
-        Just (SelectedSubpart (MessageSubpartId id)) ->
+        Just (Inbox.MessageSubpartId id) ->
           let
             config =
               { request = \(rtype, reason) ->
@@ -126,7 +115,7 @@ update info pageInfo msg model =
 
     ReplySeenMsg preMsg ->
       case model.selected of
-        Just (SelectedMember (ReplyMemberId id)) ->
+        Just (Inbox.ReplyMemberId id) ->
           let
             config =
               { request = API.viewReplyMember id
@@ -143,7 +132,7 @@ update info pageInfo msg model =
             , Cmd.map ReplySeenMsg cmd
             )
 
-        Just (SelectedSubpart (ReplySubpartId id)) ->
+        Just (Inbox.ReplySubpartId id) ->
           let
             config =
               { request = API.viewReplySubpart id
@@ -194,93 +183,59 @@ view unit model =
           ]
           [ Html.div
               [ Html.Attributes.class "column is-half" ]
-              [ Column.view "Member Messages" [] (viewInboxMember model.inbox) ]
+              [ Column.view "Members Admin" [] [] ]
           , Html.div
               [ Html.Attributes.class "column is-half" ]
-              [ Column.view "Subpart Messages" [] (viewInboxSubpart model.inbox) ]
+              [ Column.view "Inbox" [] <|
+                List.map (Html.map SetSelected) <|
+                Inbox.view model.inbox
+              ]
           ]
 
       , Modal.viewMaybe model.selected CloseModal <| \selected ->
-          case selected of
-            SelectedMember memberId ->
-              Html.div [] <|
-                case memberId of
-                  MessageMemberId rid ->
-                    case lookupById rid model.inbox.messageMember of
-                      Nothing ->
-                        [ Html.text "Error." ]
-                      Just msg ->
-                        List.singleton <|
-                        Html.map ReplyMsg <|
-                        Preview.make <|
-                        ReplyForm.view msg model.previewMessage
+        case selected of
+          Inbox.MessageMemberId rid ->
+            case lookupById rid model.inbox.messageMember of
+              Nothing ->
+                Html.text "Error."
+              Just msg ->
+                Html.map ReplyMsg <|
+                Preview.make <|
+                ReplyForm.view msg model.previewMessage
 
-                  ReplyMemberId rid ->
-                    case lookupById rid model.inbox.replyMember of
-                      Nothing ->
-                        [ Html.text "Error." ]
-                      Just msg ->
-                        let
-                          title = case msg.mtype of
-                            Invitation -> "Invitation Reply"
-                            Submission -> "Submission Reply"
-                        in
-                          List.singleton <|
-                          Html.map ReplySeenMsg <|
-                          Form.viewWith title (ReplySeenForm.view msg) model.previewReply
+          Inbox.ReplyMemberId rid ->
+            case lookupById rid model.inbox.replyMember of
+              Nothing ->
+                Html.text "Error."
+              Just msg ->
+                let
+                  title = case msg.mtype of
+                    Invitation -> "Invitation Reply"
+                    Submission -> "Submission Reply"
+                in
+                  Html.map ReplySeenMsg <|
+                  Form.viewWith title (ReplySeenForm.view msg) model.previewReply
 
-            SelectedSubpart subpartId ->
-              Html.div [] <|
-                case subpartId of
-                  MessageSubpartId rid ->
-                    case lookupById rid model.inbox.messageSubpart of
-                      Nothing ->
-                        [ Html.text "Error." ]
-                      Just msg ->
-                        List.singleton <|
-                        Html.map ReplyMsg <|
-                        Preview.make <|
-                        ReplyForm.view msg model.previewMessage
+          Inbox.MessageSubpartId rid ->
+            case lookupById rid model.inbox.messageSubpart of
+              Nothing ->
+                Html.text "Error."
+              Just msg ->
+                Html.map ReplyMsg <|
+                Preview.make <|
+                ReplyForm.view msg model.previewMessage
 
-                  ReplySubpartId rid ->
-                    case lookupById rid model.inbox.replySubpart of
-                      Nothing ->
-                        [ Html.text "Error." ]
-                      Just msg ->
-                        let
-                          title = case msg.mtype of
-                            Invitation -> "Invitation Reply"
-                            Submission -> "Submission Reply"
-                        in
-                          List.singleton <|
-                          Html.map ReplySeenMsg <|
-                          Form.viewWith title (ReplySeenForm.view msg) model.previewReply
+          Inbox.ReplySubpartId rid ->
+            case lookupById rid model.inbox.replySubpart of
+              Nothing ->
+                Html.text "Error."
+              Just msg ->
+                let
+                  title = case msg.mtype of
+                    Invitation -> "Invitation Reply"
+                    Submission -> "Submission Reply"
+                in
+                  Html.map ReplySeenMsg <|
+                  Form.viewWith title (ReplySeenForm.view msg) model.previewReply
       ] ++
       Notification.view model.notification
-
-viewInboxMember : Inbox -> List (Html Msg)
-viewInboxMember inbox =
-  let
-    toMsg iid =
-      SetSelected (SelectedMember iid)
-    toBoxMessageMember =
-      Html.map (toMsg << MessageMemberId) << BoxMessage.view False
-    toBoxReplyMember =
-      Html.map (toMsg << ReplyMemberId) << BoxReply.view False
-  in
-    List.map toBoxMessageMember inbox.messageMember ++
-    List.map toBoxReplyMember inbox.replyMember
-
-viewInboxSubpart : Inbox -> List (Html Msg)
-viewInboxSubpart inbox =
-  let
-    toMsg iid =
-      SetSelected (SelectedSubpart iid)
-    toBoxMessageSubpart =
-      Html.map (toMsg << MessageSubpartId) << BoxMessage.view False
-    toBoxReplySubpart =
-      Html.map (toMsg << ReplySubpartId) << BoxReply.view False
-  in
-    List.map toBoxMessageSubpart inbox.messageSubpart ++
-    List.map toBoxReplySubpart inbox.replySubpart
-
