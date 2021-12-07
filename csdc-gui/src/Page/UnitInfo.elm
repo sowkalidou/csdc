@@ -1,4 +1,4 @@
-module View.UnitInfo exposing
+module Page.UnitInfo exposing
   ( Model
   , initial
   , Msg (..)

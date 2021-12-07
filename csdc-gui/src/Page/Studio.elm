@@ -1,4 +1,4 @@
-module View.Studio exposing
+module Page.Studio exposing
   ( Model
   , initial
   , setup

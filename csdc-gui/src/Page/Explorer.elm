@@ -1,4 +1,4 @@
-module View.Explorer exposing
+module Page.Explorer exposing
   ( Model
   , initial
   , setup

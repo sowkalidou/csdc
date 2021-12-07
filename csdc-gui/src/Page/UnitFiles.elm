@@ -1,4 +1,4 @@
-module View.UnitFiles exposing
+module Page.UnitFiles exposing
   ( Model
   , setup
   , initial

@@ -1,4 +1,4 @@
-module View.UnitAdmin exposing
+module Page.UnitAdmin exposing
   ( Model
   , setup
   , initial

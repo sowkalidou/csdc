@@ -1,4 +1,4 @@
-module View.UnitForum exposing
+module Page.UnitForum exposing
   ( Model
   , setup
   , initial

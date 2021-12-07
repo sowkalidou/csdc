@@ -1,4 +1,4 @@
-module View.Person exposing
+module Page.Person exposing
   ( Model
   , initial
   , setup

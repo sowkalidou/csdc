@@ -6,10 +6,10 @@ import UI.Search as Search
 import Notification as Notification exposing (Notification)
 import Page as Page exposing (Page)
 import Types exposing (..)
-import View.Explorer as Explorer
-import View.Studio as Studio
-import View.Person as Person
-import View.Unit as Unit
+import Page.Explorer as Explorer
+import Page.Studio as Studio
+import Page.Person as Person
+import Page.Unit as Unit
 
 import Browser
 import Browser.Navigation as Nav

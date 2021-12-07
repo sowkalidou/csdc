@@ -1,4 +1,4 @@
-module View.Unit exposing
+module Page.Unit exposing
   ( Model
   , initial
   , setup
@@ -22,10 +22,10 @@ import Form.SubmissionMember as SubmissionMemberForm
 import Notification as Notification exposing (Notification)
 import Page as Page exposing (UnitTab)
 import Types exposing (..)
-import View.UnitInfo as UnitInfo
-import View.UnitAdmin as UnitAdmin
-import View.UnitFiles as UnitFiles
-import View.UnitForum as UnitForum
+import Page.UnitInfo as UnitInfo
+import Page.UnitAdmin as UnitAdmin
+import Page.UnitFiles as UnitFiles
+import Page.UnitForum as UnitForum
 import Form
 
 import Html exposing (Html)
