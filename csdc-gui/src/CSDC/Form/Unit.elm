@@ -13,7 +13,6 @@ import CSDC.Types exposing (..)
 import CSDC.Input as Input
 import Field exposing (Field)
 import Form
-import Validation
 
 import Html exposing (Html)
 
@@ -49,19 +48,13 @@ reload model =
 
 -- Also unit update...
 parse : Model -> Maybe NewUnit
-parse model =
-  let
-    result =
-      Validation.andThen (Field.validate model.name) <| \name ->
-      Validation.andThen (Field.validate model.description) <| \description ->
-      Validation.valid
-        { name = name
-        , description = description
-        }
-  in
-    case Validation.validate result of
-      Err _ -> Nothing
-      Ok unit -> Just unit
+parse model = Result.toMaybe <|
+  Field.with model.name <| \name ->
+  Field.with model.description <| \description ->
+  Ok
+    { name = name
+    , description = description
+    }
 
 --------------------------------------------------------------------------------
 -- Update

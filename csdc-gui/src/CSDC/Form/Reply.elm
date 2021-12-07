@@ -13,7 +13,6 @@ import CSDC.Input as Input
 import CSDC.API as API
 import Form
 import Field exposing (Field)
-import Validation
 
 import Html exposing (Html)
 import Html.Attributes
@@ -37,10 +36,9 @@ reload model =
   { model | reason = Field.reload model.reason }
 
 parse : ReplyType -> Model -> Maybe (ReplyType, String)
-parse rtype model =
-  case Validation.validate (Field.validate model.reason) of
-    Err _ -> Nothing
-    Ok reason -> Just (rtype, reason)
+parse rtype model = Result.toMaybe <|
+  Field.with model.reason <| \reason ->
+    Ok (rtype, reason)
 
 --------------------------------------------------------------------------------
 -- Update

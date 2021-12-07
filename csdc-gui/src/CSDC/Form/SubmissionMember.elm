@@ -12,7 +12,6 @@ import CSDC.Types exposing (..)
 import CSDC.Input as Input
 import Field exposing (Field)
 import Form
-import Validation
 
 import Html exposing (Html)
 
@@ -37,19 +36,13 @@ reload model =
   }
 
 parse : NewMember -> Model -> Maybe (NewMessage NewMember)
-parse member model =
-  let
-    validation =
-      Validation.andThen (Field.validate model.reason) <| \reason ->
-      Validation.valid
-        { mtype = Submission
-        , text = reason
-        , value = member
-        }
-  in
-    case Validation.validate validation of
-      Err _ -> Nothing
-      Ok reason -> Just reason
+parse member model = Result.toMaybe <|
+  Field.with model.reason <| \reason ->
+  Ok
+    { mtype = Submission
+    , text = reason
+    , value = member
+    }
 
 --------------------------------------------------------------------------------
 -- Update

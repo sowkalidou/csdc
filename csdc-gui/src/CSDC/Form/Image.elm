@@ -13,7 +13,6 @@ import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Types exposing (..)
 import CSDC.Input as Input
 import Field exposing (Field)
-import Validation
 import Form
 
 import Croppie
@@ -42,21 +41,15 @@ reload model =
   }
 
 parse : Model -> Maybe Base64File
-parse model =
-  let
-    result =
-      Validation.andThen (Field.validate model.image) <| \image ->
-      case model.imageUpload.name of
-        Nothing -> Validation.invalid "An image must be uploaded."
-        Just name ->
-          Validation.valid
-            { name = name
-            , contents = image
-            }
-  in
-    case Validation.validate result of
-      Err _ -> Nothing
-      Ok unit -> Just unit
+parse model = Result.toMaybe <|
+  Field.with model.image <| \image ->
+  case model.imageUpload.name of
+    Nothing -> Err ["An image must be uploaded."]
+    Just name ->
+      Ok
+        { name = name
+        , contents = image
+        }
 
 setup : Maybe String -> Cmd Msg
 setup mimage = Cmd.map (Form.ModelMsg << ImageUploadMsg) (ImageUpload.setup mimage)

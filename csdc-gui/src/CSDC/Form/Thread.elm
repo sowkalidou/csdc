@@ -11,7 +11,6 @@ import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Types exposing (..)
 import CSDC.Input as Input
 import Field exposing (Field)
-import Validation
 import Form
 
 import Html exposing (Html)
@@ -40,19 +39,13 @@ reload model =
   }
 
 parse : Model -> Maybe NewThread
-parse model =
-  let
-    result =
-      Validation.andThen (Field.validate model.subject) <| \subject ->
-      Validation.andThen (Field.validate model.text) <| \text ->
-      Validation.valid
-        { subject = subject
-        , text = text
-        }
-  in
-    case Validation.validate result of
-      Err _ -> Nothing
-      Ok unit -> Just unit
+parse model = Result.toMaybe <|
+  Field.with model.subject <| \subject ->
+  Field.with model.text <| \text ->
+  Ok
+    { subject = subject
+    , text = text
+    }
 
 --------------------------------------------------------------------------------
 -- Update

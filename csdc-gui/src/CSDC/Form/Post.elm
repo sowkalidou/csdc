@@ -11,7 +11,6 @@ import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Types exposing (..)
 import CSDC.Input as Input
 import Field exposing (Field)
-import Validation
 import Form
 
 import Html exposing (Html)
@@ -37,17 +36,11 @@ reload model =
   }
 
 parse : Model -> Maybe NewPost
-parse model =
-  let
-    result =
-      Validation.andThen (Field.validate model.text) <| \text ->
-      Validation.valid
-        { text = text
-        }
-  in
-    case Validation.validate result of
-      Err _ -> Nothing
-      Ok unit -> Just unit
+parse model = Result.toMaybe <|
+  Field.with model.text <| \text ->
+  Ok
+    { text = text
+    }
 
 --------------------------------------------------------------------------------
 -- Update

@@ -12,7 +12,6 @@ import CSDC.Notification as Notification exposing (Notification)
 import CSDC.Types exposing (..)
 import CSDC.Input as Input
 import Field exposing (Field)
-import Validation
 import Form
 
 import Html exposing (Html)
@@ -48,19 +47,13 @@ reload model =
   }
 
 parse : Model -> Maybe PersonUpdate
-parse model =
-  let
-    result =
-      Validation.andThen (Field.validate model.name) <| \name ->
-      Validation.andThen (Field.validate model.description) <| \description ->
-      Validation.valid
-        { name = name
-        , description = description
-        }
-  in
-    case Validation.validate result of
-      Err _ -> Nothing
-      Ok unit -> Just unit
+parse model = Result.toMaybe <|
+  Field.with model.name <| \name ->
+  Field.with model.description <| \description ->
+  Ok
+    { name = name
+    , description = description
+    }
 
 --------------------------------------------------------------------------------
 -- Update

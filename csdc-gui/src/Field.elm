@@ -8,6 +8,7 @@ module Field exposing
   , reload
   , errors
   , validate
+  , with
     -- Common
   , make
   , optional
@@ -17,7 +18,6 @@ module Field exposing
   )
 
 import CSDC.Types exposing (Id (..))
-import Validation exposing (Validation)
 
 type Status b
   -- The field was incorrectly parsed.
@@ -35,7 +35,7 @@ type Field a b = Field
     -- The validation status of the field.
   , status : Status b
     -- The validation function of the field.
-  , validate : a -> Validation b
+  , validate : a -> Result (List String) b
   }
 
 name : Field a b -> String
@@ -51,10 +51,9 @@ set : a -> Field a b -> Field a b
 set a (Field f) = Field
   { name = f.name
   , raw = a
-  , status =
-      case Validation.validate (f.validate a) of
-        Err e -> Invalid e
-        Ok b -> Valid b
+  , status = case f.validate a of
+      Err e -> Invalid e
+      Ok b -> Valid b
   , validate = f.validate
   }
 
@@ -67,20 +66,24 @@ errors (Field f) =
     Invalid e -> e
     _ -> []
 
-validate : Field a b -> Validation b
+validate : Field a b -> Result (List String) b
 validate (Field f) =
   let
     addPrefix s = f.name ++ ": " ++ s
   in
     case f.status of
-      Invalid e -> Validation.make <| Err (List.map addPrefix e)
-      Valid a -> Validation.make <| Ok a
-      Initial -> Validation.make <| Err [addPrefix "Initial field: should not happen"]
+      Invalid e -> Err (List.map addPrefix e)
+      Valid a -> Ok a
+      Initial -> Err [addPrefix "Initial field: should not happen"]
+
+with : Field a b -> (b -> Result (List String) c) -> Result (List String) c
+with field f =
+  validate field |> Result.andThen f
 
 --------------------------------------------------------------------------------
 -- Fields
 
-make : String -> a -> (a -> Validation b) -> Field a b
+make : String -> a -> (a -> Result (List String) b) -> Field a b
 make n r v = Field
   { name = n
   , raw = r
@@ -89,22 +92,22 @@ make n r v = Field
   }
 
 optional : String -> Field (Maybe a) (Maybe a)
-optional n = make n Nothing Validation.valid
+optional n = make n Nothing Ok
 
 required : String -> Field (Maybe a) a
 required n = make n Nothing <| \m ->
   case m of
-    Nothing -> Validation.invalid "This field is required."
-    Just a -> Validation.valid a
+    Nothing -> Err ["This field is required."]
+    Just a -> Ok a
 
 requiredString : String -> Field String String
 requiredString n = make n "" <| \s ->
   if String.isEmpty s
-  then Validation.invalid "This field is required."
-  else Validation.valid s
+  then Err ["This field is required."]
+  else Ok s
 
 requiredId : String -> Field String (Id a)
 requiredId n = make n "" <| \s ->
   case String.toInt s of
-    Nothing -> Validation.invalid "This is not a valid Id."
-    Just k -> Validation.valid (Id k)
+    Nothing -> Err ["This is not a valid Id."]
+    Just k -> Ok (Id k)
