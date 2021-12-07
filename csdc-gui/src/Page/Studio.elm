@@ -15,7 +15,6 @@ import UI.BoxImageText as BoxImageText
 import UI.Column as Column
 import UI.DotMenu as DotMenu
 import UI.Modal as Modal
-import UI.Progress as Progress
 import UI.PreviewImageText as PreviewImageText
 import Form.Unit as UnitForm
 import Form.Person as PersonForm
@@ -25,6 +24,7 @@ import Form.Reply as ReplyForm
 import Notification exposing (Notification)
 import Page as Page
 import Types exposing (..)
+import WebData exposing (WebData)
 import Form
 
 import Html exposing (Html)
@@ -39,7 +39,7 @@ type Selected
   | SelectedInbox InboxId
 
 type alias Model =
-  { info : Maybe PersonInfo
+  { info : WebData PersonInfo
   , notification : Notification
   , inbox : Inbox
   , selected : Maybe Selected
@@ -55,7 +55,7 @@ type alias Model =
 
 initial : Model
 initial =
-  { info = Nothing
+  { info = WebData.Loading
   , notification = Notification.Empty
   , inbox = emptyInbox
   , selected = Nothing
@@ -142,42 +142,33 @@ update pageInfo msg model =
         , Cmd.map UnitCreateMsg cmd
         )
 
-    PersonEditOpen ->
-      case model.info of
-        Nothing ->
-          ( model
-          , Cmd.none
-          )
-        Just info ->
-          ( { model
-            | personEditOpen = True
-            , personEdit = PersonForm.fromPerson info.person
-            }
-          , Cmd.none
-          )
+    PersonEditOpen -> WebData.update model model.info <| \info ->
+      ( { model
+        | personEditOpen = True
+        , personEdit = PersonForm.fromPerson info.person
+        }
+      , Cmd.none
+      )
 
     PersonEditClose ->
       ( { model | personEditOpen = False }
       , Cmd.none
       )
 
-    PersonEditMsg personMsg ->
-      case model.info of
-        Nothing -> (model, Cmd.none)
-        Just person ->
-          let
-            config =
-              { id = person.id
-              , finish = Page.goTo pageInfo Page.Studio
-              }
-            (personEdit, cmd) = PersonForm.updateWith config personMsg model.personEdit
-          in
-            ( { model
-              | personEdit = personEdit
-              , personEditOpen = not (Form.isFinished personMsg)
-              }
-            , Cmd.map PersonEditMsg cmd
-            )
+    PersonEditMsg personMsg -> WebData.update model model.info <| \person ->
+      let
+        config =
+          { id = person.id
+          , finish = Page.goTo pageInfo Page.Studio
+          }
+        (personEdit, cmd) = PersonForm.updateWith config personMsg model.personEdit
+      in
+        ( { model
+          | personEdit = personEdit
+          , personEditOpen = not (Form.isFinished personMsg)
+          }
+        , Cmd.map PersonEditMsg cmd
+        )
 
     ImageOpen ->
       ( { model
@@ -191,23 +182,20 @@ update pageInfo msg model =
       , Cmd.none
       )
 
-    ImageMsg personMsg ->
-      case model.info of
-        Nothing -> (model, Cmd.none)
-        Just person ->
-          let
-            config =
-              { request = API.updatePersonImage person.id
-              , finish = Page.reload
-              }
-            (personImage, cmd) = ImageForm.updateWith config personMsg model.personImage
-          in
-            ( { model
-              | personImage = personImage
-              , personImageOpen = not (Form.isFinished personMsg)
-              }
-            , Cmd.map ImageMsg cmd
-            )
+    ImageMsg personMsg -> WebData.update model model.info <| \person ->
+      let
+        config =
+          { request = API.updatePersonImage person.id
+          , finish = Page.reload
+          }
+        (personImage, cmd) = ImageForm.updateWith config personMsg model.personImage
+      in
+        ( { model
+          | personImage = personImage
+          , personImageOpen = not (Form.isFinished personMsg)
+          }
+        , Cmd.map ImageMsg cmd
+        )
 
     ReplyMsg preMsg ->
       case model.selected of
@@ -303,7 +291,7 @@ update pageInfo msg model =
       )
 
     GetUserInfo result -> onSuccess result <| \info ->
-      ( { model | info = Just info }
+      ( { model | info = WebData.Success info }
       , Cmd.none
       )
 
@@ -330,145 +318,141 @@ dotMenu = DotMenu.make
 
 view : Model -> List (Html Msg)
 view model =
-  case model.info of
-    Nothing ->
-      [ Progress.view
-      ] ++ Notification.view model.notification
-
-    Just info ->
-      [ Html.h1
-          [ Html.Attributes.class "title" ]
-          [ Html.text "Studio" ]
-      , Html.div
-          [ Html.Attributes.class "columns"
-          , Html.Attributes.style "height" "100%"
-          ]
-          [ Html.div
-              [ Html.Attributes.class "column is-one-third" ]
-              [ Column.view "Information" [dotMenu]
-                  [ Html.div
-                      [ Html.Attributes.class "media"
-                      , Html.Attributes.style "padding-bottom" "25px"
-                      ]
-                      [ Html.div
-                          [ Html.Attributes.class "media-left" ]
-                          [ Html.figure
-                              [ Html.Attributes.class "image is-48x48"
-                              , Html.Attributes.style "margin" "0"
-                              ]
-                              [ Html.img
-                                  [ Html.Attributes.src <| filePath info.person.image
-                                  , Html.Attributes.style "border-radius" "10%"
-                                  , Html.Attributes.alt "Profile Photo"
-                                  ]
-                                  []
-                              ]
-                          ]
-                      , Html.div
-                          [ Html.Attributes.class "media-content" ]
-                          [ Html.p
-                              [ Html.Attributes.class "title is-5" ]
-                              [ Html.text info.person.name ]
-                          , Html.p
-                              [ Html.Attributes.class "subtitle is-6" ]
-                              [ Html.text "ORCID: "
-                              , Html.a
-                                  [ Html.Attributes.href ("https://orcid.org/" ++ info.person.orcid)
-                                  , Html.Attributes.target "_blank"
-                                  ]
-                                  [ Html.text info.person.orcid ]
-                              ]
-                          ]
-                      ]
-                  , Markdown.toHtml
-                      [ Html.Attributes.class "content"]
-                      (info.person.description)
+  Notification.with model.notification <|
+  WebData.view model.info <| \info ->
+  [ Html.h1
+      [ Html.Attributes.class "title" ]
+      [ Html.text "Studio" ]
+  , Html.div
+      [ Html.Attributes.class "columns"
+      , Html.Attributes.style "height" "100%"
+      ]
+      [ Html.div
+          [ Html.Attributes.class "column is-one-third" ]
+          [ Column.view "Information" [dotMenu]
+              [ Html.div
+                  [ Html.Attributes.class "media"
+                  , Html.Attributes.style "padding-bottom" "25px"
                   ]
+                  [ Html.div
+                      [ Html.Attributes.class "media-left" ]
+                      [ Html.figure
+                          [ Html.Attributes.class "image is-48x48"
+                          , Html.Attributes.style "margin" "0"
+                          ]
+                          [ Html.img
+                              [ Html.Attributes.src <| filePath info.person.image
+                              , Html.Attributes.style "border-radius" "10%"
+                              , Html.Attributes.alt "Profile Photo"
+                              ]
+                              []
+                          ]
+                      ]
+                  , Html.div
+                      [ Html.Attributes.class "media-content" ]
+                      [ Html.p
+                          [ Html.Attributes.class "title is-5" ]
+                          [ Html.text info.person.name ]
+                      , Html.p
+                          [ Html.Attributes.class "subtitle is-6" ]
+                          [ Html.text "ORCID: "
+                          , Html.a
+                              [ Html.Attributes.href ("https://orcid.org/" ++ info.person.orcid)
+                              , Html.Attributes.target "_blank"
+                              ]
+                              [ Html.text info.person.orcid ]
+                          ]
+                      ]
+                  ]
+              , Markdown.toHtml
+                  [ Html.Attributes.class "content"]
+                  (info.person.description)
               ]
-          , Html.div
-              [ Html.Attributes.class "column is-one-third" ]
-              [ Column.view "Units" [] (viewUnits info.members) ]
-          , Html.div
-              [ Html.Attributes.class "column is-one-third" ]
-              [ Column.view "Inbox" [] (viewInbox model.inbox) ]
           ]
+      , Html.div
+          [ Html.Attributes.class "column is-one-third" ]
+          [ Column.view "Units" [] (viewUnits info.members) ]
+      , Html.div
+          [ Html.Attributes.class "column is-one-third" ]
+          [ Column.view "Inbox" [] (viewInbox model.inbox) ]
+      ]
 
-      , Modal.view model.personEditOpen PersonEditClose <|
-          Html.map PersonEditMsg <|
-          Form.viewWith "Edit Profile" PersonForm.view model.personEdit
+  , Modal.view model.personEditOpen PersonEditClose <|
+      Html.map PersonEditMsg <|
+      Form.viewWith "Edit Profile" PersonForm.view model.personEdit
 
-      , Modal.view model.personImageOpen ImageClose <|
-          Html.map ImageMsg <|
-          Form.viewWith "Profile Photo" ImageForm.view model.personImage
+  , Modal.view model.personImageOpen ImageClose <|
+      Html.map ImageMsg <|
+      Form.viewWith "Profile Photo" ImageForm.view model.personImage
 
-      , Modal.view model.unitCreateOpen UnitCreateClose <|
-          Html.map UnitCreateMsg <|
-          Form.viewWith "Create Unit" UnitForm.view model.unitCreate
+  , Modal.view model.unitCreateOpen UnitCreateClose <|
+      Html.map UnitCreateMsg <|
+      Form.viewWith "Create Unit" UnitForm.view model.unitCreate
 
-      , Modal.viewMaybe model.selected CloseModal <| \selected ->
-          case selected of
-            SelectedUnit id ->
-              case lookupById id info.members of
+  , Modal.viewMaybe model.selected CloseModal <| \selected ->
+      case selected of
+        SelectedUnit id ->
+          case lookupById id info.members of
+            Nothing ->
+              Html.text "Error."
+            Just personMember ->
+              PreviewImageText.view personMember.unit (View personMember.id)
+
+        SelectedInbox inboxId ->
+          case inboxId of
+            ReplyMemberId id ->
+              case lookupById id model.inbox.replyMember of
                 Nothing ->
                   Html.text "Error."
-                Just personMember ->
-                  PreviewImageText.view personMember.unit (View personMember.id)
+                Just msg ->
+                  let
+                    title = case msg.mtype of
+                      Invitation -> "Invitation Reply"
+                      Submission -> "Submission Reply"
+                  in
+                    Html.map ReplySeenMsg <|
+                    Form.viewWith title (ReplySeenForm.view msg) model.previewReply
 
-            SelectedInbox inboxId ->
-              case inboxId of
-                ReplyMemberId id ->
-                  case lookupById id model.inbox.replyMember of
-                    Nothing ->
-                      Html.text "Error."
-                    Just msg ->
-                      let
-                        title = case msg.mtype of
-                          Invitation -> "Invitation Reply"
-                          Submission -> "Submission Reply"
-                      in
-                        Html.map ReplySeenMsg <|
-                        Form.viewWith title (ReplySeenForm.view msg) model.previewReply
+            MessageMemberId id ->
+              case lookupById id model.inbox.messageMember of
+                Nothing ->
+                  Html.text "Error."
+                Just msg ->
+                  let
+                    title = case msg.mtype of
+                      Invitation -> "Invitation"
+                      Submission -> "Submission"
+                  in
+                    Html.map ReplyMsg <|
+                    Form.viewWith title (ReplyForm.view msg) model.previewMessage
 
-                MessageMemberId id ->
-                  case lookupById id model.inbox.messageMember of
-                    Nothing ->
-                      Html.text "Error."
-                    Just msg ->
-                      let
-                        title = case msg.mtype of
-                          Invitation -> "Invitation"
-                          Submission -> "Submission"
-                      in
-                        Html.map ReplyMsg <|
-                        Form.viewWith title (ReplyForm.view msg) model.previewMessage
+            MessageSubpartId id ->
+              case lookupById id model.inbox.messageSubpart of
+                Nothing ->
+                  Html.text "Error."
+                Just msg ->
+                  let
+                    title = case msg.mtype of
+                      Invitation -> "Invitation"
+                      Submission -> "Submission"
+                  in
+                    Html.map ReplyMsg <|
+                    Form.viewWith title (ReplyForm.view msg) model.previewMessage
 
-                MessageSubpartId id ->
-                  case lookupById id model.inbox.messageSubpart of
-                    Nothing ->
-                      Html.text "Error."
-                    Just msg ->
-                      let
-                        title = case msg.mtype of
-                          Invitation -> "Invitation"
-                          Submission -> "Submission"
-                      in
-                        Html.map ReplyMsg <|
-                        Form.viewWith title (ReplyForm.view msg) model.previewMessage
+            ReplySubpartId id ->
+              case lookupById id model.inbox.replySubpart of
+                Nothing ->
+                  Html.text "Error."
+                Just msg ->
+                  let
+                    title = case msg.mtype of
+                      Invitation -> "Invitation Reply"
+                      Submission -> "Submission Reply"
+                  in
+                    Html.map ReplySeenMsg <|
+                    Form.viewWith title (ReplySeenForm.view msg) model.previewReply
 
-                ReplySubpartId id ->
-                  case lookupById id model.inbox.replySubpart of
-                    Nothing ->
-                      Html.text "Error."
-                    Just msg ->
-                      let
-                        title = case msg.mtype of
-                          Invitation -> "Invitation Reply"
-                          Submission -> "Submission Reply"
-                      in
-                        Html.map ReplySeenMsg <|
-                        Form.viewWith title (ReplySeenForm.view msg) model.previewReply
-
-      ] ++ Notification.view model.notification
+  ]
 
 --------------------------------------------------------------------------------
 -- Helpers

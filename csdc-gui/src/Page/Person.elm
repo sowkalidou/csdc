@@ -13,12 +13,12 @@ import UI.DotMenu as DotMenu
 import UI.Modal as Modal
 import UI.BoxImageText as BoxImageText
 import UI.PreviewImageText as PreviewImageText
-import UI.Progress as Progress
 import Notification exposing (Notification)
 import Form.Message as MessageForm
 import Page as Page
 import Types exposing (..)
 import Form
+import WebData exposing (WebData)
 
 import Html exposing (Html)
 import Html.Attributes
@@ -28,7 +28,7 @@ import Markdown
 -- Model
 
 type alias Model =
-  { person : Maybe PersonInfo
+  { person : WebData PersonInfo
   , selectedUnit : Maybe (Id Unit)
   , messageCreate : MessageForm.Model
   , messageCreateOpen : Bool
@@ -37,7 +37,7 @@ type alias Model =
 
 initial : Model
 initial =
-  { person = Nothing
+  { person = WebData.Loading
   , selectedUnit = Nothing
   , messageCreate = MessageForm.initial
   , messageCreateOpen = False
@@ -78,12 +78,10 @@ update pageInfo msg model =
       , Cmd.none
       )
 
-    MessageCreateOpen ->
+    MessageCreateOpen -> WebData.update model model.person <| \info ->
       ( { model
         | messageCreateOpen = True
-        , messageCreate = case model.person of
-            Nothing -> MessageForm.initial
-            Just info -> MessageForm.fromPersonInfo info
+        , messageCreate = MessageForm.fromPersonInfo info
         }
       , Cmd.none
       )
@@ -114,7 +112,7 @@ update pageInfo msg model =
       )
 
     APIMsg result -> Notification.withResponse Reset model result <| \info ->
-      ( { model | person = Just info }
+      ( { model | person = WebData.Success info }
       , Cmd.none
       )
 
@@ -123,92 +121,88 @@ update pageInfo msg model =
 
 view : Model -> List (Html Msg)
 view model =
-  case model.person of
-    Nothing ->
-      [ Progress.view
-      ] ++ Notification.view model.notification
-
-    Just person ->
-      [ Html.h1
-          [ Html.Attributes.class "title" ]
-          [ Html.text person.person.name ]
-      , Html.div
-          [ Html.Attributes.class "columns"
-          , Html.Attributes.style "height" "100%"
-          ]
-          [ Html.div
-              [ Html.Attributes.class "column is-two-thirds" ]
-              [ Column.view "Information"
-                  [ DotMenu.make <|
-                    if List.isEmpty person.unitsForMessage
-                    then
-                      []
-                    else
-                      [ { label = "Invite this person to your unit"
-                        , message = MessageCreateOpen
-                        }
-                      ]
-                  ]
-                  [ Html.div
-                      [ Html.Attributes.class "media"
-                      , Html.Attributes.style "padding-bottom" "25px"
-                      ]
-                      [ Html.div
-                          [ Html.Attributes.class "media-left" ]
-                          [ Html.figure
-                              [ Html.Attributes.class "image is-96x96"
-                              , Html.Attributes.style "margin" "0"
-                              ]
-                              [ Html.img
-                                  [ Html.Attributes.src <| filePath person.person.image
-                                  , Html.Attributes.style "border-radius" "10%"
-                                  , Html.Attributes.alt "Profile photo"
-                                  ]
-                                  []
-                              ]
-                          ]
-                      , Html.div
-                          [ Html.Attributes.class "media-content"
-                          , Html.Attributes.style "padding-top" "24px"
-                          ]
-                          [ Html.p
-                              [ Html.Attributes.class "title is-5" ]
-                              [ Html.text person.person.name ]
-                          , Html.p
-                              [ Html.Attributes.class "subtitle is-6" ]
-                              [ Html.text "ORCID: "
-                              , Html.a
-                                  [ Html.Attributes.href ("https://orcid.org/" ++ person.person.orcid)
-                                  , Html.Attributes.target "_blank"
-                                  ]
-                                  [ Html.text person.person.orcid ]
-                              ]
-                          ]
-                      ]
-
-                  , Markdown.toHtml [] person.person.description
+  Notification.with model.notification <|
+  WebData.view model.person <| \person ->
+  [ Html.h1
+      [ Html.Attributes.class "title" ]
+      [ Html.text person.person.name ]
+  , Html.div
+      [ Html.Attributes.class "columns"
+      , Html.Attributes.style "height" "100%"
+      ]
+      [ Html.div
+          [ Html.Attributes.class "column is-two-thirds" ]
+          [ Column.view "Information"
+              [ DotMenu.make <|
+                if List.isEmpty person.unitsForMessage
+                then
+                  []
+                else
+                  [ { label = "Invite this person to your unit"
+                    , message = MessageCreateOpen
+                    }
                   ]
               ]
-          , Html.div
-              [ Html.Attributes.class "column is-one-third" ]
-              [ Column.view "Units" [] (viewUnits person) ]
+              [ Html.div
+                  [ Html.Attributes.class "media"
+                  , Html.Attributes.style "padding-bottom" "25px"
+                  ]
+                  [ Html.div
+                      [ Html.Attributes.class "media-left" ]
+                      [ Html.figure
+                          [ Html.Attributes.class "image is-96x96"
+                          , Html.Attributes.style "margin" "0"
+                          ]
+                          [ Html.img
+                              [ Html.Attributes.src <| filePath person.person.image
+                              , Html.Attributes.style "border-radius" "10%"
+                              , Html.Attributes.alt "Profile photo"
+                              ]
+                              []
+                          ]
+                      ]
+                  , Html.div
+                      [ Html.Attributes.class "media-content"
+                      , Html.Attributes.style "padding-top" "24px"
+                      ]
+                      [ Html.p
+                          [ Html.Attributes.class "title is-5" ]
+                          [ Html.text person.person.name ]
+                      , Html.p
+                          [ Html.Attributes.class "subtitle is-6" ]
+                          [ Html.text "ORCID: "
+                          , Html.a
+                              [ Html.Attributes.href ("https://orcid.org/" ++ person.person.orcid)
+                              , Html.Attributes.target "_blank"
+                              ]
+                              [ Html.text person.person.orcid ]
+                          ]
+                      ]
+                  ]
+
+              , Markdown.toHtml [] person.person.description
+              ]
           ]
+      , Html.div
+          [ Html.Attributes.class "column is-one-third" ]
+          [ Column.view "Units" [] (viewUnits person) ]
+      ]
 
-      , Modal.view model.messageCreateOpen MessageCreateClose <|
-          Html.map MessageCreateMsg <|
-          let
-            make uid = { person = person.id, unit = uid }
-          in
-            Form.viewWith "Send Invitation" (MessageForm.view Invitation make) model.messageCreate
+  , Modal.view model.messageCreateOpen MessageCreateClose <|
+      Html.map MessageCreateMsg <|
+      let
+        make uid = { person = person.id, unit = uid }
+      in
+        Form.viewWith "Send Invitation" (MessageForm.view Invitation make) model.messageCreate
 
-      , Modal.viewMaybe model.selectedUnit CloseModal <| \id ->
-          case lookupById id person.members of
-            Nothing ->
-              Html.text "Error."
-            Just personMember ->
-              PreviewImageText.view personMember.unit (ViewSelectedUnit personMember.id)
+  , Modal.viewMaybe model.selectedUnit CloseModal <| \id ->
+      case lookupById id person.members of
+        Nothing ->
+          Html.text "Error."
+        Just personMember ->
+          PreviewImageText.view personMember.unit (ViewSelectedUnit personMember.id)
 
-      ] ++ Notification.view model.notification
+  ]
 
 viewUnits : PersonInfo -> List (Html Msg)
 viewUnits info =

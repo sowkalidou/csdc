@@ -13,7 +13,6 @@ import UI.Column as Column
 import UI.DotMenu as DotMenu
 import UI.Modal as Modal
 import UI.PreviewImageText as PreviewImageText
-import UI.Progress as Progress
 import UI.Tabs as Tabs
 import Form.Unit as UnitForm
 import Form.UnitDelete as UnitDeleteForm
@@ -27,6 +26,7 @@ import Page.UnitAdmin as UnitAdmin
 import Page.UnitFiles as UnitFiles
 import Page.UnitForum as UnitForum
 import Form
+import WebData exposing (WebData)
 
 import Html exposing (Html)
 import Html.Attributes
@@ -36,7 +36,7 @@ import Markdown
 -- Model
 
 type alias Model =
-  { info : Maybe UnitInfo
+  { info : WebData UnitInfo
   , tab : Page.UnitTab
   , unitInfo : UnitInfo.Model
   , unitAdmin : UnitAdmin.Model
@@ -47,7 +47,7 @@ type alias Model =
 
 initial : Model
 initial =
-  { info = Nothing
+  { info = WebData.Loading
   , tab = Page.UnitInfo
   , unitInfo = UnitInfo.initial
   , unitAdmin = UnitAdmin.initial
@@ -80,58 +80,48 @@ update pageInfo msg model =
     onSuccess = Notification.withResponse ResetNotification model
   in
   case msg of
-    UnitInfoMsg umsg ->
-      case model.info of
-        Nothing -> (model, Cmd.none)
-        Just info ->
-          let
-            (unitInfo, cmd) = UnitInfo.update info pageInfo umsg model.unitInfo
-          in
-            ( { model | unitInfo = unitInfo }
-            , Cmd.map UnitInfoMsg cmd
-            )
+    UnitInfoMsg umsg -> WebData.update model model.info <| \info ->
+      let
+        (unitInfo, cmd) = UnitInfo.update info pageInfo umsg model.unitInfo
+      in
+        ( { model | unitInfo = unitInfo }
+        , Cmd.map UnitInfoMsg cmd
+        )
 
-    UnitAdminMsg umsg ->
-      case model.info of
-        Nothing -> (model, Cmd.none)
-        Just info ->
-          let
-            (unitAdmin, cmd) = UnitAdmin.update info pageInfo umsg model.unitAdmin
-          in
-            ( { model | unitAdmin = unitAdmin }
-            , Cmd.map UnitAdminMsg cmd
-            )
+    UnitAdminMsg umsg -> WebData.update model model.info <| \info ->
+      let
+        (unitAdmin, cmd) = UnitAdmin.update info pageInfo umsg model.unitAdmin
+      in
+        ( { model | unitAdmin = unitAdmin }
+        , Cmd.map UnitAdminMsg cmd
+        )
 
-    UnitFilesMsg umsg ->
-      case model.info of
-        Nothing -> (model, Cmd.none)
-        Just info ->
-          let
-            (unitFiles, cmd) = UnitFiles.update info pageInfo umsg model.unitFiles
-          in
-            ( { model | unitFiles = unitFiles }
-            , Cmd.map UnitFilesMsg cmd
-            )
+    UnitFilesMsg umsg -> WebData.update model model.info <| \info ->
+      let
+        (unitFiles, cmd) = UnitFiles.update info pageInfo umsg model.unitFiles
+      in
+        ( { model | unitFiles = unitFiles }
+        , Cmd.map UnitFilesMsg cmd
+        )
 
-    UnitForumMsg umsg ->
-      case model.info of
-        Nothing -> (model, Cmd.none)
-        Just info ->
-          let
-            (unitForum, cmd) = UnitForum.update info pageInfo umsg model.unitForum
-          in
-            ( { model | unitForum = unitForum }
-            , Cmd.map UnitForumMsg cmd
-            )
+    UnitForumMsg umsg -> WebData.update model model.info <| \info ->
+      let
+        (unitForum, cmd) = UnitForum.update info pageInfo umsg model.unitForum
+      in
+        ( { model | unitForum = unitForum }
+        , Cmd.map UnitForumMsg cmd
+        )
 
     GetUnitInfo tab result -> onSuccess result <| \info ->
       ( let
           modelChoice = case model.info of
-            Nothing -> initial
-            Just old -> if old.id == info.id then model else initial
+            WebData.Success old ->
+              if old.id == info.id then model else initial
+            _ ->
+              initial
         in
           { modelChoice
-          | info = Just info
+          | info = WebData.Success info
           , tab = tab
           }
       , case tab of
@@ -141,17 +131,14 @@ update pageInfo msg model =
           Page.UnitForum mtid -> Cmd.map UnitForumMsg <| UnitForum.setup info.id mtid
       )
 
-    SetTab tab ->
-      case model.info of
-        Nothing -> (model, Cmd.none)
-        Just info ->
-          ( { model | tab = tab }
-            , case tab of
-                Page.UnitInfo -> setup info.id Page.UnitInfo
-                Page.UnitAdmin -> Cmd.map UnitAdminMsg <| UnitAdmin.setup info.id
-                Page.UnitFiles -> Cmd.map UnitFilesMsg <| UnitFiles.setup info.id
-                Page.UnitForum mtid -> Cmd.map UnitForumMsg <| UnitForum.setup info.id mtid
-          )
+    SetTab tab -> WebData.update model model.info <| \info ->
+      ( { model | tab = tab }
+        , case tab of
+            Page.UnitInfo -> setup info.id Page.UnitInfo
+            Page.UnitAdmin -> Cmd.map UnitAdminMsg <| UnitAdmin.setup info.id
+            Page.UnitFiles -> Cmd.map UnitFilesMsg <| UnitFiles.setup info.id
+            Page.UnitForum mtid -> Cmd.map UnitForumMsg <| UnitForum.setup info.id mtid
+      )
 
     ResetNotification ->
       ( { model | notification = Notification.Empty }
@@ -163,48 +150,43 @@ update pageInfo msg model =
 
 view : Model -> List (Html Msg)
 view model =
-  case model.info of
-    Nothing ->
-      [ Progress.view
-      ] ++ Notification.view model.notification
-
-    Just info ->
-      [ Html.div
-          [ Html.Attributes.class "is-flex is-justify-content-space-between" ]
-          [ Html.h1
-              [ Html.Attributes.class "title" ]
-              [ Html.text info.unit.name ]
-          , Html.map SetTab <|
-            Tabs.view (sameTab model.tab) <| List.concat
-              [ if info.isMember
-                then
-                  [ (Page.UnitInfo, "Information")
-                  , (Page.UnitForum Nothing, "Forum")
-                  , (Page.UnitFiles, "Files")
-                  ]
-                else []
-              , if info.isAdmin
-                then [(Page.UnitAdmin, "Admin")]
-                else []
+  Notification.with model.notification <|
+  WebData.view model.info <| \info ->
+  [ Html.div
+      [ Html.Attributes.class "is-flex is-justify-content-space-between" ]
+      [ Html.h1
+          [ Html.Attributes.class "title" ]
+          [ Html.text info.unit.name ]
+      , Html.map SetTab <|
+        Tabs.view (sameTab model.tab) <| List.concat
+          [ if info.isMember
+            then
+              [ (Page.UnitInfo, "Information")
+              , (Page.UnitForum Nothing, "Forum")
+              , (Page.UnitFiles, "Files")
               ]
+            else []
+          , if info.isAdmin
+            then [(Page.UnitAdmin, "Admin")]
+            else []
           ]
-      , Html.div
-          [ Html.Attributes.style "height" "100%"
-          ] <| case model.tab of
-          Page.UnitInfo ->
-            List.map (Html.map UnitInfoMsg) <|
-            UnitInfo.view info model.unitInfo
-          Page.UnitAdmin ->
-            List.map (Html.map UnitAdminMsg) <|
-            UnitAdmin.view info model.unitAdmin
-          Page.UnitForum _ ->
-            List.map (Html.map UnitForumMsg) <|
-            UnitForum.view info model.unitForum
-          Page.UnitFiles ->
-            List.map (Html.map UnitFilesMsg) <|
-            UnitFiles.view info model.unitFiles
-
-      ] ++ Notification.view model.notification
+      ]
+  , Html.div
+      [ Html.Attributes.style "height" "100%"
+      ] <| case model.tab of
+      Page.UnitInfo ->
+        List.map (Html.map UnitInfoMsg) <|
+        UnitInfo.view info model.unitInfo
+      Page.UnitAdmin ->
+        List.map (Html.map UnitAdminMsg) <|
+        UnitAdmin.view info model.unitAdmin
+      Page.UnitForum _ ->
+        List.map (Html.map UnitForumMsg) <|
+        UnitForum.view info model.unitForum
+      Page.UnitFiles ->
+        List.map (Html.map UnitFilesMsg) <|
+        UnitFiles.view info model.unitFiles
+  ]
 
 sameTab : Page.UnitTab -> Page.UnitTab -> Bool
 sameTab t1 t2 =

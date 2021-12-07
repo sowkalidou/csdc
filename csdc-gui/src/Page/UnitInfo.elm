@@ -12,7 +12,6 @@ import UI.Column as Column
 import UI.DotMenu as DotMenu
 import UI.Modal as Modal
 import UI.PreviewImageText as PreviewImageText
-import UI.Progress as Progress
 import UI.Tabs as Tabs
 import Form.Unit as UnitForm
 import Form.UnitDelete as UnitDeleteForm

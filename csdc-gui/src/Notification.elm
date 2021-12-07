@@ -1,5 +1,6 @@
 module Notification exposing
   ( Notification (..)
+  , with
   , view
   , reset
   , withResponse
@@ -17,6 +18,9 @@ type Notification
   | Success
   | Error (List String)
   | HttpError Http.Error
+
+with : Notification -> List (Html msg) -> List (Html msg)
+with notification html = html ++ view notification
 
 view : Notification -> List (Html msg)
 view notification =
