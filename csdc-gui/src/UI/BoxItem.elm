@@ -7,7 +7,6 @@ module UI.BoxItem exposing
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import List
 
 --------------------------------------------------------------------------------
 -- Item

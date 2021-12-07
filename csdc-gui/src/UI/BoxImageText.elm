@@ -3,12 +3,10 @@ module UI.BoxImageText exposing
   )
 
 import UI.BoxItem as BoxItem
-import Types exposing (Id, Person, FilePath, filePath)
+import Types exposing (FilePath, filePath)
 
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
-import List
 
 view : Bool -> id -> { value | name : String, image: FilePath } -> Html id
 view selected pid value =

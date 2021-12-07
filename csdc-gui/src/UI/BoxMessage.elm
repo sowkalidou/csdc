@@ -6,9 +6,6 @@ import UI.BoxItem as BoxItem
 import Types exposing (Id, Message, MessageInfo, MessageType (..))
 
 import Html exposing (Html)
-import Html.Attributes
-import Html.Events
-import List
 
 view : Bool -> MessageInfo a -> Html (Id (Message a))
 view selected message =

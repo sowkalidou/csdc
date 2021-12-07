@@ -1,7 +1,5 @@
 module WebData exposing (..)
 
-import Notification exposing (Notification)
-
 import Html exposing (Html)
 import Html.Attributes
 import Http

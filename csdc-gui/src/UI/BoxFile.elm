@@ -7,8 +7,6 @@ import Types exposing (FileUI, filePath)
 
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
-import List
 
 view : FileUI -> Html msg
 view file =

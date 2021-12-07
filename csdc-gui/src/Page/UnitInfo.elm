@@ -12,13 +12,12 @@ import UI.Column as Column
 import UI.DotMenu as DotMenu
 import UI.Modal as Modal
 import UI.PreviewImageText as PreviewImageText
-import UI.Tabs as Tabs
 import Form.Unit as UnitForm
 import Form.UnitDelete as UnitDeleteForm
 import Form.Message as MessageForm
 import Form.SubmissionMember as SubmissionMemberForm
 import Notification exposing (Notification)
-import Page as Page exposing (UnitTab)
+import Page as Page
 import Types exposing (..)
 import Form
 
@@ -88,7 +87,6 @@ type Msg
 update : UnitInfo -> Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update info pageInfo msg model =
   let
-    onSuccess = Notification.withResponse Reset model
     reload = Page.goTo pageInfo (Page.Unit Page.UnitInfo info.id)
   in
   case msg of

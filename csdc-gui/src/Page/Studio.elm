@@ -9,23 +9,23 @@ module Page.Studio exposing
   )
 
 import API as API
+import Form
+import Form.Image as ImageForm
+import Form.Person as PersonForm
+import Form.Reply as ReplyForm
+import Form.ReplySeen as ReplySeenForm
+import Form.Unit as UnitForm
+import Notification exposing (Notification)
+import Page as Page
+import Types exposing (..)
+import UI.BoxImageText as BoxImageText
 import UI.BoxMessage as BoxMessage
 import UI.BoxReply as BoxReply
-import UI.BoxImageText as BoxImageText
 import UI.Column as Column
 import UI.DotMenu as DotMenu
 import UI.Modal as Modal
 import UI.PreviewImageText as PreviewImageText
-import Form.Unit as UnitForm
-import Form.Person as PersonForm
-import Form.Image as ImageForm
-import Form.ReplySeen as ReplySeenForm
-import Form.Reply as ReplyForm
-import Notification exposing (Notification)
-import Page as Page
-import Types exposing (..)
 import WebData exposing (WebData)
-import Form
 
 import Html exposing (Html)
 import Html.Attributes
@@ -366,7 +366,7 @@ view model =
                   ]
               , Markdown.toHtml
                   [ Html.Attributes.class "content"]
-                  (info.person.description)
+                  info.person.description
               ]
           ]
       , Html.div

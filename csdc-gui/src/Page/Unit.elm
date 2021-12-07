@@ -8,29 +8,18 @@ module Page.Unit exposing
   )
 
 import API as API
-import UI.BoxImageText as BoxImageText
-import UI.Column as Column
-import UI.DotMenu as DotMenu
-import UI.Modal as Modal
-import UI.PreviewImageText as PreviewImageText
 import UI.Tabs as Tabs
-import Form.Unit as UnitForm
-import Form.UnitDelete as UnitDeleteForm
-import Form.Message as MessageForm
-import Form.SubmissionMember as SubmissionMemberForm
 import Notification exposing (Notification)
-import Page as Page exposing (UnitTab)
+import Page as Page
 import Types exposing (..)
 import Page.UnitInfo as UnitInfo
 import Page.UnitAdmin as UnitAdmin
 import Page.UnitFiles as UnitFiles
 import Page.UnitForum as UnitForum
-import Form
 import WebData exposing (WebData)
 
 import Html exposing (Html)
 import Html.Attributes
-import Markdown
 
 --------------------------------------------------------------------------------
 -- Model
@@ -98,7 +87,7 @@ update pageInfo msg model =
 
     UnitFilesMsg umsg -> WebData.update model model.info <| \info ->
       let
-        (unitFiles, cmd) = UnitFiles.update info pageInfo umsg model.unitFiles
+        (unitFiles, cmd) = UnitFiles.update info umsg model.unitFiles
       in
         ( { model | unitFiles = unitFiles }
         , Cmd.map UnitFilesMsg cmd

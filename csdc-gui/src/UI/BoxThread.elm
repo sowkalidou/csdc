@@ -7,8 +7,6 @@ import Types exposing (Id, Thread, ThreadInfo)
 
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
-import List
 
 view : Bool -> ThreadInfo -> Html (Id Thread)
 view selected thread =

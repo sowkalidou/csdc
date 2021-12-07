@@ -8,7 +8,7 @@ module UI.Search exposing
 
 import API as API
 import Page as Page
-import Types exposing (..)
+import Types exposing (SearchResult, SearchId (..))
 
 import FeatherIcons
 import Html exposing (Html)

@@ -5,8 +5,6 @@ module UI.Column exposing
 import Html exposing (Html)
 import Html.Attributes
 
-import UI.DotMenu as DotMenu
-
 view : String -> List (Html msg) -> List (Html msg) -> Html msg
 view title right children =
   Html.div

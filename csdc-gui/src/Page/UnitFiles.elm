@@ -9,22 +9,17 @@ module Page.UnitFiles exposing
 
 import API as API
 import UI.BoxFile as BoxFile
-import UI.Modal as Modal
 import UI.Column as Column
-import UI.Preview as Preview
 import Notification exposing (Notification)
 import Page as Page exposing (UnitTab (..))
 import Types exposing (..)
-import Form
 
 import Browser.Dom as Dom
-import Delay
 import File exposing (File)
 import File.Select
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Task
 
 --------------------------------------------------------------------------------
 -- Model
@@ -55,8 +50,8 @@ type Msg
   | FileSelected File
   | ResetNotification
 
-update : UnitInfo -> Page.Info -> Msg -> Model -> (Model, Cmd Msg)
-update info pageInfo msg model =
+update : UnitInfo -> Msg -> Model -> (Model, Cmd Msg)
+update info msg model =
   let
     onSuccess = Notification.withResponse ResetNotification model
   in
