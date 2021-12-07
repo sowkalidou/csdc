@@ -8,9 +8,9 @@ module Form exposing
   , viewWith
   )
 
-import CSDC.UI.Preview as Preview
-import CSDC.Notification as Notification exposing (Has)
-import CSDC.API as API
+import UI.Preview as Preview
+import Notification as Notification exposing (Has)
+import API as API
 import Html exposing (Html)
 import Delay
 

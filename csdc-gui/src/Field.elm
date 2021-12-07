@@ -17,7 +17,7 @@ module Field exposing
   , requiredId
   )
 
-import CSDC.Types exposing (Id (..))
+import Types exposing (Id (..))
 
 type Status b
   -- The field was incorrectly parsed.

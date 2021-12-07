@@ -1,15 +1,15 @@
 module Main exposing (main)
 
-import CSDC.UI.Menu as Menu
-import CSDC.UI.Navbar as Navbar
-import CSDC.UI.Search as Search
-import CSDC.Notification as Notification exposing (Notification)
-import CSDC.Page as Page exposing (Page)
-import CSDC.Types exposing (..)
-import CSDC.View.Explorer as Explorer
-import CSDC.View.Studio as Studio
-import CSDC.View.Person as Person
-import CSDC.View.Unit as Unit
+import UI.Menu as Menu
+import UI.Navbar as Navbar
+import UI.Search as Search
+import Notification as Notification exposing (Notification)
+import Page as Page exposing (Page)
+import Types exposing (..)
+import View.Explorer as Explorer
+import View.Studio as Studio
+import View.Person as Person
+import View.Unit as Unit
 
 import Browser
 import Browser.Navigation as Nav
@@ -182,7 +182,7 @@ subscriptions _ = Sub.none
 
 view : Model -> Browser.Document Msg
 view model =
-  { title = "CSDC DAO"
+  { title = "DAO"
   , body =
       [ Navbar.view <| Html.map SearchMsg <| Search.view model.search
       , Html.div
