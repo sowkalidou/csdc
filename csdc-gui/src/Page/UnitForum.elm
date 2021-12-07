@@ -13,7 +13,7 @@ import UI.BoxThread as BoxThread
 import UI.Modal as Modal
 import UI.Column as Column
 import UI.Preview as Preview
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Page as Page exposing (UnitTab (..))
 import Types exposing (..)
 import Form.Thread as ThreadForm

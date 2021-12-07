@@ -12,7 +12,7 @@ import UI.BoxImageText as BoxImageText
 import UI.Column as Column
 import UI.Modal as Modal
 import UI.PreviewImageText as PreviewImageText
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Page as Page
 import Types exposing (..)
 

@@ -9,7 +9,7 @@ module Form.UnitDelete exposing
 import Types exposing (..)
 import Input as Input
 import API as API
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Form
 
 import Html exposing (Html)

@@ -7,7 +7,7 @@ module Form.Reply exposing
   , viewMessage
   )
 
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Types exposing (..)
 import Input as Input
 import API as API

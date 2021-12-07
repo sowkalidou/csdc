@@ -14,7 +14,7 @@ import UI.Modal as Modal
 import UI.BoxImageText as BoxImageText
 import UI.PreviewImageText as PreviewImageText
 import UI.Progress as Progress
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Form.Message as MessageForm
 import Page as Page
 import Types exposing (..)

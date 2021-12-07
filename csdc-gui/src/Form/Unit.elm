@@ -8,7 +8,7 @@ module Form.Unit exposing
   )
 
 import API as API
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Types exposing (..)
 import Input as Input
 import Field exposing (Field)

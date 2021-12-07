@@ -3,7 +3,7 @@ module Main exposing (main)
 import UI.Menu as Menu
 import UI.Navbar as Navbar
 import UI.Search as Search
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Page as Page exposing (Page)
 import Types exposing (..)
 import Page.Explorer as Explorer

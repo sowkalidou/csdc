@@ -13,7 +13,7 @@ import UI.BoxReply as BoxReply
 import UI.Modal as Modal
 import UI.Column as Column
 import UI.Preview as Preview
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Page as Page
 import Types exposing (..)
 import Form.Reply as ReplyForm

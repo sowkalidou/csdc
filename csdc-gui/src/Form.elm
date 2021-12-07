@@ -9,7 +9,7 @@ module Form exposing
   )
 
 import UI.Preview as Preview
-import Notification as Notification exposing (Has)
+import Notification exposing (Has)
 import API as API
 import Html exposing (Html)
 import Delay

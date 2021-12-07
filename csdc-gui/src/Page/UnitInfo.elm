@@ -18,7 +18,7 @@ import Form.Unit as UnitForm
 import Form.UnitDelete as UnitDeleteForm
 import Form.Message as MessageForm
 import Form.SubmissionMember as SubmissionMemberForm
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Page as Page exposing (UnitTab)
 import Types exposing (..)
 import Form

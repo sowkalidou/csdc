@@ -22,7 +22,7 @@ import Form.Person as PersonForm
 import Form.Image as ImageForm
 import Form.ReplySeen as ReplySeenForm
 import Form.Reply as ReplyForm
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Page as Page
 import Types exposing (..)
 import Form

@@ -10,7 +10,7 @@ import Types exposing (..)
 import Input exposing (button)
 import Form.Reply exposing (viewMessage)
 import API as API
-import Notification as Notification exposing (Notification)
+import Notification exposing (Notification)
 import Form
 
 import Html exposing (Html)
