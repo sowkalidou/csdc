@@ -612,7 +612,7 @@ type alias PostInfo =
   { id : Id Post
   , author : Id Person
   , authorName : String
-  , authorImage : String
+  , authorImage : FilePath
   , text : String
   , createdAt : String
   }
@@ -623,7 +623,7 @@ decodePostInfo =
     (Decoder.field "id" decodeId)
     (Decoder.field "author" decodeId)
     (Decoder.field "authorName" Decoder.string)
-    (Decoder.field "authorImage" Decoder.string)
+    (Decoder.field "authorImage" decodeFilePath)
     (Decoder.field "text" Decoder.string)
     (Decoder.field "createdAt" Decoder.string)
 

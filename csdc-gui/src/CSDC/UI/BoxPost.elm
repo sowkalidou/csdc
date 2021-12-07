@@ -2,7 +2,7 @@ module CSDC.UI.BoxPost exposing
   ( view
   )
 
-import CSDC.Types exposing (PostInfo)
+import CSDC.Types exposing (PostInfo, filePath)
 
 import Html exposing (Html)
 import Html.Attributes
@@ -23,7 +23,7 @@ view post =
             , Html.Attributes.style "margin" "0px 10px 10px 0px"
             ]
             [ Html.img
-                [ Html.Attributes.src post.authorImage
+                [ Html.Attributes.src <| filePath post.authorImage
                 , Html.Attributes.style "border-radius" "10%"
                 , Html.Attributes.alt "Profile photo"
                 ]
