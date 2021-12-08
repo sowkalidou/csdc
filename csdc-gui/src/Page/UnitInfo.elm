@@ -14,6 +14,7 @@ import UI.Modal as Modal
 import UI.PreviewImageText as PreviewImageText
 import Form.Unit as UnitForm
 import Form.UnitDelete as UnitDeleteForm
+import Form.MemberDelete as MemberDeleteForm
 import Form.Message as MessageForm
 import Form.SubmissionMember as SubmissionMemberForm
 import Notification exposing (Notification)
@@ -40,6 +41,8 @@ type alias Model =
   , unitEditOpen : Bool
   , unitDelete : UnitDeleteForm.Model
   , unitDeleteOpen : Bool
+  , memberDelete : MemberDeleteForm.Model
+  , memberDeleteOpen : Bool
   , submissionMember : SubmissionMemberForm.Model
   , submissionMemberOpen : Bool
   , subpartCreate : MessageForm.Model
@@ -56,6 +59,8 @@ initial =
   , unitEditOpen = False
   , unitDelete = UnitDeleteForm.initial
   , unitDeleteOpen = False
+  , memberDelete = MemberDeleteForm.initial
+  , memberDeleteOpen = False
   , submissionMember = SubmissionMemberForm.initial
   , submissionMemberOpen = False
   , subpartCreate = MessageForm.initial
@@ -76,6 +81,9 @@ type Msg
   | UnitDeleteMsg UnitDeleteForm.Msg
   | UnitDeleteOpen
   | UnitDeleteClose
+  | MemberDeleteMsg MemberDeleteForm.Msg
+  | MemberDeleteOpen
+  | MemberDeleteClose
   | SubmissionMemberMsg SubmissionMemberForm.Msg
   | SubmissionMemberOpen
   | SubmissionMemberClose
@@ -165,6 +173,34 @@ update info pageInfo msg model =
         , Cmd.map UnitDeleteMsg cmd
         )
 
+    MemberDeleteOpen ->
+      ( { model | memberDeleteOpen = True }
+      , Cmd.none
+      )
+
+    MemberDeleteClose ->
+      ( { model | memberDeleteOpen = False }
+      , Cmd.none
+      )
+
+    MemberDeleteMsg memberMsg ->
+      case lookup (\unitMember -> unitMember.id == info.user) info.members of
+        Nothing -> (model, Cmd.none)
+        Just unitMember ->
+          let
+            config =
+              { member = unitMember.member
+              , finish = reload
+              }
+            (memberDelete, cmd) = MemberDeleteForm.updateWith config memberMsg model.memberDelete
+          in
+            ( { model
+              | memberDelete = memberDelete
+              , memberDeleteOpen = not (Form.isFinished memberMsg)
+              }
+            , Cmd.map MemberDeleteMsg cmd
+            )
+
     SubmissionMemberOpen ->
       ( { model | submissionMemberOpen = True }
       , Cmd.none
@@ -238,14 +274,21 @@ view info model =
               "Information"
               [ DotMenu.make <| List.concat
                   [ if info.isMember || info.isMembershipPending
-                    then []
+                    then
+                      []
                     else
                       [ { label = "Become a member"
                         , message = SubmissionMemberOpen
                         }
                       ]
-
-
+                  , if info.isMember || not info.isAdmin
+                    then
+                      [ { label = "Leave this unit"
+                        , message = MemberDeleteOpen
+                        }
+                      ]
+                    else
+                      []
                   , if List.isEmpty info.unitsForMessage
                     then
                       []
@@ -309,6 +352,10 @@ view info model =
   , Modal.view model.unitDeleteOpen UnitDeleteClose <|
       Html.map UnitDeleteMsg <|
       Form.viewWith "Delete Unit" UnitDeleteForm.view model.unitDelete
+
+  , Modal.view model.memberDeleteOpen MemberDeleteClose <|
+      Html.map MemberDeleteMsg <|
+      Form.viewWith "Leave Unit" (MemberDeleteForm.view MemberDeleteForm.Person) model.memberDelete
 
   , Modal.view model.submissionMemberOpen SubmissionMemberClose <|
       Html.map SubmissionMemberMsg <|

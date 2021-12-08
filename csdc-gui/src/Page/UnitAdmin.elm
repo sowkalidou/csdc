@@ -31,8 +31,8 @@ type alias Model =
   { inbox : Inbox
   , selected : Maybe Inbox.InboxId
   , notification : Notification
-  , previewMessage : ReplyForm.Model
-  , previewReply : ReplySeenForm.Model
+  , formReply : ReplyForm.Model
+  , replySeenForm : ReplySeenForm.Model
   }
 
 initial : Model
@@ -40,8 +40,8 @@ initial =
   { inbox = emptyInbox
   , selected = Nothing
   , notification = Notification.Empty
-  , previewMessage = ReplyForm.initial
-  , previewReply = ReplySeenForm.initial
+  , formReply = ReplyForm.initial
+  , replySeenForm = ReplySeenForm.initial
   }
 
 setup : Id Unit -> Cmd Msg
@@ -82,10 +82,10 @@ update info pageInfo msg model =
               , finish = reload
               }
 
-            (previewMessage, cmd) = ReplyForm.updateWith config preMsg model.previewMessage
+            (formReply, cmd) = ReplyForm.updateWith config preMsg model.formReply
           in
             ( { model
-              | previewMessage = previewMessage
+              | formReply = formReply
               , selected =
                   if Form.isFinished preMsg then Nothing else model.selected
               }
@@ -100,10 +100,10 @@ update info pageInfo msg model =
               , finish = reload
               }
 
-            (previewMessage, cmd) = ReplyForm.updateWith config preMsg model.previewMessage
+            (formReply, cmd) = ReplyForm.updateWith config preMsg model.formReply
           in
             ( { model
-              | previewMessage = previewMessage
+              | formReply = formReply
               , selected =
                   if Form.isFinished preMsg then Nothing else model.selected
               }
@@ -122,10 +122,10 @@ update info pageInfo msg model =
               , finish = reload
               }
 
-            (previewReply, cmd) = ReplySeenForm.updateWith config preMsg model.previewReply
+            (replySeenForm, cmd) = ReplySeenForm.updateWith config preMsg model.replySeenForm
           in
             ( { model
-              | previewReply = previewReply
+              | replySeenForm = replySeenForm
               , selected =
                   if Form.isFinished preMsg then Nothing else model.selected
               }
@@ -139,10 +139,10 @@ update info pageInfo msg model =
               , finish = reload
               }
 
-            (previewReply, cmd) = ReplySeenForm.updateWith config preMsg model.previewReply
+            (replySeenForm, cmd) = ReplySeenForm.updateWith config preMsg model.replySeenForm
           in
             ( { model
-              | previewReply = previewReply
+              | replySeenForm = replySeenForm
               , selected =
                   if Form.isFinished preMsg then Nothing else model.selected
               }
@@ -201,7 +201,7 @@ view unit model =
               Just msg ->
                 Html.map ReplyMsg <|
                 Preview.make <|
-                ReplyForm.view msg model.previewMessage
+                ReplyForm.view msg model.formReply
 
           Inbox.ReplyMemberId rid ->
             case lookupById rid model.inbox.replyMember of
@@ -214,7 +214,7 @@ view unit model =
                     Submission -> "Submission Reply"
                 in
                   Html.map ReplySeenMsg <|
-                  Form.viewWith title (ReplySeenForm.view msg) model.previewReply
+                  Form.viewWith title (ReplySeenForm.view msg) model.replySeenForm
 
           Inbox.MessageSubpartId rid ->
             case lookupById rid model.inbox.messageSubpart of
@@ -223,7 +223,7 @@ view unit model =
               Just msg ->
                 Html.map ReplyMsg <|
                 Preview.make <|
-                ReplyForm.view msg model.previewMessage
+                ReplyForm.view msg model.formReply
 
           Inbox.ReplySubpartId rid ->
             case lookupById rid model.inbox.replySubpart of
@@ -236,6 +236,6 @@ view unit model =
                     Submission -> "Submission Reply"
                 in
                   Html.map ReplySeenMsg <|
-                  Form.viewWith title (ReplySeenForm.view msg) model.previewReply
+                  Form.viewWith title (ReplySeenForm.view msg) model.replySeenForm
       ] ++
       Notification.view model.notification
