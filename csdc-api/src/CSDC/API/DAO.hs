@@ -66,6 +66,7 @@ type UnitAPI =
   :<|> CaptureId Unit :> "info" :> GetJSON (Maybe UnitInfo)
   :<|> CaptureId Unit :> "children" :> GetJSON [UnitSubpart]
   :<|> CaptureId Unit :> "parents" :> GetJSON [UnitSubpart]
+  :<|> CaptureId Unit :> "chair" :> PostJSON (Id Person) ()
   :<|> CaptureId Unit :> "files" :> GetJSON [FileUI]
   :<|> CaptureId Unit :> "files" :> MultipartForm Mem File :> Servant.Post '[JSON] ()
 
@@ -79,6 +80,7 @@ serveUnitAPI =
   :<|> getUnitInfo
   :<|> getUnitChildren
   :<|> getUnitParents
+  :<|> changeUnitChair
   :<|> getUnitFiles
   :<|> insertUnitFile
 

@@ -466,6 +466,6 @@ viewUnits members =
   let
     toBox member =
       Html.map (SetSelected << SelectedUnit) <|
-      BoxImageText.view False member.id member.unit
+      BoxImageText.view False [] member.id member.unit
   in
     List.map toBox members

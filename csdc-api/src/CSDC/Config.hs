@@ -22,7 +22,6 @@ import qualified CSDC.SQL as SQL
 
 import Data.Aeson (decodeFileStrict)
 import Data.Aeson.Encode.Pretty (encodePretty)
-import Data.Text (Text)
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
 

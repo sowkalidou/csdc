@@ -24,7 +24,6 @@ import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.ByteString (ByteString)
 import Data.Functor.Contravariant (Contravariant (..))
-import Data.Text (Text)
 import Foreign.C.Types (CTime (..))
 import Hasql.Encoders
   (Params, param, nonNullable, nullable, foldableArray)

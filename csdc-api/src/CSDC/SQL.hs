@@ -21,10 +21,7 @@ import CSDC.Prelude
 
 import Control.Exception (Exception, finally, throwIO, try)
 import Control.Monad (forM_)
-import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (ReaderT (..), MonadReader (..))
-import Data.Aeson (FromJSON (..), ToJSON (..))
-import Data.Text (Text)
 import Hasql.Connection (Connection, ConnectionError)
 import Hasql.Session (QueryError)
 import Hasql.Statement (Statement)

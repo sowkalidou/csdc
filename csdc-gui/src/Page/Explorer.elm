@@ -237,7 +237,7 @@ viewUnits column selected units =
         isSelected = column == Center && selected == Just unit.id
       in
         Html.map (SelectUnit column) <|
-        BoxImageText.view isSelected unit.id unit.value
+        BoxImageText.view isSelected [] unit.id unit.value
   in
     List.map toBox units
 

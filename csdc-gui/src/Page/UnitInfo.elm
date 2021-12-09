@@ -412,7 +412,7 @@ viewUnits subparts =
   let
     toBox subpart =
       Html.map (SetSelected << SelectedUnit) <|
-      BoxImageText.view False subpart.id subpart.unit
+      BoxImageText.view False [] subpart.id subpart.unit
   in
     List.map toBox subparts
 
@@ -421,6 +421,6 @@ viewPersons members =
   let
     toBox member =
       Html.map (SetSelected << SelectedPerson) <|
-      BoxImageText.view False member.id member.person
+      BoxImageText.view False [] member.id member.person
   in
     List.map toBox members

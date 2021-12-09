@@ -9,6 +9,7 @@ module CSDC.SQL.Units
   , insert
   , update
   , updateImage
+  , updateChair
   , delete
   ) where
 
@@ -147,6 +148,21 @@ updateImage = Statement sql encoder decoder True
     encoder =
       contramap fst Encoder.id <>
       contramap snd Encoder.text
+
+    decoder = Decoder.noResult
+
+updateChair :: Statement (Id Unit, Id Person) ()
+updateChair = Statement sql encoder decoder True
+  where
+    sql = ByteString.unlines
+      [ "UPDATE units"
+      , "SET chair = $2"
+      , "WHERE id = $1"
+      ]
+
+    encoder =
+      contramap fst Encoder.id <>
+      contramap snd Encoder.id
 
     decoder = Decoder.noResult
 

@@ -144,6 +144,14 @@ updateUnitImage id file =
     , expect = Http.expectJson identity decodeNull
     }
 
+updateUnitChair : Id Unit -> Id Person -> Cmd (Response ())
+updateUnitChair uid pid =
+  Http.post
+    { url = baseUrl ++ "unit/" ++ idToString uid ++ "/chair"
+    , body = Http.jsonBody (encodeId pid)
+    , expect = Http.expectJson identity decodeNull
+    }
+
 deleteUnit : Id Unit -> Cmd (Response ())
 deleteUnit = delete "unit" identity
 

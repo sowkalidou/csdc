@@ -1,14 +1,13 @@
-module Form.MemberDelete exposing
+module Form.UnitChair exposing
   ( Model
   , initial
   , Msg
   , updateWith
-  , Who (..)
   , view
   )
 
-import Types exposing (Id, Member)
-import Input exposing (buttonDanger)
+import Types exposing (..)
+import Input as Input
 import API as API
 import Notification exposing (Notification)
 import Form
@@ -31,13 +30,14 @@ initial =
 -- Update
 
 type alias Config =
-  { member : Id Member
+  { unit : Id Unit
+  , person : Id Person
   , finish : Cmd Msg
   }
 
 updateWith : Config -> Msg -> Model -> (Model, Cmd Msg)
 updateWith config = Form.update <| Form.statelessConfig initial
-  { request = API.deleteMember config.member
+  { request = API.updateUnitChair config.unit config.person
   , finish = \_ -> config.finish
   }
 
@@ -46,15 +46,10 @@ type alias Msg = Form.Msg () () ()
 --------------------------------------------------------------------------------
 -- View
 
-type Who = Unit | Person
-
-view : Who -> Model -> List (Html Msg)
-view who _ =
-  [ Html.p []
-      [ Html.text <|
-        case who of
-          Unit -> "Are you sure you want to remove this person from the unit?"
-          Person -> "Are you sure you want to leave this unit?"
-      ]
-  , buttonDanger "Confirm" ()
+view : Model -> List (Html Msg)
+view _ =
+  [ Html.p
+      []
+      [ Html.text "Are you sure you want to make this person the chair of the unit?" ]
+  , Input.buttonDanger "Change chair" ()
   ]

@@ -20,7 +20,6 @@ import qualified CSDC.SQL.Subparts as SQL.Subparts
 import qualified CSDC.SQL.Units as SQL.Units
 
 import Control.Exception (Exception, throwIO)
-import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
 import Data.Time (getCurrentTime)
 import System.FilePath
@@ -158,6 +157,10 @@ deleteUnit i = runSQL $ do
   SQL.query SQL.Subparts.deleteUnit i
   SQL.query SQL.Members.deleteUnit i
   SQL.query SQL.Units.delete i
+
+changeUnitChair :: Id Unit -> Id Person -> Action user ()
+changeUnitChair uid pid =
+  runSQL $ SQL.query SQL.Units.updateChair (uid,pid)
 
 --------------------------------------------------------------------------------
 -- Member

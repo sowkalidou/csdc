@@ -28,7 +28,6 @@ import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.ByteString (ByteString)
 import Foreign.C.Types (CTime (..))
-import Data.Text (Text)
 import Data.Time (UTCTime)
 import Hasql.Decoders (Row, column, nonNullable, nullable)
 
