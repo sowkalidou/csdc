@@ -2,11 +2,10 @@ module CSDC.SQL.Decoder
   ( -- * Base types
     bool
   , bytea
-  , ctime
   , int
+  , posixTime
   , text
   , textNullable
-  , timestamptz
     -- * Local types
   , id
   , orcidId
@@ -27,8 +26,7 @@ import Prelude hiding (id)
 import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.ByteString (ByteString)
-import Foreign.C.Types (CTime (..))
-import Data.Time (UTCTime)
+import Data.Time.Clock.POSIX (POSIXTime, utcTimeToPOSIXSeconds)
 import Hasql.Decoders (Row, column, nonNullable, nullable)
 
 import qualified Hasql.Decoders as Decoders
@@ -42,20 +40,19 @@ bool = column (nonNullable Decoders.bool)
 bytea :: Row ByteString
 bytea = column (nonNullable Decoders.bytea)
 
-ctime :: Row CTime
-ctime = CTime <$> column (nonNullable Decoders.int8)
-
 int :: Row Int
 int = fromIntegral <$> column (nonNullable Decoders.int8)
+
+posixTime :: Row POSIXTime
+posixTime =
+  utcTimeToPOSIXSeconds <$>
+  column (nonNullable Decoders.timestamptz)
 
 text :: Row Text
 text = column (nonNullable Decoders.text)
 
 textNullable :: Row (Maybe Text)
 textNullable = column (nullable Decoders.text)
-
-timestamptz :: Row UTCTime
-timestamptz = column (nonNullable Decoders.timestamptz)
 
 --------------------------------------------------------------------------------
 -- Local types

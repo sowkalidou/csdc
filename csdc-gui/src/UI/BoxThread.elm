@@ -3,7 +3,7 @@ module UI.BoxThread exposing
   )
 
 import UI.BoxItem as BoxItem
-import Types exposing (Id, Thread, ThreadInfo)
+import Types exposing (Id, Thread, ThreadInfo, viewPosix)
 
 import Html exposing (Html)
 import Html.Attributes
@@ -16,7 +16,7 @@ view selected thread =
           [ Html.Attributes.class "is-flex is-justify-content-space-between"
           ]
           [ Html.strong [] [ Html.text thread.subject ]
-          , Html.text <| String.slice 0 10 thread.createdAt
+          , Html.text <| viewPosix thread.createdAt
           ]
       , Html.div
           [ Html.Attributes.class "is-flex is-justify-content-space-between"

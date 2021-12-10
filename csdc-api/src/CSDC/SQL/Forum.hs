@@ -66,8 +66,8 @@ selectThreads = Statement sql encoder decoder True
       threadInfo_author <- Decoder.id
       threadInfo_authorName <- Decoder.text
       threadInfo_subject <- Decoder.text
-      threadInfo_createdAt <- Decoder.timestamptz
-      threadInfo_last <- Decoder.timestamptz
+      threadInfo_createdAt <- Decoder.posixTime
+      threadInfo_last <- Decoder.posixTime
       threadInfo_messages <- Decoder.int
       pure ThreadInfo {..}
 
@@ -114,6 +114,6 @@ selectPosts = Statement sql encoder decoder True
       postInfo_authorName <- Decoder.text
       postInfo_authorImage <- Decoder.text
       postInfo_text <- Decoder.text
-      postInfo_createdAt <- Decoder.timestamptz
+      postInfo_createdAt <- Decoder.posixTime
       pure PostInfo {..}
 

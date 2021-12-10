@@ -39,7 +39,7 @@ selectByPerson = Statement sql encoder decoder True
         unit_description <- Decoder.text
         unit_chair <- Decoder.id
         unit_image <- Decoder.text
-        unit_createdAt <- Decoder.timestamptz
+        unit_createdAt <- Decoder.posixTime
         pure Unit {..}
       pure PersonMember {..}
 
@@ -63,7 +63,7 @@ selectByUnit = Statement sql encoder decoder True
         person_description <- Decoder.text
         person_orcid <- Decoder.orcidId
         person_image <- Decoder.textNullable
-        person_createdAt <- Decoder.timestamptz
+        person_createdAt <- Decoder.posixTime
         pure Person {..}
       pure UnitMember {..}
 

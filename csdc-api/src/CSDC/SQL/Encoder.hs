@@ -1,7 +1,6 @@
 module CSDC.SQL.Encoder
   ( -- * Base types
     bytea
-  , ctime
   , int
   , text
   , textNullable
@@ -24,7 +23,6 @@ import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.ByteString (ByteString)
 import Data.Functor.Contravariant (Contravariant (..))
-import Foreign.C.Types (CTime (..))
 import Hasql.Encoders
   (Params, param, nonNullable, nullable, foldableArray)
 
@@ -35,9 +33,6 @@ import qualified Hasql.Encoders as Encoders
 
 bytea :: Params ByteString
 bytea = param (nonNullable Encoders.bytea)
-
-ctime :: Params CTime
-ctime = contramap (\(CTime t) -> t) $ param (nonNullable Encoders.int8)
 
 int :: Params Int
 int = contramap fromIntegral $ param (nonNullable Encoders.int8)

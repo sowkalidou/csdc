@@ -8,6 +8,7 @@ import qualified CSDC.SQL as SQL
 import qualified CSDC.SQL.Files as SQL.Files
 
 import Data.Text (Text)
+import Foreign.C.Types (CTime (..))
 import Hasql.Statement (Statement)
 import Network.Wai.Application.Static
 import Servant.Server.StaticFiles
@@ -52,7 +53,7 @@ fromFileDB ctx file =
       , Static.fileGetHash =
           pure $ Just $ fileDB_hash file
       , Static.fileGetModified =
-          Just $ fileDB_modifiedAt file
+          Just $ CTime $ floor $ fileDB_modifiedAt file
       }
 
 lookupFile :: SQL.Context -> Static.Pieces -> IO Static.LookupResult

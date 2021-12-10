@@ -19,10 +19,8 @@ import Data.ByteString (ByteString)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8, decodeUtf8)
-import Data.Time.Clock.POSIX (getPOSIXTime)
-import Foreign.C.Types (CTime (..))
+import Data.Time.Clock.POSIX (POSIXTime)
 import GHC.Generics (Generic)
-import System.Posix.Types (EpochTime)
 
 import qualified Crypto.Hash.MD5 as MD5
 import qualified Data.ByteString.Lazy as Lazy
@@ -71,19 +69,16 @@ data NewFileDB = NewFileDB
   , newFileDB_contents :: ByteString
   , newFileDB_size :: Int
   , newFileDB_hash :: ByteString
-  , newFileDB_modifiedAt :: EpochTime
   } deriving (Show, Eq)
 
 toNewFileDB :: MonadIO m => Text -> File -> m NewFileDB
 toNewFileDB folder (File name contents) = do
-  now <- CTime <$> floor <$> liftIO getPOSIXTime
   pure NewFileDB
     { newFileDB_folder = folder
     , newFileDB_name = name
     , newFileDB_contents = contents
     , newFileDB_size = ByteString.length contents
     , newFileDB_hash = MD5.hash contents
-    , newFileDB_modifiedAt = now
     }
 
 -- | A file as stored in the database. It doesn't contain the contents so that
@@ -93,7 +88,7 @@ data FileDB = FileDB
   , fileDB_name :: Text
   , fileDB_size :: Int
   , fileDB_hash :: ByteString
-  , fileDB_modifiedAt :: EpochTime
+  , fileDB_modifiedAt :: POSIXTime
   } deriving (Show, Eq)
 
 -- | A file displayed in the UI.
@@ -101,5 +96,6 @@ data FileUI = FileUI
   { fileUI_path :: Text
   , fileUI_name :: Text
   , fileUI_size :: Int
+  , fileUI_modifiedAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON FileUI

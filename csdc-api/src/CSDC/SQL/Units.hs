@@ -39,7 +39,7 @@ select = Statement sql encoder decoder True
       unit_description <- Decoder.text
       unit_chair <- Decoder.id
       unit_image <- Decoder.text
-      unit_createdAt <- Decoder.timestamptz
+      unit_createdAt <- Decoder.posixTime
       pure Unit {..}
 
 selectByChair :: Statement (Id Person) [WithId Unit]
@@ -60,7 +60,7 @@ selectByChair = Statement sql encoder decoder True
         unit_description <- Decoder.text
         unit_chair <- Decoder.id
         unit_image <- Decoder.text
-        unit_createdAt <- Decoder.timestamptz
+        unit_createdAt <- Decoder.posixTime
         pure Unit {..}
       pure WithId {..}
 
@@ -98,7 +98,7 @@ searchUnits = Statement sql encoder decoder True
         unit_description <- Decoder.text
         unit_chair <- Decoder.id
         unit_image <- Decoder.text
-        unit_createdAt <- Decoder.timestamptz
+        unit_createdAt <- Decoder.posixTime
         pure Unit {..}
       pure WithId {..}
 

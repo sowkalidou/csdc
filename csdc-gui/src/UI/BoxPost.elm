@@ -2,7 +2,7 @@ module UI.BoxPost exposing
   ( view
   )
 
-import Types exposing (PostInfo, filePath)
+import Types exposing (PostInfo, filePath, viewPosix)
 
 import Html exposing (Html)
 import Html.Attributes
@@ -36,7 +36,7 @@ view post =
             ]
             [ Html.strong [] [ Html.text post.authorName ]
             , Html.br [] []
-            , Html.text <| String.slice 0 10 post.createdAt
+            , Html.text <| viewPosix post.createdAt
             ]
         ]
     , Markdown.toHtml [] post.text

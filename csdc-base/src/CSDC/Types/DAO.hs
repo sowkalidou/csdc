@@ -34,7 +34,7 @@ import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Text (Text)
-import Data.Time (UTCTime)
+import Data.Time.Clock.POSIX (POSIXTime)
 import GHC.Generics (Generic)
 
 --------------------------------------------------------------------------------
@@ -45,7 +45,7 @@ data Person = Person
   , person_description :: Text
   , person_orcid :: ORCID.Id
   , person_image :: Maybe Text
-  , person_createdAt :: UTCTime
+  , person_createdAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Person
 
@@ -68,7 +68,7 @@ data Unit = Unit
   , unit_description :: Text
   , unit_chair :: Id Person
   , unit_image :: Text
-  , unit_createdAt :: UTCTime
+  , unit_createdAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Unit
 
@@ -90,7 +90,7 @@ data UnitUpdate = UnitUpdate
 data Member = Member
   { member_person :: Id Person
   , member_unit :: Id Unit
-  , member_createdAt :: UTCTime
+  , member_createdAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Member
 
@@ -103,7 +103,7 @@ data NewMember = NewMember
 data Subpart = Subpart
   { subpart_child :: Id Unit
   , subpart_parent :: Id Unit
-  , subpart_createdAt :: UTCTime
+  , subpart_createdAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Subpart
 
@@ -129,7 +129,7 @@ data Message a = Message
   , message_text :: Text
   , message_status :: MessageStatus
   , message_value :: a
-  , message_createdAt :: UTCTime
+  , message_createdAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON (Message a)
 
@@ -154,7 +154,7 @@ data Reply a = Reply
   , reply_text :: Text
   , reply_status :: ReplyStatus
   , reply_id :: Id (Message a)
-  , reply_createdAt :: UTCTime
+  , reply_createdAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON (Reply a)
 

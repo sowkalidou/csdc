@@ -17,7 +17,7 @@ import CSDC.Types.Id
 
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Text (Text)
-import Data.Time (UTCTime)
+import Data.Time.Clock.POSIX (POSIXTime)
 import GHC.Generics (Generic)
 
 --------------------------------------------------------------------------------
@@ -42,8 +42,8 @@ data ThreadInfo = ThreadInfo
   , threadInfo_author :: Id Person
   , threadInfo_authorName :: Text
   , threadInfo_subject :: Text
-  , threadInfo_createdAt :: UTCTime
-  , threadInfo_last :: UTCTime
+  , threadInfo_createdAt :: POSIXTime
+  , threadInfo_last :: POSIXTime
   , threadInfo_messages :: Int
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON ThreadInfo
@@ -66,6 +66,6 @@ data PostInfo = PostInfo
   , postInfo_authorName :: Text
   , postInfo_authorImage :: Text
   , postInfo_text :: Text
-  , postInfo_createdAt :: UTCTime
+  , postInfo_createdAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON PostInfo

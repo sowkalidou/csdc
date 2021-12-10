@@ -114,7 +114,7 @@ CREATE TABLE files
   , contents bytea NOT NULL
   , size int8 NOT NULL
   , hash bytea NOT NULL
-  , modified_at int8 NOT NULL
+  , modified_at timestamptz NOT NULL
   , PRIMARY KEY(folder, name)
   );
 

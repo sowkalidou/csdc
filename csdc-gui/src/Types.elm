@@ -3,6 +3,7 @@ module Types exposing (..)
 import Json.Decode as Decoder exposing (Decoder)
 import Json.Encode as Encoder exposing (Value)
 import String
+import Time exposing (Posix, Month (..))
 import UUID exposing (UUID)
 
 --------------------------------------------------------------------------------
@@ -43,6 +44,47 @@ lookupById : Id a -> List { obj | id : Id a } -> Maybe { obj | id : Id a }
 lookupById id = lookup (\obj -> obj.id == id)
 
 --------------------------------------------------------------------------------
+-- Time
+
+decodePosix : Decoder Posix
+decodePosix =
+  Decoder.map
+    (Time.millisToPosix << floor << (*) 1000)
+    Decoder.float
+
+viewPosix : Posix -> String
+viewPosix = viewPosixAt Time.utc
+
+viewPosixAt : Time.Zone -> Posix -> String
+viewPosixAt zone posix =
+  let
+    y = String.fromInt <| Time.toYear zone posix
+    m = viewMonth <| Time.toMonth zone posix
+    d = String.fromInt <| Time.toDay zone posix
+    h = padNumber <| String.fromInt <| Time.toHour zone posix
+    mi = padNumber <| String.fromInt <| Time.toMinute zone posix
+
+    padNumber s = if String.length s == 1 then "0" ++ s else s
+  in
+    String.join "/" [y,m,d] ++ " " ++ String.join ":" [h,mi]
+
+viewMonth : Month -> String
+viewMonth month =
+  case month of
+    Jan -> "01"
+    Feb -> "02"
+    Mar -> "03"
+    Apr -> "04"
+    May -> "05"
+    Jun -> "06"
+    Jul -> "07"
+    Aug -> "08"
+    Sep -> "09"
+    Oct -> "10"
+    Nov -> "11"
+    Dec -> "12"
+
+--------------------------------------------------------------------------------
 -- User
 
 type alias UserId = Id Person
@@ -66,7 +108,7 @@ type alias Person =
   , orcid : String
   , description : String
   , image : FilePath
-  , createdAt : String
+  , createdAt : Posix
   }
 
 decodePerson : Decoder Person
@@ -76,7 +118,7 @@ decodePerson =
     (Decoder.field "orcid" Decoder.string)
     (Decoder.field "description" Decoder.string)
     (Decoder.field "image" decodeFilePath)
-    (Decoder.field "createdAt" Decoder.string)
+    (Decoder.field "createdAt" decodePosix)
 
 type alias PersonUpdate =
   { name : String
@@ -126,7 +168,7 @@ type alias Unit =
   , description : String
   , chair : Id Person
   , image : FilePath
-  , createdAt : String
+  , createdAt : Posix
   }
 
 decodeUnit : Decoder Unit
@@ -136,7 +178,7 @@ decodeUnit =
     (Decoder.field "description" Decoder.string)
     (Decoder.field "chair" decodeId)
     (Decoder.field "image" decodeFilePath)
-    (Decoder.field "createdAt" Decoder.string)
+    (Decoder.field "createdAt" decodePosix)
 
 type alias NewUnit =
   { name : String
@@ -223,8 +265,8 @@ andMap = Decoder.map2 (\a f -> f a)
 
 type alias Member =
   { person : Id Person
-  , unit: Id Unit
-  , createdAt: String
+  , unit : Id Unit
+  , createdAt : Posix
   }
 
 decodeMember : Decoder Member
@@ -232,7 +274,7 @@ decodeMember =
   Decoder.map3 Member
     (Decoder.field "person" decodeId)
     (Decoder.field "unit" decodeId)
-    (Decoder.field "createdAt" Decoder.string)
+    (Decoder.field "createdAt" decodePosix)
 
 type alias NewMember =
   { person : Id Person
@@ -258,7 +300,7 @@ decodeNewMember =
 type alias Subpart =
   { child: Id Unit
   , parent: Id Unit
-  , createdAt: String
+  , createdAt : Posix
   }
 
 decodeSubpart : Decoder Subpart
@@ -266,7 +308,7 @@ decodeSubpart =
   Decoder.map3 Subpart
     (Decoder.field "child" decodeId)
     (Decoder.field "parent" decodeId)
-    (Decoder.field "createdAt" Decoder.string)
+    (Decoder.field "createdAt" decodePosix)
 
 type alias NewSubpart =
   { child: Id Unit
@@ -543,14 +585,16 @@ type alias FileUI =
   { path : FilePath
   , name : String
   , size : Int
+  , modifiedAt : Posix
   }
 
 decodeFileUI : Decoder FileUI
 decodeFileUI =
-  Decoder.map3 FileUI
+  Decoder.map4 FileUI
     (Decoder.field "path" decodeFilePath)
     (Decoder.field "name" Decoder.string)
     (Decoder.field "size" Decoder.int)
+    (Decoder.field "modifiedAt" decodePosix)
 
 --------------------------------------------------------------------------------
 -- Forum
@@ -579,8 +623,8 @@ type alias ThreadInfo =
   , author : Id Person
   , authorName : String
   , subject : String
-  , createdAt : String
-  , last : String
+  , createdAt : Posix
+  , last : Posix
   , messages : Int
   }
 
@@ -592,8 +636,8 @@ decodeThreadInfo =
     (Decoder.field "author" decodeId)
     (Decoder.field "authorName" Decoder.string)
     (Decoder.field "subject" Decoder.string)
-    (Decoder.field "createdAt" Decoder.string)
-    (Decoder.field "last" Decoder.string)
+    (Decoder.field "createdAt" decodePosix)
+    (Decoder.field "last" decodePosix)
     (Decoder.field "messages" Decoder.int)
 
 type alias NewPost =
@@ -618,7 +662,7 @@ type alias PostInfo =
   , authorName : String
   , authorImage : FilePath
   , text : String
-  , createdAt : String
+  , createdAt : Posix
   }
 
 decodePostInfo : Decoder PostInfo
@@ -629,7 +673,7 @@ decodePostInfo =
     (Decoder.field "authorName" Decoder.string)
     (Decoder.field "authorImage" decodeFilePath)
     (Decoder.field "text" Decoder.string)
-    (Decoder.field "createdAt" Decoder.string)
+    (Decoder.field "createdAt" decodePosix)
 
 --------------------------------------------------------------------------------
 -- Helpers

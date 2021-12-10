@@ -38,7 +38,7 @@ select = Statement sql encoder decoder True
       person_description <- Decoder.text
       person_orcid <- Decoder.orcidId
       person_image <- Decoder.textNullable
-      person_createdAt <- Decoder.timestamptz
+      person_createdAt <- Decoder.posixTime
       pure Person {..}
 
 selectORCID :: Statement ORCID.Id (Maybe (Id Person))

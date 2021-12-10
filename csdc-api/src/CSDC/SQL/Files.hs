@@ -43,7 +43,7 @@ selectFile = Statement sql encoder decoder True
       fileDB_name <- Decoder.text
       fileDB_size <- Decoder.int
       fileDB_hash <- Decoder.bytea
-      fileDB_modifiedAt <- Decoder.ctime
+      fileDB_modifiedAt <- Decoder.posixTime
       pure FileDB {..}
 
 selectFileContents :: Statement (Text,Text) ByteString
@@ -66,9 +66,9 @@ upsertFile = Statement sql encoder Decoders.noResult True
   where
     sql = ByteString.unlines
       [ "INSERT INTO files (folder,name,contents,size,hash,modified_at)"
-      , "VALUES ($1,$2,$3,$4,$5,$6)"
+      , "VALUES ($1,$2,$3,$4,$5,NOW())"
       , "ON CONFLICT (folder,name)"
-      , "DO UPDATE SET contents = $3, size = $4, hash = $5, modified_at = $6"
+      , "DO UPDATE SET contents = $3, size = $4, hash = $5, modified_at = NOW()"
       ]
 
     encoder =
@@ -76,8 +76,7 @@ upsertFile = Statement sql encoder Decoders.noResult True
       contramap newFileDB_name Encoder.text <>
       contramap newFileDB_contents Encoder.bytea <>
       contramap newFileDB_size Encoder.int <>
-      contramap newFileDB_hash Encoder.bytea <>
-      contramap newFileDB_modifiedAt Encoder.ctime
+      contramap newFileDB_hash Encoder.bytea
 
 --------------------------------------------------------------------------------
 -- Folders
@@ -99,7 +98,7 @@ selectFolderFiles = Statement sql encoder decoder True
       fileDB_name <- Decoder.text
       fileDB_size <- Decoder.int
       fileDB_hash <- Decoder.bytea
-      fileDB_modifiedAt <- Decoder.ctime
+      fileDB_modifiedAt <- Decoder.posixTime
       pure FileDB {..}
 
 selectFolderSubfolders :: Statement Text [Text]

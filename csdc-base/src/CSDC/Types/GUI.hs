@@ -22,7 +22,7 @@ import CSDC.Types.Id
 
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Text (Text)
-import Data.Time (UTCTime)
+import Data.Time.Clock.POSIX (POSIXTime)
 import GHC.Generics (Generic)
 
 --------------------------------------------------------------------------------
@@ -135,7 +135,7 @@ data Thread = Thread
   { thread_unit :: Id Unit
   , thread_person :: Id Unit
   , thread_subject :: Text
-  , thread_createdAt :: UTCTime
+  , thread_createdAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Thread
 
@@ -145,8 +145,8 @@ data ThreadSummary = ThreadSummary
   , threadSummary_author :: Id Unit
   , threadSummary_authorName :: Text
   , threadSummary_subject :: Text
-  , threadSummary_createdAt :: UTCTime
-  , threadSummary_last :: UTCTime
+  , threadSummary_createdAt :: POSIXTime
+  , threadSummary_last :: POSIXTime
   , threadSummary_messages :: Int
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON ThreadSummary
@@ -161,6 +161,6 @@ data ThreadMessage = ThreadMessage
   { threadMessage_author :: Id Person
   , threadMessage_authorName :: Text
   , threadMessage_message :: Text
-  , threadMessage_createdAt :: UTCTime
+  , threadMessage_createdAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON ThreadMessage

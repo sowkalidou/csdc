@@ -21,7 +21,7 @@ import qualified CSDC.SQL.Units as SQL.Units
 
 import Control.Exception (Exception, throwIO)
 import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
-import Data.Time (getCurrentTime)
+import Data.Time.Clock.POSIX (getPOSIXTime)
 import System.FilePath
 
 import qualified Data.Text as Text
@@ -130,7 +130,7 @@ selectUnit i = runSQL $ SQL.query SQL.Units.select i
 insertUnit :: NewUnit -> ActionAuth (Id (Unit))
 insertUnit u = do
   user <- getUser
-  now <- liftIO getCurrentTime
+  now <- liftIO getPOSIXTime
   let unit = Unit
         { unit_name = newUnit_name u
         , unit_description = newUnit_description u
@@ -419,6 +419,7 @@ getUnitFiles i = do
         { fileUI_path = fileDB_folder <> "/" <> fileDB_name
         , fileUI_name = fileDB_name
         , fileUI_size = fileDB_size
+        , fileUI_modifiedAt = fileDB_modifiedAt
         }
   pure $ fmap toFileUI filesDB
 
