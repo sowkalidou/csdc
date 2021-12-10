@@ -124,7 +124,12 @@ update info selected pageInfo msg model =
           | threadForm = threadForm
           , threadFormOpen = not (Form.isFinished unitMsg)
           }
-        , Cmd.map ThreadFormMsg cmd
+        , Cmd.batch
+            [ Cmd.map ThreadFormMsg cmd
+            , if Form.isFinished unitMsg
+              then Cmd.map SetThreads <| API.getUnitThreads info.id
+              else Cmd.none
+            ]
         )
 
     PostFormOpen ->
@@ -145,9 +150,7 @@ update info selected pageInfo msg model =
           let
             config =
               { id = id
-              , finish = Cmd.batch
-                  [ reload Nothing
-                  ]
+              , finish = reload selected
               }
             (postForm, cmd) = PostForm.updateWith config unitMsg model.postForm
           in
