@@ -2,6 +2,7 @@ module Page.Unit exposing
   ( Model
   , initial
   , setup
+  , changeTab
   , Msg (..)
   , update
   , view
@@ -26,7 +27,6 @@ import Html.Attributes
 
 type alias Model =
   { info : WebData UnitInfo
-  , tab : Page.UnitTab
   , unitInfo : UnitInfo.Model
   , unitAdmin : UnitAdmin.Model
   , unitFiles : UnitFiles.Model
@@ -37,7 +37,6 @@ type alias Model =
 initial : Model
 initial =
   { info = WebData.Loading
-  , tab = Page.UnitInfo
   , unitInfo = UnitInfo.initial
   , unitAdmin = UnitAdmin.initial
   , unitFiles = UnitFiles.initial
@@ -51,6 +50,22 @@ setup id tab =
     [ Cmd.map (GetUnitInfo tab) <| API.getUnitInfo id
     ]
 
+changeTab : Id Unit -> Page.UnitTab -> Page.UnitTab -> Cmd Msg
+changeTab id prev tab =
+  case (prev, tab) of
+    (Page.UnitForum _, Page.UnitForum mtid) ->
+      Cmd.map (UnitForumMsg mtid) (UnitForum.setupThread mtid)
+    _ ->
+      setupTab id tab
+
+setupTab : Id Unit -> Page.UnitTab -> Cmd Msg
+setupTab id tab =
+  case tab of
+    Page.UnitInfo -> setup id Page.UnitInfo
+    Page.UnitAdmin -> Cmd.map UnitAdminMsg <| UnitAdmin.setup id
+    Page.UnitFiles -> Cmd.map UnitFilesMsg <| UnitFiles.setup id
+    Page.UnitForum mtid -> Cmd.map (UnitForumMsg mtid) <| UnitForum.setup id mtid
+
 --------------------------------------------------------------------------------
 -- Update
 
@@ -61,7 +76,7 @@ type Msg
   | UnitInfoMsg UnitInfo.Msg
   | UnitAdminMsg UnitAdmin.Msg
   | UnitFilesMsg UnitFiles.Msg
-  | UnitForumMsg UnitForum.Msg
+  | UnitForumMsg (Maybe (Id Thread)) UnitForum.Msg
 
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
@@ -93,12 +108,12 @@ update pageInfo msg model =
         , Cmd.map UnitFilesMsg cmd
         )
 
-    UnitForumMsg umsg -> WebData.update model model.info <| \info ->
+    UnitForumMsg mtid umsg -> WebData.update model model.info <| \info ->
       let
-        (unitForum, cmd) = UnitForum.update info pageInfo umsg model.unitForum
+        (unitForum, cmd) = UnitForum.update info mtid pageInfo umsg model.unitForum
       in
         ( { model | unitForum = unitForum }
-        , Cmd.map UnitForumMsg cmd
+        , Cmd.map (UnitForumMsg mtid) cmd
         )
 
     GetUnitInfo tab result -> onSuccess result <| \info ->
@@ -111,22 +126,15 @@ update pageInfo msg model =
         in
           { modelChoice
           | info = WebData.Success info
-          , tab = tab
           }
       , case tab of
           Page.UnitInfo -> Cmd.none
-          Page.UnitAdmin -> Cmd.map UnitAdminMsg <| UnitAdmin.setup info.id
-          Page.UnitFiles -> Cmd.map UnitFilesMsg <| UnitFiles.setup info.id
-          Page.UnitForum mtid -> Cmd.map UnitForumMsg <| UnitForum.setup info.id mtid
+          _ -> setupTab info.id tab
       )
 
     SetTab tab -> WebData.update model model.info <| \info ->
-      ( { model | tab = tab }
-        , case tab of
-            Page.UnitInfo -> setup info.id Page.UnitInfo
-            Page.UnitAdmin -> Cmd.map UnitAdminMsg <| UnitAdmin.setup info.id
-            Page.UnitFiles -> Cmd.map UnitFilesMsg <| UnitFiles.setup info.id
-            Page.UnitForum mtid -> Cmd.map UnitForumMsg <| UnitForum.setup info.id mtid
+      ( model
+      , Page.goTo pageInfo <| Page.Unit tab info.id
       )
 
     ResetNotification ->
@@ -137,8 +145,8 @@ update pageInfo msg model =
 --------------------------------------------------------------------------------
 -- View
 
-view : Model -> List (Html Msg)
-view model =
+view : Model -> Page.UnitTab -> List (Html Msg)
+view model tab =
   Notification.with model.notification <|
   WebData.view model.info <| \info ->
   [ Html.div
@@ -147,7 +155,7 @@ view model =
           [ Html.Attributes.class "title" ]
           [ Html.text info.unit.name ]
       , Html.map SetTab <|
-        Tabs.view (sameTab model.tab) <| List.concat
+        Tabs.view (sameTab tab) <| List.concat
           [ if info.isMember
             then
               [ (Page.UnitInfo, "Information")
@@ -162,16 +170,16 @@ view model =
       ]
   , Html.div
       [ Html.Attributes.style "height" "100%"
-      ] <| case model.tab of
+      ] <| case tab of
       Page.UnitInfo ->
         List.map (Html.map UnitInfoMsg) <|
         UnitInfo.view info model.unitInfo
       Page.UnitAdmin ->
         List.map (Html.map UnitAdminMsg) <|
         UnitAdmin.view info model.unitAdmin
-      Page.UnitForum _ ->
-        List.map (Html.map UnitForumMsg) <|
-        UnitForum.view info model.unitForum
+      Page.UnitForum mtid ->
+        List.map (Html.map (UnitForumMsg mtid)) <|
+        UnitForum.view info mtid model.unitForum
       Page.UnitFiles ->
         List.map (Html.map UnitFilesMsg) <|
         UnitFiles.view info model.unitFiles

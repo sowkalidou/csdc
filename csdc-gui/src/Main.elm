@@ -29,7 +29,7 @@ main =
     , subscriptions = subscriptions
     , view = view
     , onUrlChange = UrlChanged
-    , onUrlRequest = LinkClicked
+    , onUrlRequest = UrlRequested
     }
 
 --------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ type alias Model =
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init _ url key =
   let
-    (page, cmd) = route { key = key, url = url }
+    (page, cmd) = route { key = key, url = url } Page.Studio
   in
     ( { key = key
       , url = url
@@ -62,9 +62,7 @@ init _ url key =
       , search = Search.initial
       , notification = Notification.Empty
       }
-    , case page of
-        Page.Studio -> cmd
-        _ -> Cmd.batch [ routeCmd Page.Studio, cmd ]
+    , cmd
     )
 
 --------------------------------------------------------------------------------
@@ -72,7 +70,7 @@ init _ url key =
 
 type Msg
   = UrlChanged Url.Url
-  | LinkClicked Browser.UrlRequest
+  | UrlRequested Browser.UrlRequest
   | MenuMsg Menu.Msg
   | ExplorerMsg Explorer.Msg
   | PersonMsg Person.Msg
@@ -80,20 +78,31 @@ type Msg
   | StudioMsg Studio.Msg
   | SearchMsg Search.Msg
 
-routeCmd : Page -> Cmd Msg
-routeCmd page =
-  case page of
-    Page.Studio ->
+routeCmd : Page -> Page -> Cmd Msg
+routeCmd prev page =
+  case (prev, page) of
+    (_, Page.Studio) ->
       Cmd.map StudioMsg Studio.setup
-    Page.Explorer ->
+
+    (_, Page.Explorer) ->
       Cmd.map ExplorerMsg Explorer.setup
-    Page.Unit tab uid ->
-      Cmd.map UnitMsg (Unit.setup uid tab)
-    Page.Person uid ->
+
+    (_, Page.Person uid) ->
       Cmd.map PersonMsg (Person.setup uid)
 
-route : Page.Info -> (Page, Cmd Msg)
-route info =
+    (Page.Unit tabPrev uidPrev, Page.Unit tab uid) ->
+      Cmd.map UnitMsg <|
+      if uid /= uidPrev
+      then
+        Unit.setup uid tab
+      else
+        Unit.changeTab uid tabPrev tab
+
+    (_, Page.Unit tab uid) ->
+      Cmd.map UnitMsg (Unit.setup uid tab)
+
+route : Page.Info -> Page -> (Page, Cmd Msg)
+route info prev =
   case info.url.fragment of
     Nothing ->
       (Page.Studio, Page.goTo info Page.Studio)
@@ -101,7 +110,7 @@ route info =
       let
         page = Page.fromFragment fragment
       in
-        (page, routeCmd page)
+        (page, routeCmd prev page)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -109,7 +118,7 @@ update msg model =
     pageInfo = { key = model.key, url = model.url }
   in
   case msg of
-    LinkClicked urlRequest ->
+    UrlRequested urlRequest ->
       case urlRequest of
         Browser.Internal url ->
           ( model, Nav.pushUrl model.key (Url.toString url) )
@@ -119,7 +128,7 @@ update msg model =
 
     UrlChanged url ->
       let
-        (page, cmd) = route { key = model.key, url = url }
+        (page, cmd) = route { key = model.key, url = url } model.page
       in
         ( { model | page = page, url = url }, cmd )
 
@@ -226,6 +235,6 @@ viewMain model =
       List.map (Html.map PersonMsg) <|
       Person.view model.viewPerson
 
-    Page.Unit _ _ ->
+    Page.Unit tab _ ->
       List.map (Html.map UnitMsg) <|
-      Unit.view model.viewUnit
+      Unit.view model.viewUnit tab

@@ -1,6 +1,7 @@
 module Page.UnitForum exposing
   ( Model
   , setup
+  , setupThread
   , initial
   , Msg (..)
   , update
@@ -32,7 +33,6 @@ import Task
 type alias Model =
   { threads : List ThreadInfo
   , posts : List PostInfo
-  , selected : Maybe (Id Thread)
   , threadForm : ThreadForm.Model
   , threadFormOpen : Bool
   , postForm : PostForm.Model
@@ -44,7 +44,6 @@ initial : Model
 initial =
   { threads = []
   , posts = []
-  , selected = Nothing
   , threadForm = ThreadForm.initial
   , threadFormOpen = False
   , postForm = PostForm.initial
@@ -54,14 +53,21 @@ initial =
 
 setup : Id Unit -> Maybe (Id Thread) -> Cmd Msg
 setup id mtid = Cmd.batch
-  [ Cmd.map (SetThreads mtid) <| API.getUnitThreads id
+  [ Cmd.map SetThreads <| API.getUnitThreads id
+  , setupThread mtid
   ]
+
+setupThread : Maybe (Id Thread) -> Cmd Msg
+setupThread mtid =
+  case mtid of
+    Nothing -> Cmd.none
+    Just tid -> Cmd.map SetPosts <| API.getThreadPosts tid
 
 --------------------------------------------------------------------------------
 -- Update
 
 type Msg
-  = SetThreads (Maybe (Id Thread)) (API.Response (List ThreadInfo))
+  = SetThreads (API.Response (List ThreadInfo))
   | SetPosts (API.Response (List PostInfo))
   | SelectThread (Id Thread)
   | ThreadFormMsg ThreadForm.Msg
@@ -74,29 +80,16 @@ type Msg
   | FocusResult (Result Dom.Error ())
   | ResetNotification
 
-update : UnitInfo -> Page.Info -> Msg -> Model -> (Model, Cmd Msg)
-update info pageInfo msg model =
+update : UnitInfo -> Maybe (Id Thread) -> Page.Info -> Msg -> Model -> (Model, Cmd Msg)
+update info selected pageInfo msg model =
   let
     onSuccess = Notification.withResponse ResetNotification model
     reload tid = Page.goTo pageInfo <| Page.Unit (UnitForum tid) info.id
   in
   case msg of
-    SetThreads mtid result -> onSuccess result <| \threads ->
-      ( { model
-        | threads = threads
-        , selected = case mtid of
-            Just _ -> mtid
-            Nothing -> model.selected
-        }
-      , case mtid of
-          Nothing ->
-            case model.selected of
-              Nothing ->
-                Cmd.none
-              Just tid ->
-                Cmd.map SetPosts <| API.getThreadPosts tid
-          Just selected ->
-            Cmd.map SetPosts <| API.getThreadPosts selected
+    SetThreads result -> onSuccess result <| \threads ->
+      ( { model | threads = threads }
+      , Cmd.none
       )
 
     SetPosts result -> onSuccess result <| \posts ->
@@ -104,9 +97,9 @@ update info pageInfo msg model =
       , Delay.after 0.1 Delay.Second Focus
       )
 
-    SelectThread selected ->
-      ( { model | selected = Just selected, posts = [] }
-      , Cmd.map SetPosts <| API.getThreadPosts selected
+    SelectThread tid ->
+      ( model
+      , reload (Just tid)
       )
 
     ThreadFormOpen ->
@@ -145,7 +138,7 @@ update info pageInfo msg model =
       )
 
     PostFormMsg unitMsg ->
-      case model.selected of
+      case selected of
         Nothing ->
           (model, Cmd.none)
         Just id ->
@@ -187,8 +180,8 @@ update info pageInfo msg model =
 --------------------------------------------------------------------------------
 -- View
 
-view : UnitInfo -> Model -> List (Html Msg)
-view unit model =
+view : UnitInfo -> Maybe (Id Thread) -> Model -> List (Html Msg)
+view unit selected model =
   [ Html.div
       [ Html.Attributes.class "columns"
       , Html.Attributes.style "height" "100%"
@@ -196,7 +189,7 @@ view unit model =
       [ Html.div
           [ Html.Attributes.class "column is-one-third" ]
           [ Column.view "Threads" [smallButton "New Thread" ThreadFormOpen] <|
-            viewThreads model.selected model.threads
+            viewThreads selected model.threads
           ]
       , Html.div
           [ Html.Attributes.class "column is-two-thirds" ]
