@@ -1,8 +1,10 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 --------------------------------------------------------------------------------
 -- Entities
 
 CREATE TABLE persons
-  ( id serial PRIMARY KEY
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
   , name text NOT NULL
   , description text NOT NULL
   , orcid text NOT NULL
@@ -11,10 +13,10 @@ CREATE TABLE persons
   );
 
 CREATE TABLE units
-  ( id serial PRIMARY KEY
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
   , name text NOT NULL
   , description text NOT NULL
-  , chair integer NOT NULL REFERENCES persons(id)
+  , chair uuid NOT NULL REFERENCES persons(id)
   , image text NOT NULL
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );
@@ -23,17 +25,17 @@ CREATE TABLE units
 -- Relations
 
 CREATE TABLE members
-  ( id serial PRIMARY KEY
-  , person integer NOT NULL REFERENCES persons(id)
-  , unit integer NOT NULL REFERENCES units(id)
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
+  , person uuid NOT NULL REFERENCES persons(id)
+  , unit uuid NOT NULL REFERENCES units(id)
   , created_at timestamptz NOT NULL DEFAULT NOW()
   , CONSTRAINT member_unique UNIQUE (person, unit)
   );
 
 CREATE TABLE subparts
-  ( id serial PRIMARY KEY
-  , child integer NOT NULL REFERENCES units(id)
-  , parent integer NOT NULL REFERENCES units(id)
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
+  , child uuid NOT NULL REFERENCES units(id)
+  , parent uuid NOT NULL REFERENCES units(id)
   , created_at timestamptz NOT NULL DEFAULT NOW()
   , CONSTRAINT subpart_unique UNIQUE (child, parent)
   );
@@ -53,22 +55,22 @@ CREATE TYPE message_status AS enum (
   );
 
 CREATE TABLE messages_member
-  ( id serial PRIMARY KEY
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
   , type message_type NOT NULL
   , status message_status NOT NULL DEFAULT 'Waiting'
   , message text NOT NULL
-  , person integer NOT NULL REFERENCES persons(id)
-  , unit integer NOT NULL REFERENCES units(id)
+  , person uuid NOT NULL REFERENCES persons(id)
+  , unit uuid NOT NULL REFERENCES units(id)
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 
 CREATE TABLE messages_subpart
-  ( id serial PRIMARY KEY
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
   , type message_type NOT NULL
   , status message_status NOT NULL DEFAULT 'Waiting'
   , message text NOT NULL
-  , child integer NOT NULL REFERENCES units(id)
-  , parent integer NOT NULL REFERENCES units(id)
+  , child uuid NOT NULL REFERENCES units(id)
+  , parent uuid NOT NULL REFERENCES units(id)
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 
@@ -86,20 +88,20 @@ CREATE TYPE reply_status AS enum (
   );
 
 CREATE TABLE replies_member
-  ( id serial PRIMARY KEY
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
   , type reply_type NOT NULL
   , status reply_status NOT NULL DEFAULT 'NotSeen'
   , reply text NOT NULL
-  , message integer NOT NULL REFERENCES messages_member(id)
+  , message uuid NOT NULL REFERENCES messages_member(id)
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 
 CREATE TABLE replies_subpart
-  ( id serial PRIMARY KEY
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
   , type reply_type NOT NULL
   , status reply_status NOT NULL DEFAULT 'NotSeen'
   , reply text NOT NULL
-  , message integer NOT NULL REFERENCES messages_subpart(id)
+  , message uuid NOT NULL REFERENCES messages_subpart(id)
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 
@@ -120,17 +122,17 @@ CREATE TABLE files
 -- Forum
 
 CREATE TABLE threads
-  ( id serial PRIMARY KEY
-  , unit integer NOT NULL REFERENCES units(id)
-  , author integer NOT NULL REFERENCES persons(id)
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
+  , unit uuid NOT NULL REFERENCES units(id)
+  , author uuid NOT NULL REFERENCES persons(id)
   , subject text NOT NULL
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );
 
 CREATE TABLE posts
-  ( id serial PRIMARY KEY
-  , thread integer NOT NULL REFERENCES threads(id)
-  , author integer NOT NULL REFERENCES persons(id)
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
+  , thread uuid NOT NULL REFERENCES threads(id)
+  , author uuid NOT NULL REFERENCES persons(id)
   , text text NOT NULL
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );

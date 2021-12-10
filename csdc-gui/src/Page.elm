@@ -64,7 +64,7 @@ toFragments page =
         UnitForum (Just tid) -> ["forum", toFragmentId tid]
 
 toFragmentId : Id a -> String
-toFragmentId (Id a) = String.fromInt a
+toFragmentId = idToString
 
 --------------------------------------------------------------------------------
 -- Conversion from URL fragment
@@ -90,8 +90,8 @@ fromFragments l =
     ["unit", uid, "forum"] ->
       default <| Maybe.map (Unit (UnitForum Nothing)) (fromFragmentId uid)
     ["unit", uid, "forum", tid] ->
-      default <| Maybe.map2 (\t -> Unit (UnitForum (Just t))) (fromFragmentId tid) (fromFragmentId uid) 
+      default <| Maybe.map2 (\t -> Unit (UnitForum (Just t))) (fromFragmentId tid) (fromFragmentId uid)
     _ -> Studio
 
 fromFragmentId : String -> Maybe (Id a)
-fromFragmentId s = Maybe.map Id (String.toInt s)
+fromFragmentId = idFromString

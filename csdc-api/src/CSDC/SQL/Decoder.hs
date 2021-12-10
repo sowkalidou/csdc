@@ -61,7 +61,7 @@ timestamptz = column (nonNullable Decoders.timestamptz)
 -- Local types
 
 id :: Row (Id a)
-id = Id . fromIntegral <$> column (nonNullable Decoders.int4)
+id = Id <$> column (nonNullable Decoders.uuid)
 
 orcidId :: Row ORCID.Id
 orcidId = ORCID.Id <$> column (nonNullable Decoders.text)

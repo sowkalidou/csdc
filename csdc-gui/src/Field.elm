@@ -14,7 +14,6 @@ module Field exposing
   , optional
   , required
   , requiredString
-  , requiredId
   )
 
 import Types exposing (Id (..))
@@ -105,9 +104,3 @@ requiredString n = make n "" <| \s ->
   if String.isEmpty s
   then Err ["This field is required."]
   else Ok s
-
-requiredId : String -> Field String (Id a)
-requiredId n = make n "" <| \s ->
-  case String.toInt s of
-    Nothing -> Err ["This is not a valid Id."]
-    Just k -> Ok (Id k)

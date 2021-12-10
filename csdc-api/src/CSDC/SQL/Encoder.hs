@@ -56,18 +56,18 @@ textList = param $ nonNullable $ foldableArray $ nonNullable Encoders.text
 
 id :: Params (Id a)
 id =
-  contramap (fromIntegral . getId) $
-  param (nonNullable Encoders.int4)
+  contramap getId $
+  param (nonNullable Encoders.uuid)
 
 idNullable :: Params (Maybe (Id a))
 idNullable =
-  contramap (fmap (fromIntegral . getId)) $
-  param (nullable Encoders.int4)
+  contramap (fmap getId) $
+  param (nullable Encoders.uuid)
 
 idList :: Params [Id a]
 idList =
-  contramap (fmap (fromIntegral . getId)) $
-  param (nonNullable (foldableArray (nonNullable Encoders.int4)))
+  contramap (fmap getId) $
+  param (nonNullable (foldableArray (nonNullable Encoders.uuid)))
 
 orcidId :: Params ORCID.Id
 orcidId =

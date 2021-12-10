@@ -40,7 +40,8 @@ library
     mtl,
     template-haskell,
     text,
-    time
+    time,
+    uuid
   hs-source-dirs:
     src
   default-extensions:

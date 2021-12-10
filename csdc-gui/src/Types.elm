@@ -3,23 +3,27 @@ module Types exposing (..)
 import Json.Decode as Decoder exposing (Decoder)
 import Json.Encode as Encoder exposing (Value)
 import String
+import UUID exposing (UUID)
 
 --------------------------------------------------------------------------------
 -- Id
 
-type Id a = Id Int
+type Id a = Id UUID
 
 encodeId : Id a -> Value
-encodeId (Id n) = Encoder.int n
+encodeId (Id n) = Encoder.string (UUID.toString n)
 
 decodeId : Decoder (Id a)
-decodeId = Decoder.map Id Decoder.int
+decodeId = Decoder.map Id UUID.jsonDecoder
 
 idToString : Id a -> String
-idToString (Id n) = String.fromInt n
+idToString (Id n) = UUID.toString n
 
 idFromString : String -> Maybe (Id a)
-idFromString s = Maybe.map Id (String.toInt s)
+idFromString s =
+  case UUID.fromString s of
+    Err _ -> Nothing
+    Ok a -> Just (Id a)
 
 type alias WithId a =
   { id : Id a
