@@ -50,6 +50,7 @@ library
     hoauth2,
     http-client,
     http-client-tls,
+    http-client-openssl,
     http-types,
     network-uri,
     shakespeare,

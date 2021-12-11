@@ -92,8 +92,7 @@ showConfig config =
 -- Secret
 
 data Secret = Secret
-  { secret_token :: Text
-  , secret_orcidId :: Text
+  { secret_orcidId :: Text
   , secret_orcidSecret :: Text
   , secret_sql :: SQLSecret
   } deriving (Show, Eq, Generic)
@@ -103,11 +102,10 @@ data Secret = Secret
 readSecret :: MonadIO m => Maybe FilePath -> m (Maybe Secret)
 readSecret (Just path) = liftIO $ decodeFileStrict path
 readSecret Nothing = liftIO $ do
-  mToken <- env "SECRET_TOKEN"
   mOrcidId <- env "SECRET_ORCID_ID"
   mOrcidSecret <- env "SECRET_ORCID_SECRET"
   mSql <- getSQLSecret
-  pure $ Secret <$> mToken <*> mOrcidId <*> mOrcidSecret <*> mSql
+  pure $ Secret <$> mOrcidId <*> mOrcidSecret <*> mSql
 
 --------------------------------------------------------------------------------
 -- Context

@@ -53,6 +53,7 @@ data Secret = Secret
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Secret
 
+-- Like postgresql://csdc:csdc@localhost:5432/csdc
 parseURL :: String -> Maybe (Config, Secret)
 parseURL txt = do
   uri <- parseURI txt

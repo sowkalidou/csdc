@@ -53,7 +53,7 @@ import Network.OAuth.OAuth2
 import Network.Wai.Middleware.Auth.Provider (ProviderInfo (..))
 import URI.ByteString (parseURI, strictURIParserOptions)
 
-import qualified Network.HTTP.Client.TLS as HTTP.TLS
+import qualified Network.HTTP.Client.OpenSSL as OpenSSL
 
 --------------------------------------------------------------------------------
 -- Configuration
@@ -183,5 +183,5 @@ getUserRecord endpoint token (Id user) = do
        Left e -> error (show e)
        Right a -> a
 
-  manager <- HTTP.TLS.newTlsManager
+  manager <- OpenSSL.newOpenSSLManager
   authGetJSON manager token uri
