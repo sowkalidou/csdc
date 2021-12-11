@@ -11,6 +11,7 @@ import Delay
 import Html exposing (Html)
 import Html.Attributes
 import Http
+import Page
 
 type Notification
   = Empty
@@ -90,9 +91,14 @@ withResponse :
   (Has model, Cmd msg)
 withResponse resetMsg model result onSuccess =
   case result of
-    -- XXX: Manage 401
     Err err ->
-      ( { model | notification = HttpError err }
-      , reset resetMsg
-      )
+      case err of
+        Http.BadStatus 401 ->
+          ( model
+          , Page.reload
+          )
+        _ ->
+          ( { model | notification = HttpError err }
+          , reset resetMsg
+          )
     Ok a -> onSuccess a
