@@ -7,20 +7,15 @@
 module CSDC.API
   ( API
   , serveAPI
-    -- * Utils
-  , Auth
   ) where
 
-import CSDC.Auth (getUserToken)
-import CSDC.DAO
+import CSDC.Action
 import CSDC.FileServer (serveSQLFileServer)
-import CSDC.Prelude
 
-import qualified CSDC.API.DAO as DAO
+import qualified CSDC.API.Auth as Auth
 import qualified CSDC.SQL as SQL
 
-import Servant
-import Servant.Server.Internal.Delayed (passToServer)
+import Servant hiding (Server)
 
 import WaiAppStatic.Types (StaticSettings (..), unsafeToPiece)
 import WaiAppStatic.Storage.Filesystem (defaultWebAppSettings)
@@ -29,18 +24,15 @@ import WaiAppStatic.Storage.Filesystem (defaultWebAppSettings)
 -- API
 
 type API =
-       Auth :> "api" :> DAO.API
+       Auth.API
   :<|> "files" :> Raw
   :<|> Raw
 
-serveAPI :: FilePath -> SQL.Context -> ServerT API (Action ())
-serveAPI path ctx =
-         serveDAOAPI
+serveAPI :: FilePath -> SQL.Context -> Auth.Settings -> Server API
+serveAPI path ctx settings =
+         Auth.serveAPI settings
     :<|> serveSQLFileServer ctx
     :<|> serveDirectoryWith (options path)
-  where
-    serveDAOAPI token =
-      hoistServer (Proxy @DAO.API) (withToken token) DAO.serveAPI
 
 options :: FilePath -> StaticSettings
 options path =
@@ -52,19 +44,3 @@ options path =
       pcs -> old pcs
   in
     base { ssLookupFile = indexRedirect (ssLookupFile base) }
-
---------------------------------------------------------------------------------
--- Auth
-
--- | This type is used for representing authentication credentials at the
--- servant API level.
-data Auth
-
-instance HasServer api context => HasServer (Auth :> api) context where
-  type ServerT (Auth :> api) m = UserToken -> ServerT api m
-
-  route Proxy context subserver =
-    route (Proxy @api) context (passToServer subserver getUserToken)
-
-  hoistServerWithContext _ pc nat s =
-    hoistServerWithContext (Proxy @api) pc nat . s

@@ -100,7 +100,7 @@ type Msg
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
   let
-    onSuccess = Notification.withResponse Reset model
+    onSuccess = Notification.withResponse pageInfo Reset model
   in
   case msg of
     Reset ->
@@ -131,6 +131,7 @@ update pageInfo msg model =
         config =
           { request = API.createUnit
           , finish = \id -> Page.goTo pageInfo (Page.Unit Page.UnitInfo id)
+          , pageInfo = pageInfo
           }
         (unitCreate, cmd) = UnitForm.updateWith config unitMsg model.unitCreate
       in
@@ -159,6 +160,7 @@ update pageInfo msg model =
         config =
           { id = person.id
           , finish = Page.goTo pageInfo Page.Studio
+          , pageInfo = pageInfo
           }
         (personEdit, cmd) = PersonForm.updateWith config personMsg model.personEdit
       in
@@ -186,6 +188,7 @@ update pageInfo msg model =
         config =
           { request = API.updatePersonImage person.id
           , finish = Page.reload
+          , pageInfo = pageInfo
           }
         (personImage, cmd) = ImageForm.updateWith config personMsg model.personImage
       in
@@ -206,6 +209,7 @@ update pageInfo msg model =
                   { request = \(rtype, reason) ->
                       API.sendReplyMember { rtype = rtype, text = reason, message = id }
                   , finish = Page.goTo pageInfo Page.Studio
+                  , pageInfo = pageInfo
                   }
 
                 (previewMessage, cmd) = ReplyForm.updateWith config preMsg model.previewMessage
@@ -224,6 +228,7 @@ update pageInfo msg model =
                   { request = \(rtype, reason) ->
                       API.sendReplySubpart { rtype = rtype, text = reason, message = id }
                   , finish = Page.goTo pageInfo Page.Studio
+                  , pageInfo = pageInfo
                   }
 
                 (previewMessage, cmd) = ReplyForm.updateWith config preMsg model.previewMessage
@@ -250,6 +255,7 @@ update pageInfo msg model =
                 config =
                   { request = API.viewReplyMember id
                   , finish = Page.goTo pageInfo Page.Studio
+                  , pageInfo = pageInfo
                   }
 
                 (previewReply, cmd) = ReplySeenForm.updateWith config preMsg model.previewReply
@@ -267,6 +273,7 @@ update pageInfo msg model =
                 config =
                   { request = API.viewReplySubpart id
                   , finish = Page.goTo pageInfo Page.Studio
+                  , pageInfo = pageInfo
                   }
 
                 (previewReply, cmd) = ReplySeenForm.updateWith config preMsg model.previewReply
@@ -354,12 +361,8 @@ view model =
                           [ Html.text info.person.name ]
                       , Html.p
                           [ Html.Attributes.class "subtitle is-6" ]
-                          [ Html.text "ORCID: "
-                          , Html.a
-                              [ Html.Attributes.href ("https://orcid.org/" ++ info.person.orcid)
-                              , Html.Attributes.target "_blank"
-                              ]
-                              [ Html.text info.person.orcid ]
+                          [ Html.text "Email: "
+                          , Html.text info.person.email
                           ]
                       ]
                   ]

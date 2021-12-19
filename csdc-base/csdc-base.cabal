@@ -28,7 +28,6 @@ library
     CSDC.Types.GUI
     CSDC.Types.DAO
   build-depends:
-    csdc-auth,
     aeson,
     base64-bytestring,
     bytestring,
@@ -37,6 +36,7 @@ library
     cryptohash-md5,
     http-api-data,
     lens,
+    password,
     mtl,
     template-haskell,
     text,

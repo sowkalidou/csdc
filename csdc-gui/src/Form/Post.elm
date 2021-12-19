@@ -12,6 +12,7 @@ import Types exposing (..)
 import Input as Input
 import Field exposing (Field)
 import Form
+import Page
 
 import Html exposing (Html)
 
@@ -48,6 +49,7 @@ parse model = Result.toMaybe <|
 type alias Config =
   { id : Id Thread
   , finish : Cmd Msg
+  , pageInfo : Page.Info
   }
 
 updateWith : Config -> Msg -> Model -> (Model, Cmd Msg)
@@ -58,6 +60,7 @@ updateWith config = Form.update
   , parse = \_ -> parse
   , request = API.createThreadPost config.id
   , finish = \_ -> config.finish
+  , pageInfo = config.pageInfo
   }
 
 type ModelMsg

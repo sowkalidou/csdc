@@ -1,22 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module CSDC.SQL.Persons
   ( select
+  , check
   , insert
   , search
   , update
   , updateImage
   , delete
-  , selectORCID
   ) where
 
 import CSDC.Prelude
+import CSDC.SQL.QQ
 
-import qualified CSDC.Auth.ORCID as ORCID
 import qualified CSDC.SQL.Decoder as Decoder
 import qualified CSDC.SQL.Encoder as Encoder
 
+import Data.Password.Bcrypt (PasswordHash (..), Bcrypt)
 import Data.Functor.Contravariant (Contravariant (..))
 import Hasql.Statement (Statement (..))
 
@@ -26,7 +28,7 @@ select :: Statement (Id Person) (Maybe Person)
 select = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "SELECT name, description, orcid, image, created_at"
+      [ "SELECT name, description, email, image, created_at"
       , "FROM persons"
       , "WHERE id = $1"
       ]
@@ -36,23 +38,27 @@ select = Statement sql encoder decoder True
     decoder = Decoder.rowMaybe $ do
       person_name <- Decoder.text
       person_description <- Decoder.text
-      person_orcid <- Decoder.orcidId
-      person_image <- Decoder.textNullable
+      person_email <- Decoder.text
+      person_image <- Decoder.text
       person_createdAt <- Decoder.posixTime
       pure Person {..}
 
-selectORCID :: Statement ORCID.Id (Maybe (Id Person))
-selectORCID = Statement sql encoder decoder True
+check :: Statement Text (Maybe (Id Person, PasswordHash Bcrypt))
+check = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "SELECT id"
-      , "FROM persons"
-      , "WHERE orcid = $1"
-      ]
+    sql = [sqlqq|
+      SELECT id, password_hash
+      FROM persons
+      WHERE email = $1
+      |]
 
-    encoder = Encoder.orcidId
+    encoder =
+      Encoder.text
 
-    decoder = Decoder.rowMaybe Decoder.id
+    decoder = Decoder.rowMaybe $ do
+      personId <- Decoder.id
+      passwordHash <- Decoder.text
+      pure (personId, PasswordHash passwordHash)
 
 search :: Statement [Text] [SearchResult (Id Person)]
 search = Statement sql encoder decoder True
@@ -74,15 +80,16 @@ insert :: Statement NewPerson (Id Person)
 insert = Statement sql encoder decoder True
   where
     sql = ByteString.unlines
-      [ "INSERT INTO persons (name, description, orcid, image)"
-      , "VALUES ($1, $2, $3, $4)"
+      [ "INSERT INTO persons (name, description, email, password_hash, image)"
+      , "VALUES ($1, $2, $3, $4, $5)"
       , "RETURNING id"
       ]
 
     encoder =
       (contramap newPerson_name Encoder.text) <>
       (contramap newPerson_description Encoder.text) <>
-      (contramap newPerson_orcid Encoder.orcidId) <>
+      (contramap newPerson_email Encoder.text) <>
+      (contramap (unPasswordHash . newPerson_password) Encoder.text) <>
       (contramap newPerson_image Encoder.text)
 
     decoder = Decoder.singleRow Decoder.id

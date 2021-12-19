@@ -14,6 +14,7 @@ import Types exposing (..)
 import Input as Input
 import Field exposing (Field)
 import Form
+import Page
 
 import Croppie
 import Html exposing (Html)
@@ -60,6 +61,7 @@ setup mimage = Cmd.map (Form.ModelMsg << ImageUploadMsg) (ImageUpload.setup mima
 type alias Config =
   { request : Base64File -> Cmd (API.Response ())
   , finish : Cmd Msg
+  , pageInfo : Page.Info
   }
 
 updateWith : Config -> Msg -> Model -> (Model, Cmd Msg)
@@ -70,6 +72,7 @@ updateWith config = Form.update
   , parse = \_ -> parse
   , request = config.request
   , finish = \_ -> config.finish
+  , pageInfo = config.pageInfo
   }
 
 type ModelMsg

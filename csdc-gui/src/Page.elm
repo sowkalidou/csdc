@@ -18,7 +18,8 @@ import Url exposing (Url)
 -- Model
 
 type Page
-  = Explorer
+  = SignIn
+  | Explorer
   | Studio
   | Person (Id Person)
   | Unit UnitTab (Id Unit)
@@ -52,6 +53,7 @@ toFragment page = String.join "/" ("" :: toFragments page)
 toFragments : Page -> List String
 toFragments page =
   case page of
+    SignIn -> ["signin"]
     Explorer -> ["explorer"]
     Studio -> ["studio"]
     Person uid -> ["person", toFragmentId uid]
@@ -77,6 +79,7 @@ fromFragments : List String -> Page
 fromFragments l =
   let default = Maybe.withDefault Studio in
   case l of
+    ["signin"] -> SignIn
     ["studio"] -> Studio
     ["explorer"] -> Explorer
     ["person", uid] ->

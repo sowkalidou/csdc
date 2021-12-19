@@ -12,6 +12,7 @@ import Form.Reply exposing (viewMessage)
 import API as API
 import Notification exposing (Notification)
 import Form
+import Page
 
 import Html exposing (Html)
 import Html.Attributes
@@ -33,13 +34,15 @@ initial =
 -- Update
 
 type alias Config =
-  { request : Cmd (API.Response ())
+  { pageInfo : Page.Info
+  , request : Cmd (API.Response ())
   , finish : Cmd Msg
   }
 
 updateWith : Config -> Msg -> Model -> (Model, Cmd Msg)
 updateWith config = Form.update <| Form.statelessConfig initial
-  { request = config.request
+  { pageInfo = config.pageInfo
+  , request = config.request
   , finish = \_ -> config.finish
   }
 

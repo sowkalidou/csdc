@@ -12,6 +12,7 @@ import Input exposing (buttonDanger)
 import API as API
 import Notification exposing (Notification)
 import Form
+import Page
 
 import Html exposing (Html)
 
@@ -31,13 +32,15 @@ initial =
 -- Update
 
 type alias Config =
-  { member : Id Member
+  { pageInfo : Page.Info
+  , member : Id Member
   , finish : Cmd Msg
   }
 
 updateWith : Config -> Msg -> Model -> (Model, Cmd Msg)
 updateWith config = Form.update <| Form.statelessConfig initial
-  { request = API.deleteMember config.member
+  { pageInfo = config.pageInfo
+  , request = API.deleteMember config.member
   , finish = \_ -> config.finish
   }
 

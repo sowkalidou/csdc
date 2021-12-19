@@ -14,6 +14,7 @@ import Types exposing (..)
 import Input as Input
 import Field exposing (Field)
 import Form
+import Page
 
 import Html exposing (Html)
 
@@ -68,13 +69,15 @@ parse (mtype, make) model = Result.toMaybe <|
 -- Update
 
 type alias Config a =
-  { request : NewMessage a -> Cmd (API.Response (Id (Message a)))
+  { pageInfo : Page.Info
+  , request : NewMessage a -> Cmd (API.Response (Id (Message a)))
   , finish : Cmd (Msg a)
   }
 
 updateWith : Config a -> Msg a -> Model -> (Model, Cmd (Msg a))
 updateWith config = Form.update
-  { initial = initial
+  { pageInfo = config.pageInfo
+  , initial = initial
   , update = update
   , reload = reload
   , parse = parse

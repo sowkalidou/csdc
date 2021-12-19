@@ -9,7 +9,6 @@ module CSDC.SQL.Encoder
   , id
   , idNullable
   , idList
-  , orcidId
   , messageType
   , messageStatus
   , replyType
@@ -18,8 +17,6 @@ module CSDC.SQL.Encoder
 
 import CSDC.Prelude
 import Prelude hiding (id)
-
-import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.ByteString (ByteString)
 import Data.Functor.Contravariant (Contravariant (..))
@@ -63,11 +60,6 @@ idList :: Params [Id a]
 idList =
   contramap (fmap getId) $
   param (nonNullable (foldableArray (nonNullable Encoders.uuid)))
-
-orcidId :: Params ORCID.Id
-orcidId =
-  contramap ORCID.getId $
-  param (nonNullable Encoders.text)
 
 messageType :: Params MessageType
 messageType = contramap encode text

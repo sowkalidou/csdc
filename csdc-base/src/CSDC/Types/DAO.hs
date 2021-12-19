@@ -30,9 +30,8 @@ module CSDC.Types.DAO
 import CSDC.Aeson (JSON (..))
 import CSDC.Types.Id
 
-import qualified CSDC.Auth.ORCID as ORCID
-
 import Data.Aeson (ToJSON, FromJSON)
+import Data.Password.Bcrypt (PasswordHash, Bcrypt)
 import Data.Text (Text)
 import Data.Time.Clock.POSIX (POSIXTime)
 import GHC.Generics (Generic)
@@ -43,8 +42,8 @@ import GHC.Generics (Generic)
 data Person = Person
   { person_name :: Text
   , person_description :: Text
-  , person_orcid :: ORCID.Id
-  , person_image :: Maybe Text
+  , person_image :: Text
+  , person_email :: Text
   , person_createdAt :: POSIXTime
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Person
@@ -53,9 +52,9 @@ data NewPerson = NewPerson
   { newPerson_name :: Text
   , newPerson_description :: Text
   , newPerson_image :: Text
-  , newPerson_orcid :: ORCID.Id
+  , newPerson_email :: Text
+  , newPerson_password :: PasswordHash Bcrypt
   } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON NewPerson
 
 data PersonUpdate = PersonUpdate
   { personUpdate_name :: Text

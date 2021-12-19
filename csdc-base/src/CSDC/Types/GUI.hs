@@ -3,7 +3,8 @@
 
 module CSDC.Types.GUI
   (-- GUI Types
-    PersonMember (..)
+    NewUser (..)
+  , PersonMember (..)
   , PersonInfo (..)
   , UnitMember (..)
   , UnitSubpart (..)
@@ -27,6 +28,13 @@ import GHC.Generics (Generic)
 
 --------------------------------------------------------------------------------
 -- GUI Types
+
+data NewUser = NewUser
+  { newUser_name :: Text
+  , newUser_email :: Text
+  , newUser_password :: Text
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON NewUser
 
 data PersonMember = PersonMember
   { personMember_member :: Id Member

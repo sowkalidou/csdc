@@ -81,7 +81,7 @@ type Msg
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
   let
-    onSuccess = Notification.withResponse ResetNotification model
+    onSuccess = Notification.withResponse pageInfo ResetNotification model
   in
   case msg of
     UnitInfoMsg umsg -> WebData.update model model.info <| \info ->
@@ -102,7 +102,7 @@ update pageInfo msg model =
 
     UnitFilesMsg umsg -> WebData.update model model.info <| \info ->
       let
-        (unitFiles, cmd) = UnitFiles.update info umsg model.unitFiles
+        (unitFiles, cmd) = UnitFiles.update pageInfo info umsg model.unitFiles
       in
         ( { model | unitFiles = unitFiles }
         , Cmd.map UnitFilesMsg cmd

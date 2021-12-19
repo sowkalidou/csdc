@@ -13,6 +13,7 @@ import Notification exposing (Has)
 import API as API
 import Html exposing (Html)
 import Delay
+import Page
 
 type Msg msg r b
   = ModelMsg msg
@@ -28,7 +29,8 @@ isFinished msg =
     _ -> False
 
 type alias Config model msg r a b =
-  { initial : Has model
+  { pageInfo : Page.Info
+  , initial : Has model
   , update : msg -> Has model -> (Has model, Cmd msg)
   , reload : Has model -> Has model
   , parse : r -> Has model -> Maybe a
@@ -37,13 +39,15 @@ type alias Config model msg r a b =
   }
 
 type alias StatelessConfig b =
-  { request : Cmd (API.Response b)
+  { pageInfo : Page.Info
+  , request : Cmd (API.Response b)
   , finish : b -> Cmd (Msg () () b)
   }
 
 statelessConfig : Has model -> StatelessConfig b -> Config model () () () b
 statelessConfig initial config =
-  { initial = initial
+  { pageInfo = config.pageInfo
+  , initial = initial
   , update = \_ model -> (model, Cmd.none)
   , reload = \model -> model
   , parse = \_ _ -> Just ()
@@ -81,7 +85,7 @@ update config formMsg model =
             )
 
     Response response ->
-      Notification.withResponse ResetNotification model response <| \b ->
+      Notification.withResponse config.pageInfo ResetNotification model response <| \b ->
         ( { model | notification = Notification.Success }
         , Delay.after 1 Delay.Second <| Finish b
         )

@@ -96,6 +96,7 @@ update pageInfo msg model =
         config =
           { request = API.sendMessageMember
           , finish = Cmd.none
+          , pageInfo = pageInfo
           }
         (messageCreate, cmd) = MessageForm.updateWith config messageMsg model.messageCreate
       in
@@ -111,7 +112,7 @@ update pageInfo msg model =
       , Cmd.none
       )
 
-    APIMsg result -> Notification.withResponse Reset model result <| \info ->
+    APIMsg result -> Notification.withResponse pageInfo Reset model result <| \info ->
       ( { model | person = WebData.Success info }
       , Cmd.none
       )
@@ -170,12 +171,8 @@ view model =
                           [ Html.text person.person.name ]
                       , Html.p
                           [ Html.Attributes.class "subtitle is-6" ]
-                          [ Html.text "ORCID: "
-                          , Html.a
-                              [ Html.Attributes.href ("https://orcid.org/" ++ person.person.orcid)
-                              , Html.Attributes.target "_blank"
-                              ]
-                              [ Html.text person.person.orcid ]
+                          [ Html.text "Email: "
+                          , Html.text person.person.email
                           ]
                       ]
                   ]

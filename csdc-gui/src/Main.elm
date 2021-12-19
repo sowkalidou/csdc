@@ -1,5 +1,7 @@
 module Main exposing (main)
 
+import API
+import Http
 import UI.Menu as Menu
 import UI.Navbar as Navbar
 import UI.Search as Search
@@ -7,6 +9,7 @@ import Notification exposing (Notification)
 import Page as Page exposing (Page)
 import Types exposing (..)
 import Page.Explorer as Explorer
+import Page.SignIn as SignIn
 import Page.Studio as Studio
 import Page.Person as Person
 import Page.Unit as Unit
@@ -39,8 +42,10 @@ type alias Model =
   { key: Nav.Key
   , url: Url.Url
   , page : Page
+  , isLogged : Bool
   , viewPerson : Person.Model
   , viewUnit : Unit.Model
+  , signin : SignIn.Model
   , explorer : Explorer.Model
   , studio : Studio.Model
   , search : Search.Model
@@ -55,6 +60,8 @@ init _ url key =
     ( { key = key
       , url = url
       , page = page
+      , isLogged = False
+      , signin = SignIn.initial
       , explorer = Explorer.initial
       , studio = Studio.initial
       , viewPerson = Person.initial
@@ -62,7 +69,10 @@ init _ url key =
       , search = Search.initial
       , notification = Notification.Empty
       }
-    , cmd
+    , Cmd.batch
+        [ cmd
+        , Cmd.map SignInCheck API.getUserInfo
+        ]
     )
 
 --------------------------------------------------------------------------------
@@ -71,7 +81,12 @@ init _ url key =
 type Msg
   = UrlChanged Url.Url
   | UrlRequested Browser.UrlRequest
+  | SignIn
+  | SignInCheck (API.Response PersonInfo)
+  | SignOut
+  | SignOutResult (API.Response ())
   | MenuMsg Menu.Msg
+  | SignInMsg SignIn.Msg
   | ExplorerMsg Explorer.Msg
   | PersonMsg Person.Msg
   | UnitMsg Unit.Msg
@@ -81,6 +96,9 @@ type Msg
 routeCmd : Page -> Page -> Cmd Msg
 routeCmd prev page =
   case (prev, page) of
+    (_, Page.SignIn) ->
+      Cmd.none
+
     (_, Page.Studio) ->
       Cmd.map StudioMsg Studio.setup
 
@@ -132,12 +150,55 @@ update msg model =
       in
         ( { model | page = page, url = url }, cmd )
 
+    SignIn ->
+      ( model
+      , Page.goTo pageInfo Page.SignIn
+      )
+
+    SignInCheck response ->
+      case response of
+        Err err ->
+          case err of
+            Http.BadStatus 401 ->
+              ( { model | page = Page.SignIn }
+              , Cmd.none
+              )
+            _ ->
+              ( { model | notification = Notification.HttpError err }
+              , Cmd.none
+              )
+        Ok _ ->
+          ( { model | isLogged = True }
+          , Cmd.none
+          )
+
+    SignOut ->
+      ( model
+      , Cmd.map SignOutResult API.signout
+      )
+
+    SignOutResult _ ->
+      ( { model | isLogged = False }
+      , Page.goTo pageInfo Page.SignIn
+      )
+
     MenuMsg (Menu.SetItem menu) ->
       let
         page = Menu.toPage menu
       in
         ( { model | page = page }
         , Page.goTo pageInfo page
+        )
+
+    SignInMsg m ->
+      let
+        (signin, cmd, finished) = SignIn.update pageInfo m model.signin
+      in
+        ( { model
+          | signin = signin
+          , isLogged = if finished then True else model.isLogged
+          }
+        , Cmd.map SignInMsg cmd
         )
 
     ExplorerMsg m ->
@@ -193,26 +254,37 @@ view : Model -> Browser.Document Msg
 view model =
   { title = "DAO"
   , body =
-      [ Navbar.view <| Html.map SearchMsg <| Search.view model.search
+      [ Navbar.view model.isLogged SignIn SignOut <|
+        Html.map SearchMsg <| Search.view model.search
       , Html.div
-          [ Html.Attributes.class "columns"
+          [ if model.isLogged
+            then Html.Attributes.class "columns"
+            else Html.Attributes.class "columns is-centered"
           , Html.Attributes.attribute "style" "padding:25px; height: calc(100vh - 80px)"
           ]
-          [ Html.div
-              [ Html.Attributes.class "column is-one-fifth"
-              ]
-              [ viewMenu model
-              ]
-          , Html.div
-              [ Html.Attributes.class "column is-four-fifths"
-              ]
-              [ Html.div
-                  [ Html.Attributes.class "content"
-                  , Html.Attributes.style "height" "100%"
-                  ]
-                  (viewMain model)
-              ]
-          ]
+          ( if not model.isLogged
+            then
+            [ Html.div
+                [ Html.Attributes.class "column is-one-quarter" ]
+                (viewMain model)
+            ]
+            else
+            [ Html.div
+                [ Html.Attributes.class "column is-one-fifth"
+                ]
+                [ viewMenu model
+                ]
+            , Html.div
+                [ Html.Attributes.class "column is-four-fifths"
+                ]
+                [ Html.div
+                    [ Html.Attributes.class "content"
+                    , Html.Attributes.style "height" "100%"
+                    ]
+                    (viewMain model)
+                ]
+            ]
+          )
       ]
   }
 
@@ -226,6 +298,10 @@ viewMain model =
     Page.Studio ->
       List.map (Html.map StudioMsg) <|
       Studio.view model.studio
+
+    Page.SignIn ->
+      List.map (Html.map SignInMsg) <|
+      SignIn.view model.signin
 
     Page.Explorer ->
       List.map (Html.map ExplorerMsg) <|

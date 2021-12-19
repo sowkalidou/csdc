@@ -8,7 +8,6 @@ module CSDC.SQL.Decoder
   , textNullable
     -- * Local types
   , id
-  , orcidId
   , messageType
   , messageStatus
   , replyType
@@ -22,8 +21,6 @@ module CSDC.SQL.Decoder
 
 import CSDC.Prelude
 import Prelude hiding (id)
-
-import qualified CSDC.Auth.ORCID as ORCID
 
 import Data.ByteString (ByteString)
 import Data.Time.Clock.POSIX (POSIXTime, utcTimeToPOSIXSeconds)
@@ -59,9 +56,6 @@ textNullable = column (nullable Decoders.text)
 
 id :: Row (Id a)
 id = Id <$> column (nonNullable Decoders.uuid)
-
-orcidId :: Row ORCID.Id
-orcidId = ORCID.Id <$> column (nonNullable Decoders.text)
 
 messageType :: Row MessageType
 messageType = column (nonNullable (Decoders.enum decode))

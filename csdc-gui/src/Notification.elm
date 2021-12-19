@@ -84,18 +84,19 @@ reset = Delay.after 3 Delay.Second
 type alias Has model = { model | notification : Notification }
 
 withResponse :
+  Page.Info ->
   msg ->
   Has model ->
   Result Http.Error a ->
   (a -> (Has model, Cmd msg)) ->
   (Has model, Cmd msg)
-withResponse resetMsg model result onSuccess =
+withResponse pageInfo resetMsg model result onSuccess =
   case result of
     Err err ->
       case err of
         Http.BadStatus 401 ->
           ( model
-          , Page.reload
+          , Page.goTo pageInfo Page.SignIn
           )
         _ ->
           ( { model | notification = HttpError err }

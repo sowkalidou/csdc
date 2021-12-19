@@ -83,7 +83,7 @@ type Msg
 update : UnitInfo -> Maybe (Id Thread) -> Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update info selected pageInfo msg model =
   let
-    onSuccess = Notification.withResponse ResetNotification model
+    onSuccess = Notification.withResponse pageInfo ResetNotification model
     reload tid = Page.goTo pageInfo <| Page.Unit (UnitForum tid) info.id
   in
   case msg of
@@ -117,6 +117,7 @@ update info selected pageInfo msg model =
         config =
           { id = info.id
           , finish = \tid -> reload (Just tid)
+          , pageInfo = pageInfo
           }
         (threadForm, cmd) = ThreadForm.updateWith config unitMsg model.threadForm
       in
@@ -151,6 +152,7 @@ update info selected pageInfo msg model =
             config =
               { id = id
               , finish = reload selected
+              , pageInfo = pageInfo
               }
             (postForm, cmd) = PostForm.updateWith config unitMsg model.postForm
           in

@@ -26,6 +26,32 @@ url : List String -> String
 url l = Url.Builder.absolute ("api" :: l) []
 
 --------------------------------------------------------------------------------
+-- Auth
+
+signin : Login -> Cmd (Response ())
+signin login =
+  Http.post
+    { url = "/signin"
+    , body = Http.jsonBody (encodeLogin login)
+    , expect = Http.expectWhatever identity
+    }
+
+signup : NewUser -> Cmd (Response (Id Person))
+signup newUser =
+  Http.post
+    { url = "/signup"
+    , body = Http.jsonBody (encodeNewUser newUser)
+    , expect = Http.expectJson identity decodeId
+    }
+
+signout : Cmd (Response ())
+signout =
+  Http.get
+    { url = "/signout"
+    , expect = Http.expectJson identity decodeNull
+    }
+
+--------------------------------------------------------------------------------
 -- User
 
 getUserInfo : Cmd (Response PersonInfo)

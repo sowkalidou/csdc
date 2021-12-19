@@ -7,7 +7,6 @@ import CSDC.Types.DAO as Export
 import CSDC.Types.Forum as Export
 import CSDC.Types.GUI as Export
 import CSDC.Types.Id as Export
-import CSDC.Auth as Export (UserToken)
 
 import Control.Monad.IO.Class as Export (MonadIO (..))
 import Data.Aeson as Export (FromJSON, ToJSON)

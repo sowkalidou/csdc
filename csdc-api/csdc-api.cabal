@@ -18,7 +18,6 @@ build-type:
 
 common dependencies
   build-depends:
-    csdc-auth,
     csdc-base,
     aeson,
     aeson-pretty,
@@ -32,8 +31,11 @@ common dependencies
     hasql-transaction,
     mtl,
     network-uri,
+    password,
     random,
     servant,
+    servant-auth,
+    servant-auth-server,
     servant-multipart,
     servant-server,
     text,
@@ -65,8 +67,10 @@ common extensions
 library
   import: dependencies, extensions
   exposed-modules:
+    CSDC.Action
     CSDC.Config
     CSDC.API
+    CSDC.API.Auth
     CSDC.API.DAO
     CSDC.DAO
     CSDC.FileServer

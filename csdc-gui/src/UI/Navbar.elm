@@ -4,9 +4,10 @@ module UI.Navbar exposing
 
 import Html exposing (Html)
 import Html.Attributes
+import Html.Events
 
-view : Html msg -> Html msg
-view search =
+view : Bool -> msg -> msg -> Html msg -> Html msg
+view isLogged signIn signOut search =
   Html.nav
     [ Html.Attributes.class "navbar is-fixed-top"
     , Html.Attributes.attribute "role" "navigation"
@@ -56,15 +57,17 @@ view search =
             ]
             [ Html.div
                 [ Html.Attributes.class "navbar-item" ]
-                [ search ]
+                (if isLogged then [ search ] else [])
             , Html.div
                 [ Html.Attributes.class "navbar-item" ]
                 [ Html.div
                     [ Html.Attributes.class "buttons"
                     ]
-                    [ Html.a
-                        [ Html.Attributes.class "button is-light" ]
-                        [ Html.text "Log Out" ]
+                    [ Html.button
+                        [ Html.Attributes.class "button is-light"
+                        , Html.Events.onClick <| if isLogged then signOut else signIn
+                        ]
+                        [ Html.text <| if isLogged then "Sign Out" else "Sign In" ]
                     ]
                 ]
             ]

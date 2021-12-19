@@ -2,16 +2,16 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module CSDC.API.DAO
-  ( Server
-  , API
+  ( API
   , serveAPI
   ) where
 
 import CSDC.Types.File (Base64File, File (..), FileUI)
+import CSDC.Action
 import CSDC.DAO
 import CSDC.Prelude hiding (JSON)
 
-import Servant hiding (Server, Post)
+import Servant hiding (Post)
 import Servant.Multipart
 
 import qualified Data.ByteString.Lazy as Lazy
@@ -20,7 +20,6 @@ import qualified Servant
 --------------------------------------------------------------------------------
 -- Synonyms
 
-type Server api = ServerT api (Action (Id Person))
 type GetJSON a = Get '[JSON] a
 type PostJSON a b = ReqBody '[JSON] a :> Servant.Post '[JSON] b
 type DeleteJSON a = Delete '[JSON] a
@@ -34,7 +33,7 @@ type UserAPI =
   :<|> "inbox" :> GetJSON Inbox
   :<|> "units" :> GetJSON [WithId Unit]
 
-serveUserAPI :: Server UserAPI
+serveUserAPI :: ServerAuth UserAPI
 serveUserAPI =
        getUserInfo
   :<|> getUserInbox
@@ -48,7 +47,7 @@ type PersonAPI =
   :<|> CaptureId Person :> "image" :> PostJSON Base64File ()
   :<|> CaptureId Person :> "info" :> GetJSON (Maybe PersonInfo)
 
-servePersonAPI :: Server PersonAPI
+servePersonAPI :: ServerAuth PersonAPI
 servePersonAPI =
        updatePerson
   :<|> updatePersonImage
@@ -70,7 +69,7 @@ type UnitAPI =
   :<|> CaptureId Unit :> "files" :> GetJSON [FileUI]
   :<|> CaptureId Unit :> "files" :> MultipartForm Mem File :> Servant.Post '[JSON] ()
 
-serveUnitAPI :: Server UnitAPI
+serveUnitAPI :: ServerAuth UnitAPI
 serveUnitAPI =
        createUnit
   :<|> selectUnit
@@ -99,7 +98,7 @@ type MemberAPI =
        PostJSON NewMember (Id Member)
   :<|> CaptureId Member :> DeleteJSON ()
 
-serveMemberAPI :: Server MemberAPI
+serveMemberAPI :: ServerAuth MemberAPI
 serveMemberAPI =
        insertMember
   :<|> deleteMember
@@ -111,7 +110,7 @@ type SubpartAPI =
        PostJSON NewSubpart (Id Subpart)
   :<|> CaptureId Subpart :> DeleteJSON ()
 
-serveSubpartAPI :: Server SubpartAPI
+serveSubpartAPI :: ServerAuth SubpartAPI
 serveSubpartAPI =
        insertSubpart
   :<|> deleteSubpart
@@ -124,7 +123,7 @@ type MessageMemberAPI =
   :<|> "reply" :> PostJSON (NewReply NewMember) (Id (Reply NewMember))
   :<|> "view" :> PostJSON (Id (Reply NewMember)) ()
 
-serveMessageMemberAPI :: Server MessageMemberAPI
+serveMessageMemberAPI :: ServerAuth MessageMemberAPI
 serveMessageMemberAPI =
        sendMessageMember
   :<|> sendReplyMember
@@ -135,7 +134,7 @@ type MessageSubpartAPI =
   :<|> "reply" :> PostJSON (NewReply NewSubpart) (Id (Reply NewSubpart))
   :<|> "view" :> PostJSON (Id (Reply NewSubpart)) ()
 
-serveMessageSubpartAPI :: Server MessageSubpartAPI
+serveMessageSubpartAPI :: ServerAuth MessageSubpartAPI
 serveMessageSubpartAPI =
        sendMessageSubpart
   :<|> sendReplySubpart
@@ -146,7 +145,7 @@ type MessageAPI =
   :<|> "subpart" :> MessageSubpartAPI
   :<|> "inbox" :> "unit" :> CaptureId Unit :> GetJSON Inbox
 
-serveMessageAPI :: Server MessageAPI
+serveMessageAPI :: ServerAuth MessageAPI
 serveMessageAPI =
        serveMessageMemberAPI
   :<|> serveMessageSubpartAPI
@@ -159,7 +158,7 @@ type SearchAPI =
        "units" :> Capture "query" Text :> GetJSON [WithId Unit]
   :<|> "all":> Capture "query" Text :> GetJSON [SearchResult SearchId]
 
-serveSearchAPI :: Server SearchAPI
+serveSearchAPI :: ServerAuth SearchAPI
 serveSearchAPI =
        searchUnits
   :<|> searchAll
@@ -173,7 +172,7 @@ type ForumAPI =
   :<|> "thread" :> CaptureId Thread :> PostJSON NewPost (Id Post)
   :<|> "thread" :> CaptureId Thread :> GetJSON [PostInfo]
 
-serveForumAPI :: Server ForumAPI
+serveForumAPI :: ServerAuth ForumAPI
 serveForumAPI =
        createThread
   :<|> getThreads
@@ -193,7 +192,7 @@ type API =
   :<|> "search" :> SearchAPI
   :<|> "forum" :> ForumAPI
 
-serveAPI :: Server API
+serveAPI :: ServerAuth API
 serveAPI =
        serveUserAPI
   :<|> servePersonAPI

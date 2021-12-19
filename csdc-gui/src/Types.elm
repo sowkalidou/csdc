@@ -7,6 +7,35 @@ import Time exposing (Posix, Month (..))
 import UUID exposing (UUID)
 
 --------------------------------------------------------------------------------
+-- Login
+
+type alias NewUser =
+  { name : String
+  , email : String
+  , password : String
+  }
+
+encodeNewUser : NewUser -> Value
+encodeNewUser newUser =
+  Encoder.object
+    [ ("name", Encoder.string newUser.name)
+    , ("email", Encoder.string newUser.email)
+    , ("password", Encoder.string newUser.password)
+    ]
+
+type alias Login =
+  { email : String
+  , password : String
+  }
+
+encodeLogin : Login -> Value
+encodeLogin login =
+  Encoder.object
+    [ ("email", Encoder.string login.email)
+    , ("password", Encoder.string login.password)
+    ]
+
+--------------------------------------------------------------------------------
 -- Id
 
 type Id a = Id UUID
@@ -105,7 +134,7 @@ decodeFilePath = Decoder.map FilePath Decoder.string
 
 type alias Person =
   { name : String
-  , orcid : String
+  , email : String
   , description : String
   , image : FilePath
   , createdAt : Posix
@@ -115,7 +144,7 @@ decodePerson : Decoder Person
 decodePerson =
   Decoder.map5 Person
     (Decoder.field "name" Decoder.string)
-    (Decoder.field "orcid" Decoder.string)
+    (Decoder.field "email" Decoder.string)
     (Decoder.field "description" Decoder.string)
     (Decoder.field "image" decodeFilePath)
     (Decoder.field "createdAt" decodePosix)

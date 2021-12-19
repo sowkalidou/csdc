@@ -1,7 +1,6 @@
-module Form.Person exposing
+module Form.SignIn exposing
   ( Model
   , initial
-  , fromPerson
   , Msg
   , updateWith
   , view
@@ -21,39 +20,32 @@ import Html exposing (Html)
 -- Model
 
 type alias Model =
-  { name : Field String String
-  , description : Field String String
+  { email : Field String String
+  , password : Field String String
   , notification : Notification
   }
 
 initial : Model
 initial =
-  { name = Field.requiredString "Name"
-  , description = Field.requiredString "Description"
+  { email = Field.requiredString "Email"
+  , password = Field.requiredString "Password"
   , notification = Notification.Empty
-  }
-
-fromPerson : Person -> Model
-fromPerson person =
-  { initial
-  | name = Field.set person.name initial.name
-  , description = Field.set person.description initial.description
   }
 
 reload : Model -> Model
 reload model =
   { model
-  | name = Field.reload model.name
-  , description = Field.reload model.description
+  | email = Field.reload model.email
+  , password = Field.reload model.password
   }
 
-parse : Model -> Maybe PersonUpdate
+parse : Model -> Maybe Login
 parse model = Result.toMaybe <|
-  Field.with model.name <| \name ->
-  Field.with model.description <| \description ->
+  Field.with model.email <| \email ->
+  Field.with model.password <| \password ->
   Ok
-    { name = name
-    , description = description
+    { email = email
+    , password = password
     }
 
 --------------------------------------------------------------------------------
@@ -61,7 +53,6 @@ parse model = Result.toMaybe <|
 
 type alias Config =
   { pageInfo : Page.Info
-  , id : Id Person
   , finish : Cmd Msg
   }
 
@@ -72,13 +63,13 @@ updateWith config = Form.update
   , update = update
   , reload = reload
   , parse = \_ -> parse
-  , request = API.updatePerson config.id
+  , request = API.signin
   , finish = \_ -> config.finish
   }
 
 type ModelMsg
   = SetName String
-  | SetDescription String
+  | SetPassword String
 
 type alias Msg = Form.Msg ModelMsg () ()
 
@@ -86,11 +77,11 @@ update : ModelMsg -> Model -> (Model, Cmd ModelMsg)
 update msg model =
   case msg of
     SetName val ->
-      ( { model | name = Field.set val model.name }
+      ( { model | email = Field.set val model.email }
       , Cmd.none
       )
-    SetDescription val ->
-      ( { model | description = Field.set val model.description }
+    SetPassword val ->
+      ( { model | password = Field.set val model.password }
       , Cmd.none
       )
 
@@ -99,7 +90,7 @@ update msg model =
 
 view : Model -> List (Html Msg)
 view model =
-  [ Input.text model.name SetName
-  , Input.textarea model.description SetDescription
-  , Input.button "Save" ()
+  [ Input.text model.email SetName
+  , Input.password model.password SetPassword
+  , Input.button "Sign In" ()
   ]

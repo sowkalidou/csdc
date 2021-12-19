@@ -50,10 +50,10 @@ type Msg
   | FileSelected File
   | ResetNotification
 
-update : UnitInfo -> Msg -> Model -> (Model, Cmd Msg)
-update info msg model =
+update : Page.Info -> UnitInfo -> Msg -> Model -> (Model, Cmd Msg)
+update pageInfo info msg model =
   let
-    onSuccess = Notification.withResponse ResetNotification model
+    onSuccess = Notification.withResponse pageInfo ResetNotification model
   in
   case msg of
     SetFiles result -> onSuccess result <| \files ->

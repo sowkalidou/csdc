@@ -7,7 +7,8 @@ CREATE TABLE persons
   ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
   , name text NOT NULL
   , description text NOT NULL
-  , orcid text UNIQUE NOT NULL
+  , email text UNIQUE NOT NULL
+  , password_hash text NOT NULL
   , image text NOT NULL
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );

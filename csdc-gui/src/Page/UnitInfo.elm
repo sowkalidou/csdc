@@ -138,6 +138,7 @@ update info pageInfo msg model =
         config =
           { request = API.updateUnit info.id
           , finish = \_ -> reload
+          , pageInfo = pageInfo
           }
         (unitEdit, cmd) = UnitForm.updateWith config unitMsg model.unitEdit
       in
@@ -163,6 +164,7 @@ update info pageInfo msg model =
         config =
           { request = API.deleteUnit info.id
           , finish = reload
+          , pageInfo = pageInfo
           }
         (unitDelete, cmd) = UnitDeleteForm.updateWith config unitMsg model.unitDelete
       in
@@ -191,6 +193,7 @@ update info pageInfo msg model =
             config =
               { member = unitMember.member
               , finish = reload
+              , pageInfo = pageInfo
               }
             (memberDelete, cmd) = MemberDeleteForm.updateWith config memberMsg model.memberDelete
           in
@@ -215,6 +218,7 @@ update info pageInfo msg model =
       let
         config =
           { finish = reload
+          , pageInfo = pageInfo
           }
         (submissionMember, cmd) = SubmissionMemberForm.updateWith config subpartMsg model.submissionMember
       in
@@ -244,6 +248,7 @@ update info pageInfo msg model =
         config =
           { request = API.sendMessageSubpart
           , finish = reload
+          , pageInfo = pageInfo
           }
         (subpartCreate, cmd) = MessageForm.updateWith config subpartMsg model.subpartCreate
       in

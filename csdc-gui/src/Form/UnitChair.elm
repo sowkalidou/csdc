@@ -11,6 +11,7 @@ import Input as Input
 import API as API
 import Notification exposing (Notification)
 import Form
+import Page
 
 import Html exposing (Html)
 
@@ -33,12 +34,14 @@ type alias Config =
   { unit : Id Unit
   , person : Id Person
   , finish : Cmd Msg
+  , pageInfo : Page.Info
   }
 
 updateWith : Config -> Msg -> Model -> (Model, Cmd Msg)
 updateWith config = Form.update <| Form.statelessConfig initial
   { request = API.updateUnitChair config.unit config.person
   , finish = \_ -> config.finish
+  , pageInfo = config.pageInfo
   }
 
 type alias Msg = Form.Msg () () ()

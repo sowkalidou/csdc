@@ -84,7 +84,7 @@ type Msg
 update : UnitInfo -> Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update info pageInfo msg model =
   let
-    onSuccess = Notification.withResponse Reset model
+    onSuccess = Notification.withResponse pageInfo Reset model
     reload = Page.goTo pageInfo <| Page.Unit Page.UnitAdmin info.id
   in
   case msg of
@@ -115,6 +115,7 @@ update info pageInfo msg model =
             config =
               { member = member
               , finish = reload
+              , pageInfo = pageInfo
               }
             (memberDelete, cmd) = MemberDeleteForm.updateWith config memberMsg model.memberDelete
           in
@@ -135,6 +136,7 @@ update info pageInfo msg model =
               { unit = info.id
               , person = person
               , finish = Page.goTo pageInfo <| Page.Unit Page.UnitInfo info.id
+              , pageInfo = pageInfo
               }
             (unitChairForm, cmd) = UnitChairForm.updateWith config chairMsg model.unitChairForm
           in
@@ -155,6 +157,7 @@ update info pageInfo msg model =
               { request = \(rtype, reason) ->
                   API.sendReplyMember { rtype = rtype, text = reason, message = id }
               , finish = reload
+              , pageInfo = pageInfo
               }
 
             (formReply, cmd) = ReplyForm.updateWith config preMsg model.formReply
@@ -173,6 +176,7 @@ update info pageInfo msg model =
               { request = \(rtype, reason) ->
                   API.sendReplySubpart { rtype = rtype, text = reason, message = id }
               , finish = reload
+              , pageInfo = pageInfo
               }
 
             (formReply, cmd) = ReplyForm.updateWith config preMsg model.formReply
@@ -195,6 +199,7 @@ update info pageInfo msg model =
             config =
               { request = API.viewReplyMember id
               , finish = reload
+              , pageInfo = pageInfo
               }
 
             (replySeenForm, cmd) = ReplySeenForm.updateWith config preMsg model.replySeenForm
@@ -212,6 +217,7 @@ update info pageInfo msg model =
             config =
               { request = API.viewReplySubpart id
               , finish = reload
+              , pageInfo = pageInfo
               }
 
             (replySeenForm, cmd) = ReplySeenForm.updateWith config preMsg model.replySeenForm

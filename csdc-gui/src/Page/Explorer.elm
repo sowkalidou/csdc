@@ -77,7 +77,7 @@ type Msg
 update : Page.Info -> Msg -> Model -> (Model, Cmd Msg)
 update pageInfo msg model =
   let
-   onSuccess = Notification.withResponse Reset model
+   onSuccess = Notification.withResponse pageInfo Reset model
   in
   case msg of
     ViewUnit m ->

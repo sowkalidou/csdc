@@ -15,9 +15,7 @@ module CSDC.Config
 
 import CSDC.Prelude
 
-import qualified CSDC.Auth as Auth
-import qualified CSDC.Auth.ORCID as ORCID
-import qualified CSDC.DAO as DAO
+import qualified CSDC.Action as Action
 import qualified CSDC.SQL as SQL
 
 import Data.Aeson (decodeFileStrict)
@@ -61,7 +59,6 @@ toSQLContext _ _ =
 data Config = Config
   { config_port :: Int
   , config_path :: FilePath
-  , config_orcidEndpoint :: ORCID.Endpoint
   , config_sql :: SQLConfig
   , config_migration :: FilePath
   } deriving (Show, Eq, Generic)
@@ -113,8 +110,7 @@ readSecret Nothing = liftIO $ do
 data Context = Context
   { context_port :: Int
   , context_path :: FilePath
-  , context_auth :: Auth.Config
-  , context_dao :: DAO.Context ()
+  , context_dao :: Action.Context ()
   , context_migration :: FilePath
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Context
@@ -125,16 +121,9 @@ activate config secret = do
   pure Context
     { context_port = config_port config
     , context_path = config_path config
-    , context_auth = Auth.Config
-        { Auth.config_orcid = ORCID.Config
-            { ORCID.config_id = secret_orcidId secret
-            , ORCID.config_secret = secret_orcidSecret secret
-            , ORCID.config_endpoint = config_orcidEndpoint config
-            }
-        }
-    , context_dao = DAO.Context
-        { DAO.context_sql = sql
-        , DAO.context_user = ()
+    , context_dao = Action.Context
+        { Action.context_sql = sql
+        , Action.context_user = ()
         }
     , context_migration = config_migration config
     }

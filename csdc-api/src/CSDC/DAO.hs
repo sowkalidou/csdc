@@ -3,13 +3,11 @@
 
 module CSDC.DAO where
 
-import CSDC.Auth.User (User (..))
+import CSDC.Action
 import CSDC.Image
 import CSDC.Prelude
 import CSDC.Types.File
 
-import qualified CSDC.Auth.ORCID as ORCID
-import qualified CSDC.SQL as SQL
 import qualified CSDC.SQL.Files as SQL.Files
 import qualified CSDC.SQL.Forum as SQL.Forum
 import qualified CSDC.SQL.Members as SQL.Members
@@ -19,83 +17,34 @@ import qualified CSDC.SQL.Persons as SQL.Persons
 import qualified CSDC.SQL.Subparts as SQL.Subparts
 import qualified CSDC.SQL.Units as SQL.Units
 
-import Control.Exception (Exception, throwIO)
-import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
+import Control.Monad.Reader (asks)
+import Data.Password.Bcrypt (mkPassword, hashPassword)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import System.FilePath
 
 import qualified Data.Text as Text
 
 --------------------------------------------------------------------------------
--- Context
-
-data Context user = Context
-  { context_sql :: SQL.Context
-  , context_user :: user
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON (Context user)
-
---------------------------------------------------------------------------------
--- Error
-
-data Error
-  = ErrorSQL SQL.Error
-    deriving (Show, Eq)
-
-instance Exception Error
-
---------------------------------------------------------------------------------
--- Action
-
-newtype Action user a = Action (ReaderT (Context user) IO a)
-  deriving (Functor, Applicative, Monad, MonadReader (Context user), MonadIO)
-
--- Actions with authentication needed
-type ActionAuth = Action (Id Person)
-
-run :: MonadIO m => Context user -> Action user a -> m a
-run ctx (Action act) = liftIO $
-  runReaderT act ctx
-
-withToken :: UserToken -> ActionAuth a -> Action user a
-withToken token (Action (ReaderT act)) = do
-  pid <- getUserFromToken token
-  Action $ ReaderT $ \ctx -> act $ ctx { context_user = pid }
-
-withPerson :: Id Person -> ActionAuth a -> Action user a
-withPerson pid (Action (ReaderT act)) =
-  Action $ ReaderT $ \ctx -> act $ ctx { context_user = pid }
-
-runSQL :: SQL.Action a -> Action user a
-runSQL act = do
-  ctx <- asks context_sql
-  SQL.run ctx act >>= \case
-    Left e ->
-      liftIO $ throwIO $ ErrorSQL e
-    Right a ->
-      pure a
-
---------------------------------------------------------------------------------
 -- User
 
-getUserFromToken :: UserToken -> Action user (Id Person)
-getUserFromToken (User token) =
-  selectPersonORCID (ORCID.token_orcid token) >>= \case
-    Nothing -> do
-      let
-        person = NewPerson
-          { newPerson_name = ORCID.token_name token
-          , newPerson_orcid = ORCID.token_orcid token
-          , newPerson_description = ""
-          , newPerson_image = ""
-          }
-      pid <- insertPerson person
-      imageBS <- liftIO $ generateImageFromName $ ORCID.token_name token
-      let image = base64FileFromByteString "profile.svg" imageBS
-      updatePersonImage pid image
-      pure pid
-    Just uid ->
-      pure uid
+createUser :: NewUser -> Action user (Id Person)
+createUser NewUser {..} = do
+  password <- hashPassword $ mkPassword newUser_password
+  liftIO $ print newUser_password
+  liftIO $ print password
+  let
+    person = NewPerson
+      { newPerson_name = newUser_name
+      , newPerson_email = newUser_email
+      , newPerson_password = password
+      , newPerson_description = ""
+      , newPerson_image = ""
+      }
+  pid <- insertPerson person
+  imageBS <- liftIO $ generateImageFromName newUser_name
+  let image = base64FileFromByteString "profile.svg" imageBS
+  updatePersonImage pid image
+  pure pid
 
 getUser :: ActionAuth (Id Person)
 getUser = asks context_user
@@ -104,28 +53,28 @@ getUser = asks context_user
 -- Person
 
 selectPerson :: Id Person -> Action user (Maybe Person)
-selectPerson i = runSQL $ SQL.query SQL.Persons.select i
+selectPerson i = runQuery SQL.Persons.select i
 
 insertPerson :: NewPerson -> Action user (Id (Person))
-insertPerson p = runSQL $ SQL.query SQL.Persons.insert p
+insertPerson p = runQuery SQL.Persons.insert p
 
 updatePerson :: Id Person -> PersonUpdate -> Action user ()
 updatePerson i p = do
-  runSQL $ SQL.query SQL.Persons.update (i,p)
+  runQuery SQL.Persons.update (i,p)
 
 updatePersonImage :: Id Person -> Base64File -> Action user ()
 updatePersonImage i image = do
   imagePath <- base64FileToPath "person" i image
-  runSQL $ SQL.query SQL.Persons.updateImage (i,imagePath)
+  runQuery SQL.Persons.updateImage (i,imagePath)
 
 deletePerson :: Id Person -> Action user ()
-deletePerson i = runSQL $ SQL.query SQL.Persons.delete i
+deletePerson i = runQuery SQL.Persons.delete i
 
 --------------------------------------------------------------------------------
 -- Unit
 
 selectUnit :: Id Unit -> Action user (Maybe Unit)
-selectUnit i = runSQL $ SQL.query SQL.Units.select i
+selectUnit i = runQuery SQL.Units.select i
 
 insertUnit :: NewUnit -> ActionAuth (Id (Unit))
 insertUnit u = do
@@ -138,66 +87,66 @@ insertUnit u = do
         , unit_image = "" -- will be updated later
         , unit_createdAt = now -- will be ignored
         }
-  uid <- runSQL $ SQL.query SQL.Units.insert unit
+  uid <- runQuery SQL.Units.insert unit
   imageBS <- liftIO $ generateImageFromName $ newUnit_name u
   let image = base64FileFromByteString "profile.svg" imageBS
   updateUnitImage uid image
   pure uid
 
 updateUnit :: Id Unit -> UnitUpdate -> Action user ()
-updateUnit i p = runSQL $ SQL.query SQL.Units.update (i,p)
+updateUnit i p = runQuery SQL.Units.update (i,p)
 
 updateUnitImage :: Id Unit -> Base64File -> Action user ()
 updateUnitImage i image = do
   imagePath <- base64FileToPath "unit" i image
-  runSQL $ SQL.query SQL.Units.updateImage (i,imagePath)
+  runQuery SQL.Units.updateImage (i,imagePath)
 
 deleteUnit :: Id Unit -> Action user ()
-deleteUnit i = runSQL $ do
-  SQL.query SQL.Subparts.deleteUnit i
-  SQL.query SQL.Members.deleteUnit i
-  SQL.query SQL.Units.delete i
+deleteUnit i = do
+  runQuery SQL.Subparts.deleteUnit i
+  runQuery SQL.Members.deleteUnit i
+  runQuery SQL.Units.delete i
 
 changeUnitChair :: Id Unit -> Id Person -> Action user ()
 changeUnitChair uid pid =
-  runSQL $ SQL.query SQL.Units.updateChair (uid,pid)
+  runQuery SQL.Units.updateChair (uid,pid)
 
 --------------------------------------------------------------------------------
 -- Member
 
 insertMember :: NewMember -> Action user (Id Member)
-insertMember r = runSQL $ SQL.query SQL.Members.insert r
+insertMember r = runQuery SQL.Members.insert r
 
 deleteMember :: Id Member -> Action user ()
-deleteMember i = runSQL $ SQL.query SQL.Members.delete i
+deleteMember i = runQuery SQL.Members.delete i
 
 --------------------------------------------------------------------------------
 -- Subpart
 
 insertSubpart :: NewSubpart -> Action user (Id Subpart)
-insertSubpart r = runSQL $ SQL.query SQL.Subparts.insert r
+insertSubpart r = runQuery SQL.Subparts.insert r
 
 deleteSubpart :: Id Subpart -> Action user ()
-deleteSubpart i = runSQL $ SQL.query SQL.Subparts.delete i
+deleteSubpart i = runQuery SQL.Subparts.delete i
 
 --------------------------------------------------------------------------------
 -- Message NewMember
 
 sendMessageMember :: NewMessage NewMember -> Action user (Id (Message NewMember))
-sendMessageMember m = runSQL $ SQL.query SQL.MessageMembers.sendMessage m
+sendMessageMember m = runQuery SQL.MessageMembers.sendMessage m
 
 sendReplyMember :: NewReply NewMember -> Action user (Id (Reply NewMember))
 sendReplyMember r = do
-  rid <- runSQL $ SQL.query SQL.MessageMembers.sendReply r
+  rid <- runQuery SQL.MessageMembers.sendReply r
   let
     status = case newReply_type r of
       Accept -> Accepted
       Reject -> Rejected
     uid = newReply_message r
-  runSQL $ SQL.query SQL.MessageMembers.updateMessage (uid, status)
+  runQuery SQL.MessageMembers.updateMessage (uid, status)
   case newReply_type r of
     Accept ->
-      runSQL (SQL.query SQL.MessageMembers.selectMember uid) >>= \case
+      runQuery SQL.MessageMembers.selectMember uid >>= \case
         Nothing ->
           pure ()
         Just val -> do
@@ -208,26 +157,26 @@ sendReplyMember r = do
   pure rid
 
 viewReplyMember :: Id (Reply NewMember) -> Action user ()
-viewReplyMember i = runSQL $ SQL.query SQL.MessageMembers.viewReply i
+viewReplyMember i = runQuery SQL.MessageMembers.viewReply i
 
 --------------------------------------------------------------------------------
 -- Message NewSubpart
 
 sendMessageSubpart :: NewMessage NewSubpart -> Action user (Id (Message NewSubpart))
-sendMessageSubpart m = runSQL $ SQL.query SQL.MessageSubparts.sendMessage m
+sendMessageSubpart m = runQuery SQL.MessageSubparts.sendMessage m
 
 sendReplySubpart :: NewReply NewSubpart -> Action user (Id (Reply NewSubpart))
 sendReplySubpart r = do
-  rid <- runSQL $ SQL.query SQL.MessageSubparts.sendReply r
+  rid <- runQuery SQL.MessageSubparts.sendReply r
   let
     status = case newReply_type r of
       Accept -> Accepted
       Reject -> Rejected
     uid = newReply_message r
-  runSQL $ SQL.query SQL.MessageSubparts.updateMessage (uid, status)
+  runQuery SQL.MessageSubparts.updateMessage (uid, status)
   case newReply_type r of
     Accept ->
-      runSQL (SQL.query SQL.MessageSubparts.selectSubpart uid) >>= \case
+      runQuery SQL.MessageSubparts.selectSubpart uid >>= \case
         Nothing ->
           pure ()
         Just val -> do
@@ -238,13 +187,10 @@ sendReplySubpart r = do
   pure rid
 
 viewReplySubpart :: Id (Reply NewSubpart) -> Action user ()
-viewReplySubpart i = runSQL $ SQL.query SQL.MessageSubparts.viewReply i
+viewReplySubpart i = runQuery SQL.MessageSubparts.viewReply i
 
 --------------------------------------------------------------------------------
 -- Others
-
-selectPersonORCID :: ORCID.Id -> Action user (Maybe (Id Person))
-selectPersonORCID i = runSQL $ SQL.query SQL.Persons.selectORCID i
 
 createUnit :: NewUnit -> ActionAuth (Id Unit)
 createUnit unit = do
@@ -260,12 +206,12 @@ createUnit unit = do
 getUserInbox :: ActionAuth Inbox
 getUserInbox = do
   pid <- getUser
-  messageMembers <- runSQL $
-    SQL.query SQL.MessageMembers.selectMessages $
+  messageMembers <-
+    runQuery SQL.MessageMembers.selectMessages $
     SQL.MessageMembers.Filter (Just pid) Nothing
 
-  replyMembers <- runSQL $
-    SQL.query SQL.MessageMembers.selectReplies $
+  replyMembers <-
+    runQuery SQL.MessageMembers.selectReplies $
     SQL.MessageMembers.Filter (Just pid) Nothing
 
   let userInbox = Inbox
@@ -283,18 +229,18 @@ getUserInbox = do
 
 getUnitInbox :: Id Unit -> Action user Inbox
 getUnitInbox uid = do
-  messageSubparts <- runSQL $
-    SQL.query SQL.MessageSubparts.selectMessagesForUnit uid
+  messageSubparts <-
+    runQuery SQL.MessageSubparts.selectMessagesForUnit uid
 
-  replySubparts <- runSQL $
-    SQL.query SQL.MessageSubparts.selectRepliesForUnit uid
+  replySubparts <-
+    runQuery SQL.MessageSubparts.selectRepliesForUnit uid
 
-  messageMembers <- runSQL $
-    SQL.query SQL.MessageMembers.selectMessages $
+  messageMembers <-
+    runQuery SQL.MessageMembers.selectMessages $
     SQL.MessageMembers.Filter Nothing (Just uid)
 
-  replyMembers <- runSQL $
-    SQL.query SQL.MessageMembers.selectReplies $
+  replyMembers <-
+    runQuery SQL.MessageMembers.selectReplies $
     SQL.MessageMembers.Filter Nothing (Just uid)
 
   pure Inbox
@@ -315,9 +261,9 @@ getPersonInfo uid =
     Nothing -> pure Nothing
     Just person -> do
       userId <- getUser
-      members <- runSQL $ SQL.query SQL.Members.selectByPerson uid
-      unitsForMessage <- runSQL $
-        SQL.query SQL.MessageMembers.getUnitsForMessage (userId, uid)
+      members <- runQuery SQL.Members.selectByPerson uid
+      unitsForMessage <-
+        runQuery SQL.MessageMembers.getUnitsForMessage (userId, uid)
       pure $ Just PersonInfo
         { personInfo_id = uid
         , personInfo_person = person
@@ -326,27 +272,27 @@ getPersonInfo uid =
         }
 
 getUnitMembers :: Id Unit -> Action user [UnitMember]
-getUnitMembers uid = runSQL $ SQL.query SQL.Members.selectByUnit uid
+getUnitMembers uid = runQuery SQL.Members.selectByUnit uid
 
 getUnitChildren :: Id Unit -> Action user [UnitSubpart]
-getUnitChildren uid = runSQL $ SQL.query SQL.Subparts.selectByParent uid
+getUnitChildren uid = runQuery SQL.Subparts.selectByParent uid
 
 getUnitParents :: Id Unit -> Action user [UnitSubpart]
-getUnitParents uid = runSQL $ SQL.query SQL.Subparts.selectByChild uid
+getUnitParents uid = runQuery SQL.Subparts.selectByChild uid
 
 getUnitInfo :: Id Unit -> ActionAuth (Maybe UnitInfo)
 getUnitInfo uid = do
   userId <- getUser
-  isMembershipPending <- runSQL $
-    SQL.query SQL.MessageMembers.isMembershipPending (userId, uid)
+  isMembershipPending <-
+    runQuery SQL.MessageMembers.isMembershipPending (userId, uid)
   selectUnit uid >>= \case
     Nothing -> pure Nothing
     Just unit -> do
       members <- getUnitMembers uid
       children <- getUnitChildren uid
       parents <- getUnitParents uid
-      unitsForMessage <- runSQL $
-        SQL.query SQL.MessageSubparts.getUnitsForMessage (userId, uid)
+      unitsForMessage <-
+        runQuery SQL.MessageSubparts.getUnitsForMessage (userId, uid)
       pure $ Just UnitInfo
         { unitInfo_id = uid
         , unitInfo_unit = unit
@@ -363,7 +309,7 @@ getUnitInfo uid = do
 getUnitsWhoseChairIsUser :: ActionAuth [WithId Unit]
 getUnitsWhoseChairIsUser = do
   uid <- getUser
-  runSQL $ SQL.query SQL.Units.selectByChair uid
+  runQuery SQL.Units.selectByChair uid
 
 --------------------------------------------------------------------------------
 -- Search
@@ -373,15 +319,15 @@ searchUnits query = do
   let
     parts = Text.words query
     toPattern part = "%" <> part <> "%"
-  runSQL $ SQL.query SQL.Units.searchUnits $ fmap toPattern parts
+  runQuery SQL.Units.searchUnits $ fmap toPattern parts
 
 searchAll :: Text -> Action user [SearchResult SearchId]
 searchAll query = do
   let
     parts = Text.words query
     toPattern part = "%" <> part <> "%"
-  persons <- runSQL $ SQL.query SQL.Persons.search $ fmap toPattern parts
-  units <- runSQL $ SQL.query SQL.Units.search $ fmap toPattern parts
+  persons <- runQuery SQL.Persons.search $ fmap toPattern parts
+  units <- runQuery SQL.Units.search $ fmap toPattern parts
   pure $ fmap (fmap SearchPerson) persons <> fmap (fmap SearchUnit) units
 
 --------------------------------------------------------------------------------
@@ -402,19 +348,19 @@ base64FileToPath folder (Id i) image = do
     imagePath = fileFolder <> "/" <> fileName
     newImage = image { base64File_name = fileName }
   filedb <- toNewFileDB fileFolder $ fromBase64File newImage
-  runSQL $ SQL.query SQL.Files.upsertFile filedb
+  runQuery SQL.Files.upsertFile filedb
   return imagePath
 
 insertUnitFile :: Id Unit -> File -> Action user ()
 insertUnitFile i file = do
   let fileFolder = "unit" <> "/" <> Text.pack (show i)
   filedb <- toNewFileDB fileFolder file
-  runSQL $ SQL.query SQL.Files.upsertFile filedb
+  runQuery SQL.Files.upsertFile filedb
 
 getUnitFiles :: Id Unit -> Action user [FileUI]
 getUnitFiles i = do
   let fileFolder = "unit" <> "/" <> Text.pack (show i)
-  filesDB <-runSQL $ SQL.query SQL.Files.selectFolderFiles fileFolder
+  filesDB <-runQuery SQL.Files.selectFolderFiles fileFolder
   let toFileUI FileDB {..} = FileUI
         { fileUI_path = fileDB_folder <> "/" <> fileDB_name
         , fileUI_name = fileDB_name
@@ -434,19 +380,19 @@ createThread uid NewThread {..} = do
         , thread_author = user
         , thread_subject = newThread_subject
         }
-  tid <- runSQL $ SQL.query SQL.Forum.insertThread thread
+  tid <- runQuery SQL.Forum.insertThread thread
 
   let post = Post
         { post_thread = tid
         , post_author = user
         , post_text = newThread_text
         }
-  _ <- runSQL $ SQL.query SQL.Forum.insertPost post
+  _ <- runQuery SQL.Forum.insertPost post
 
   pure tid
 
 getThreads :: Id Unit -> ActionAuth [ThreadInfo]
-getThreads uid = runSQL $ SQL.query SQL.Forum.selectThreads uid
+getThreads uid = runQuery SQL.Forum.selectThreads uid
 
 createPost :: Id Thread -> NewPost -> ActionAuth (Id Post)
 createPost tid NewPost {..} = do
@@ -456,7 +402,7 @@ createPost tid NewPost {..} = do
         , post_author = user
         , post_text = newPost_text
         }
-  runSQL $ SQL.query SQL.Forum.insertPost post
+  runQuery SQL.Forum.insertPost post
 
 getPosts :: Id Thread -> ActionAuth [PostInfo]
-getPosts tid = runSQL $ SQL.query SQL.Forum.selectPosts tid
+getPosts tid = runQuery SQL.Forum.selectPosts tid
