@@ -27,8 +27,8 @@ type alias Model =
 
 initial : Model
 initial =
-  { email = Field.requiredString "Email"
-  , password = Field.requiredString "Password"
+  { email = Field.email "Email"
+  , password = Field.password "Password"
   , notification = Notification.Empty
   }
 

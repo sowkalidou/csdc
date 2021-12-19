@@ -1,5 +1,10 @@
 {
 
+      "rtfeldman/elm-validate" = {
+        sha256 = "116svp0b9n6nxcp65s89yiil50cfxxrcs2fi19sa6aw8k19i4h4m";
+        version = "4.0.1";
+      };
+
       "andrewMacmurray/elm-delay" = {
         sha256 = "0cizz1l370aambnygvycn7fv0zbgdjrf1fzvnzimswbwd8n38i1j";
         version = "3.0.0";
@@ -68,6 +73,11 @@
       "elm/bytes" = {
         sha256 = "02ywbf52akvxclpxwj9n04jydajcbsbcbsnjs53yjc5lwck3abwj";
         version = "1.0.8";
+      };
+
+      "elm/regex" = {
+        sha256 = "0lijsp50w7n1n57mjg6clpn9phly8vvs07h0qh2rqcs0f1jqvsa2";
+        version = "1.0.0";
       };
 
       "TSFoster/elm-bytes-extra" = {

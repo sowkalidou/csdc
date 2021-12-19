@@ -14,9 +14,12 @@ module Field exposing
   , optional
   , required
   , requiredString
+  , email
+  , password
   )
 
 import Types exposing (Id (..))
+import Validate exposing (Validator)
 
 type Status b
   -- The field was incorrectly parsed.
@@ -104,3 +107,16 @@ requiredString n = make n "" <| \s ->
   if String.isEmpty s
   then Err ["This field is required."]
   else Ok s
+
+email : String -> Field String String
+email n = make n "" <| \s ->
+  if Validate.isValidEmail s
+  then Ok s
+  else Err ["This email is not valid."]
+
+password : String -> Field String String
+password n = make n "" <| \s ->
+  if String.length s < 8
+  then Err ["The password must have at least 8 characters."]
+  else Ok s
+
