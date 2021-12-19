@@ -89,9 +89,7 @@ showConfig config =
 -- Secret
 
 data Secret = Secret
-  { secret_orcidId :: Text
-  , secret_orcidSecret :: Text
-  , secret_sql :: SQLSecret
+  { secret_sql :: SQLSecret
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Secret
 
@@ -99,10 +97,8 @@ data Secret = Secret
 readSecret :: MonadIO m => Maybe FilePath -> m (Maybe Secret)
 readSecret (Just path) = liftIO $ decodeFileStrict path
 readSecret Nothing = liftIO $ do
-  mOrcidId <- env "SECRET_ORCID_ID"
-  mOrcidSecret <- env "SECRET_ORCID_SECRET"
   mSql <- getSQLSecret
-  pure $ Secret <$> mOrcidId <*> mOrcidSecret <*> mSql
+  pure $ Secret <$> mSql
 
 --------------------------------------------------------------------------------
 -- Context

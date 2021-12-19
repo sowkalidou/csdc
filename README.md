@@ -37,9 +37,8 @@ First, make sure the GUI is built with:
 make gui-build
 ```
 
-Second, you will need to obtain an ID and a secret from
-[ORCID](https://orcid.org/developer-tools), and write them to the `secret.json`
-file, which should follow the model of the `secret-model.json` file.
+and create a file `secret.json` following the model of the `secret-model.json`
+file.
 
 Finally, run:
 

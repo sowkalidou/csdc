@@ -16,7 +16,6 @@ let
   config = writeJson "csdc-dao-config" {
     port = 8080;
     path = gui;
-    orcidEndpoint = "production";
     sql = {
       tag = "SQLConfigEnv";
     };
