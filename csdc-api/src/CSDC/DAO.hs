@@ -30,8 +30,6 @@ import qualified Data.Text as Text
 createUser :: NewUser -> Action user (Id Person)
 createUser NewUser {..} = do
   password <- hashPassword $ mkPassword newUser_password
-  liftIO $ print newUser_password
-  liftIO $ print password
   let
     person = NewPerson
       { newPerson_name = newUser_name

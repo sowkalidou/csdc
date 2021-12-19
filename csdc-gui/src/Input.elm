@@ -79,6 +79,20 @@ password field makeMsg =
       ]
       []
 
+email : Field String a -> (String -> msg) -> Html (Form.Msg msg r b)
+email field makeMsg =
+  wrapper field <|
+    Html.input
+      [ case Field.status field of
+          Invalid _ -> Html.Attributes.class "input is-danger"
+          _ -> Html.Attributes.class "input"
+      , Html.Attributes.type_ "email"
+      , Html.Attributes.placeholder (Field.name field)
+      , Html.Attributes.value (Field.raw field)
+      , Html.Events.onInput (Form.ModelMsg << makeMsg)
+      ]
+      []
+
 textarea : Field String a -> (String -> msg) -> Html (Form.Msg msg r b)
 textarea field makeMsg =
   Html.div []
