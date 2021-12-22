@@ -23,6 +23,7 @@ let
     localHaskellPackages.shellFor
       {
         packages = _: attrValues packages;
+        withHoogle = true;
         buildInputs =
           [
             # Haskell
@@ -30,6 +31,7 @@ let
             # Elm
             elmPackages.elm
             elmPackages.elm-analyse
+            elmPackages.elm-doc-preview
             elm2nix
             nodePackages.uglify-js
             # Database

@@ -29,7 +29,9 @@ common dependencies
     hasql,
     hasql-migration,
     hasql-transaction,
+    mime-mail,
     mtl,
+    network,
     network-uri,
     password,
     random,
@@ -38,8 +40,10 @@ common dependencies
     servant-auth-server,
     servant-multipart,
     servant-server,
+    smtp-mail,
     text,
     time,
+    unliftio,
     wai,
     wai-app-static,
     wai-extra,
@@ -69,12 +73,15 @@ library
   exposed-modules:
     CSDC.Action
     CSDC.Config
+    CSDC.Daemon
+    CSDC.Daemon.Mail
     CSDC.API
     CSDC.API.Auth
     CSDC.API.DAO
     CSDC.DAO
     CSDC.FileServer
     CSDC.Image
+    CSDC.Mail
     CSDC.SQL
     CSDC.SQL.Decoder
     CSDC.SQL.Encoder
@@ -86,6 +93,7 @@ library
     CSDC.SQL.Subparts
     CSDC.SQL.Units
     CSDC.SQL.Files
+    CSDC.SQL.Mail
   hs-source-dirs:
     src
   ghc-options:

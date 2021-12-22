@@ -137,3 +137,16 @@ CREATE TABLE posts
   , text text NOT NULL
   , created_at timestamptz NOT NULL DEFAULT NOW()
   );
+
+--------------------------------------------------------------------------------
+-- Email
+
+CREATE TABLE emails
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
+  , from_name text NOT NULL
+  , from_address text NOT NULL
+  , to_addresses text[] NOT NULL
+  , subject text NOT NULL
+  , text text NOT NULL
+  , sent_at timestamptz NOT NULL DEFAULT NOW()
+  );

@@ -21,22 +21,27 @@ module CSDC.Action
     -- * SQL
   , runSQL
   , runQuery
+    -- * Mail
+  , runMail
   ) where
 
 import CSDC.Prelude
 
+import qualified CSDC.Mail as Mail
 import qualified CSDC.SQL as SQL
 
 import Control.Exception (Exception, throwIO)
 import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
 import Hasql.Statement (Statement)
 import Servant (ServerT)
+import UnliftIO (MonadUnliftIO)
 
 --------------------------------------------------------------------------------
 -- Context
 
 data Context user = Context
   { context_sql :: SQL.Context
+  , context_mail :: Mail.Context
   , context_user :: user
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON (Context user)
@@ -61,7 +66,11 @@ type ServerAuth api = ServerT api (Action (Id Person))
 -- Action
 
 newtype Action user a = Action (ReaderT (Context user) IO a)
-  deriving (Functor, Applicative, Monad, MonadReader (Context user), MonadIO)
+  deriving
+    ( Functor, Applicative, Monad
+    , MonadReader (Context user)
+    , MonadIO, MonadUnliftIO
+    )
 
 -- Actions with authentication needed
 type ActionAuth = Action (Id Person)
@@ -85,3 +94,9 @@ runSQL act = do
 
 runQuery :: Statement a b -> a -> Action user b
 runQuery statement = runSQL . SQL.query statement
+
+runMail :: Mail.Action a -> Action user a
+runMail act = do
+  ctx <- asks context_mail
+  Mail.run ctx act
+

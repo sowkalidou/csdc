@@ -44,6 +44,11 @@ ghcid-server: ## Launch ghcid for the server executable.
 
 .PHONY: ghcid-server
 
+hoogle: ## Launch the Hoogle server
+	hoogle server --local -p 8888
+
+.PHONY: hoogle
+
 ################################################################################
 # Elm development
 
@@ -51,6 +56,11 @@ elm-nix-update: ## Update Nix files for Elm.
 	cd csdc-gui && elm2nix convert > elm-srcs.nix && elm2nix snapshot
 
 .PHONY: elm-nix-update
+
+elm-docs: ## Elm Docs
+	edp csdc-gui
+
+.PHONY: elm-docs
 
 ################################################################################
 # Database

@@ -6,6 +6,7 @@ module CSDC.SQL.Decoder
   , posixTime
   , text
   , textNullable
+  , textList
     -- * Local types
   , id
   , messageType
@@ -24,7 +25,7 @@ import Prelude hiding (id)
 
 import Data.ByteString (ByteString)
 import Data.Time.Clock.POSIX (POSIXTime, utcTimeToPOSIXSeconds)
-import Hasql.Decoders (Row, column, nonNullable, nullable)
+import Hasql.Decoders (Row, column, nonNullable, nullable, listArray)
 
 import qualified Hasql.Decoders as Decoders
 
@@ -47,6 +48,9 @@ posixTime =
 
 text :: Row Text
 text = column (nonNullable Decoders.text)
+
+textList :: Row [Text]
+textList = column (nonNullable (listArray (nonNullable Decoders.text)))
 
 textNullable :: Row (Maybe Text)
 textNullable = column (nullable Decoders.text)

@@ -119,6 +119,7 @@ activate config secret = do
     , context_path = config_path config
     , context_dao = Action.Context
         { Action.context_sql = sql
+        , Action.context_mail = undefined
         , Action.context_user = ()
         }
     , context_migration = config_migration config
