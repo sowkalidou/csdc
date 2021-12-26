@@ -257,7 +257,7 @@ view model =
       [ Navbar.view model.isLogged SignIn SignOut <|
         Html.map SearchMsg <| Search.view model.search
       , Html.div
-          [ if model.isLogged
+          [ if model.isLogged && model.page /= Page.SignIn
             then Html.Attributes.class "columns"
             else Html.Attributes.class "columns is-centered"
           , Html.Attributes.attribute "style" "padding:25px; height: calc(100vh - 80px)"
