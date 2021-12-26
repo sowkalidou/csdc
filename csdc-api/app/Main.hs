@@ -57,7 +57,7 @@ middleware :: Middleware
 middleware =
   let
     corsOptions = Cors.simpleCorsResourcePolicy
-     { Cors.corsRequestHeaders = Cors.simpleHeaders }
+      { Cors.corsRequestHeaders = Cors.simpleHeaders }
     cors = Cors.cors (\_ -> Just corsOptions)
     compress = gzip def { gzipFiles = GzipCompress }
   in

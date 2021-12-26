@@ -95,7 +95,7 @@ withResponse pageInfo resetMsg model result onSuccess =
     Err err ->
       case err of
         Http.BadStatus 401 ->
-          ( { model | notification = Error ["Authentication error."] }
+          ( { model | notification = Error ["Authentication error. Please sign in."] }
           , Cmd.batch
               [ Page.goTo pageInfo Page.SignIn
               , reset resetMsg

@@ -96,7 +96,7 @@ type AuthAPI = Auth '[Cookie] User :> DAO.API
 serveAuthAPI :: AuthResult User -> Server DAO.API
 serveAuthAPI (Authenticated (User personId)) =
   hoistServer (Proxy @DAO.API) (withPerson personId) DAO.serveAPI
-serveAuthAPI res = error $ show res
+serveAuthAPI _ = throwUnauthorized
 
 type API =
   "api" :> AuthAPI :<|>
@@ -130,3 +130,20 @@ contextProxy = Proxy
 makeContext :: Settings -> Context '[CookieSettings, JWTSettings]
 makeContext Settings {..} =
   settingsCookie :. settingsJWT :. EmptyContext
+
+--------------------------------------------------------------------------------
+-- Throw All
+
+class ThrowUnauthorized a where
+  throwUnauthorized :: a
+
+instance (ThrowUnauthorized a, ThrowUnauthorized b) =>
+    ThrowUnauthorized (a :<|> b) where
+  throwUnauthorized = throwUnauthorized :<|> throwUnauthorized
+
+instance {-# OVERLAPPING #-} ThrowUnauthorized b =>
+    ThrowUnauthorized (a -> b) where
+  throwUnauthorized = const throwUnauthorized
+
+instance {-# OVERLAPPABLE #-} ThrowUnauthorized (Action user a) where
+  throwUnauthorized = throw Unauthorized

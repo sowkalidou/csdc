@@ -262,7 +262,7 @@ view model =
             else Html.Attributes.class "columns is-centered"
           , Html.Attributes.attribute "style" "padding:25px; height: calc(100vh - 80px)"
           ]
-          ( if not model.isLogged
+          ( if not model.isLogged || model.page == Page.SignIn
             then
             [ Html.div
                 [ Html.Attributes.class "column is-one-quarter" ]

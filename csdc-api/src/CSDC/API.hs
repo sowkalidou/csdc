@@ -30,9 +30,9 @@ type API =
 
 serveAPI :: FilePath -> SQL.Context -> Auth.Settings -> Server API
 serveAPI path ctx settings =
-         Auth.serveAPI settings
-    :<|> serveSQLFileServer ctx
-    :<|> serveDirectoryWith (options path)
+       Auth.serveAPI settings
+  :<|> serveSQLFileServer ctx
+  :<|> serveDirectoryWith (options path)
 
 options :: FilePath -> StaticSettings
 options path =
