@@ -1,7 +1,9 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module CSDC.Mail
-  ( Context (..)
+  ( Config (..)
+  , Context (..)
+  , activate
   , Action (..)
   , run
   , Mail (..)
@@ -10,8 +12,8 @@ module CSDC.Mail
 
 import CSDC.Prelude
 
-import Control.Exception
 import Control.Monad.Reader
+import Data.Pool
 import Network.Mail.Mime hiding (Mail, simpleMail)
 import Network.Mail.SMTP
 import Network.Socket (HostName)
@@ -19,36 +21,39 @@ import Network.Socket (HostName)
 import qualified Data.Text.Lazy as Text.Lazy
 
 --------------------------------------------------------------------------------
--- Context
+-- Config
 
-data Context = Context
-  { context_hostName :: HostName
-  , context_portNumber :: Int
-  , context_userName :: UserName
-  , context_password :: Password
+data Config = Config
+  { config_hostName :: HostName
+  , config_portNumber :: Int
+  , config_userName :: UserName
+  , config_password :: Password
   } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Context
+    deriving (FromJSON, ToJSON) via JSON Config
 
-withSMTPConnection :: Context -> (SMTPConnection -> IO a) -> IO a
-withSMTPConnection Context {..} action =
+newtype Context = Context
+  { context_pool :: Pool SMTPConnection
+  } deriving (Show)
+
+activate :: Config -> IO Context
+activate Config {..} =
   let
     connect = do
-      conn <- connectSMTPS' context_hostName (fromIntegral context_portNumber)
-      _ <- login conn context_userName context_password
+      conn <- connectSMTPS' config_hostName (fromIntegral config_portNumber)
+      _ <- login conn config_userName config_password
       pure conn
   in
-    bracket connect closeSMTP action
+    Context <$> createPool connect closeSMTP 1 10 10
 
 --------------------------------------------------------------------------------
 -- Action
 
-newtype Action a = Action (ReaderT SMTPConnection IO a)
+newtype Action a = Action (ReaderT (Maybe Context) IO a)
   deriving newtype
-    (Functor, Applicative, Monad, MonadReader SMTPConnection, MonadIO)
+    (Functor, Applicative, Monad, MonadReader (Maybe Context), MonadIO)
 
-run :: MonadIO m => Context -> Action a -> m a
-run context (Action action) = liftIO $
-  withSMTPConnection context (runReaderT action)
+run :: MonadIO m => Maybe Context -> Action a -> m a
+run context (Action action) = liftIO $ runReaderT action context
 
 --------------------------------------------------------------------------------
 -- Mail
@@ -64,5 +69,9 @@ send :: Mail -> Action ()
 send Mail {..} = do
   let parts = [plainPart (Text.Lazy.fromStrict text)]
       mail = simpleMail from to [] [] subject parts
-  connection <- ask
-  liftIO $ renderAndSend connection mail
+  ask >>= \case
+    Just (Context pool) ->
+      liftIO $ withResource pool $ \connection ->
+        renderAndSend connection mail
+    Nothing ->
+      liftIO $ print mail

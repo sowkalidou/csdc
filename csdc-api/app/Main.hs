@@ -4,7 +4,7 @@
 module Main where
 
 import CSDC.API (API, serveAPI)
-import CSDC.Config (Context (..), readConfig, readSecret, showConfig, activate)
+import CSDC.Config (Context (..), readConfig, showConfig, activate)
 
 import qualified CSDC.API.Auth as Auth
 import qualified CSDC.Action as Action
@@ -19,35 +19,29 @@ import System.Environment (getArgs)
 
 import qualified Network.Wai.Middleware.Cors as Cors
 
-args :: IO (FilePath, Maybe FilePath)
+args :: IO FilePath
 args =
   getArgs >>= \case
     configPath:[] ->
-      pure (configPath, Nothing)
-    configPath:secretPath:[] ->
-      pure (configPath, Just secretPath)
+      pure configPath
     _ ->
       error "Usage: csdc-server CONFIG_PATH [SECRET_PATH]"
 
 main :: IO ()
 main = do
-  (configPath, secretPath) <- args
+  configPath <- args
   readConfig configPath >>= \case
     Nothing ->
       error "Could not parse the configuration file."
-    Just config ->
-      readSecret secretPath >>= \case
-        Nothing ->
-          error "Could not parse the secrets file."
-        Just secret -> do
-          putStrLn "Starting the server with the following configuration:\n"
-          showConfig config
-          putStrLn ""
-          context <- activate config secret
-          putStrLn "Applying migrations..."
-          migrate context
-          putStrLn "Server ready."
-          mainWith context
+    Just config -> do
+      putStrLn "Starting the server with the following configuration:\n"
+      showConfig config
+      putStrLn ""
+      context <- activate config
+      putStrLn "Applying migrations..."
+      migrate context
+      putStrLn "Server ready."
+      mainWith context
 
 mainWith :: Context -> IO ()
 mainWith context =

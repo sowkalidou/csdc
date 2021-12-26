@@ -37,9 +37,6 @@ First, make sure the GUI is built with:
 make gui-build
 ```
 
-and create a file `secret.json` following the model of the `secret-model.json`
-file.
-
 Finally, run:
 
 ```

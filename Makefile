@@ -4,7 +4,7 @@
 # Server
 
 serve: ## Launch the server.
-	cabal run --ghc-options="-O0" -- csdc-server config.json secret.json
+	cabal run --ghc-options="-O0" -- csdc-server config.json
 
 .PHONY: serve
 

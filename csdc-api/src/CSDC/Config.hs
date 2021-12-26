@@ -5,9 +5,6 @@ module CSDC.Config
     Config (..)
   , readConfig
   , showConfig
-    -- * Secret
-  , Secret (..)
-  , readSecret
     -- * Context
   , Context (..)
   , activate
@@ -16,6 +13,7 @@ module CSDC.Config
 import CSDC.Prelude
 
 import qualified CSDC.Action as Action
+import qualified CSDC.Mail as Mail
 import qualified CSDC.SQL as SQL
 
 import Data.Aeson (decodeFileStrict)
@@ -29,29 +27,33 @@ import qualified Data.ByteString.Lazy.Char8 as ByteString
 --------------------------------------------------------------------------------
 -- SQL Config
 
-data SQLConfig = SQLConfig SQL.Config | SQLConfigEnv
+data SQLConfig = SQLConfigFile SQL.Config | SQLConfigEnv String
     deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON SQLConfig
 
-data SQLSecret = SQLSecret SQL.Secret | SQLSecretEnv SQL.Config SQL.Secret
+activateSQL :: SQLConfig -> IO SQL.Context
+activateSQL (SQLConfigFile config) = SQL.activate config
+activateSQL (SQLConfigEnv var) =
+  env var >>= \case
+    Nothing ->
+      error $ "Could not find variable for SQL configuration named $" <> var
+    Just str ->
+      case SQL.parseURL (Text.unpack str) of
+        Nothing ->
+          error $ "Could not parse SQL configuration from $" <> var
+        Just config ->
+          SQL.activate config
+
+--------------------------------------------------------------------------------
+-- Mail Config
+
+data MailConfig = MailConfigFile Mail.Config | MailConfigDisplay
     deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON SQLSecret
+    deriving (FromJSON, ToJSON) via JSON MailConfig
 
-getSQLSecret :: IO (Maybe SQLSecret)
-getSQLSecret =
-  env "DATABASE_URL" >>= \case
-    Nothing -> pure Nothing
-    Just str -> pure $ do
-      (config, secret) <- SQL.parseURL $ Text.unpack str
-      pure $ SQLSecretEnv config secret
-
-toSQLContext :: SQLConfig -> SQLSecret -> IO SQL.Context
-toSQLContext (SQLConfig config) (SQLSecret secret) =
-  SQL.activate config secret
-toSQLContext SQLConfigEnv (SQLSecretEnv config secret) =
-  SQL.activate config secret
-toSQLContext _ _ =
-  error "SQL badly configured."
+activateMail :: MailConfig -> IO (Maybe Mail.Context)
+activateMail (MailConfigFile config) = Just <$> Mail.activate config
+activateMail MailConfigDisplay = pure Nothing
 
 --------------------------------------------------------------------------------
 -- Config
@@ -60,6 +62,7 @@ data Config = Config
   { config_port :: Int
   , config_path :: FilePath
   , config_sql :: SQLConfig
+  , config_mail :: MailConfig
   , config_migration :: FilePath
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Config
@@ -86,21 +89,6 @@ showConfig config =
     liftIO $ putStrLn str
 
 --------------------------------------------------------------------------------
--- Secret
-
-data Secret = Secret
-  { secret_sql :: SQLSecret
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Secret
-
--- | Read secrets either from a file, or from environment variables.
-readSecret :: MonadIO m => Maybe FilePath -> m (Maybe Secret)
-readSecret (Just path) = liftIO $ decodeFileStrict path
-readSecret Nothing = liftIO $ do
-  mSql <- getSQLSecret
-  pure $ Secret <$> mSql
-
---------------------------------------------------------------------------------
 -- Context
 
 data Context = Context
@@ -108,18 +96,18 @@ data Context = Context
   , context_path :: FilePath
   , context_dao :: Action.Context ()
   , context_migration :: FilePath
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Context
+  } deriving (Show, Generic)
 
-activate :: Config -> Secret -> IO Context
-activate config secret = do
-  sql <- toSQLContext (config_sql config) (secret_sql secret)
+activate :: Config -> IO Context
+activate config = do
+  sql <- activateSQL (config_sql config)
+  mail <- activateMail (config_mail config)
   pure Context
     { context_port = config_port config
     , context_path = config_path config
     , context_dao = Action.Context
         { Action.context_sql = sql
-        , Action.context_mail = undefined
+        , Action.context_mail = mail
         , Action.context_user = ()
         }
     , context_migration = config_migration config

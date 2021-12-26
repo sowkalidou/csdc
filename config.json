@@ -1,13 +1,17 @@
 { "port": 8080
 , "path": "www"
 , "sql":
-    { "tag": "SQLConfig"
+    { "tag": "SQLConfigFile"
     , "contents":
         { "host": "localhost"
         , "port": 5432
         , "user": "csdc"
         , "database": "csdc"
+        , "password": "csdc"
         }
+    }
+, "mail":
+    { "tag": "MailConfigDisplay"
     }
 , "migration": "database/migrations"
 }

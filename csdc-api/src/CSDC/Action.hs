@@ -41,10 +41,9 @@ import UnliftIO (MonadUnliftIO)
 
 data Context user = Context
   { context_sql :: SQL.Context
-  , context_mail :: Mail.Context
+  , context_mail :: Maybe Mail.Context
   , context_user :: user
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON (Context user)
+  } deriving (Show, Generic)
 
 --------------------------------------------------------------------------------
 -- Error

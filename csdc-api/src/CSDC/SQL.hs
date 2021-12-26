@@ -1,7 +1,8 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module CSDC.SQL
   ( -- * Config and Secret
     Config (..)
-  , Secret (..)
   , parseURL
     -- * Context
   , Context
@@ -44,49 +45,39 @@ data Config = Config
   , config_port :: Int
   , config_user :: Text
   , config_database :: Text
+  , config_password :: Text
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Config
 
--- | The secrets of the PostgreSQL server.
-data Secret = Secret
-  { secret_password :: Text
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Secret
-
 -- Like postgresql://csdc:csdc@localhost:5432/csdc
-parseURL :: String -> Maybe (Config, Secret)
+parseURL :: String -> Maybe Config
 parseURL txt = do
   uri <- parseURI txt
   auth <- uriAuthority uri
   port <- readMaybe $ tail $ uriPort auth
   let (user, pwd) = span (/= ':') $ uriUserInfo auth
       password = init $ tail pwd
-  pure
-    ( Config
-        { config_host = Text.pack $ uriRegName auth
-        , config_port = port
-        , config_user = Text.pack $ user
-        , config_database = Text.pack $ tail $ uriPath uri
-        }
-    , Secret
-        { secret_password = Text.pack $ password
-        }
-    )
+  pure Config
+    { config_host = Text.pack $ uriRegName auth
+    , config_port = port
+    , config_user = Text.pack $ user
+    , config_database = Text.pack $ tail $ uriPath uri
+    , config_password = Text.pack $ password
+    }
 
 --------------------------------------------------------------------------------
 -- Context
 
 -- | The context of the PostgreSQL server.
-data Context = Context
+newtype Context = Context
   { context_config :: Config
-  , context_secret :: Secret
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Context
 
 -- | Activate the configuration.
 -- TODO: Check the validity of the configuration.
-activate :: Config -> Secret -> IO Context
-activate config secret = pure $ Context config secret
+activate :: Config -> IO Context
+activate config = pure $ Context config
 
 --------------------------------------------------------------------------------
 -- Error
@@ -109,14 +100,14 @@ newtype Action a = Action (ReaderT Connection IO a)
 
 -- | Run a SQL action and return possible errors.
 run :: MonadIO m => Context -> Action a -> m (Either Error a)
-run (Context config secret) (Action m) = liftIO $ do
+run (Context Config {..}) (Action m) = liftIO $ do
   let settings =
         Connection.settings
-          (Text.Encoding.encodeUtf8 $ config_host config)
-          (fromIntegral $ config_port config)
-          (Text.Encoding.encodeUtf8 $ config_user config)
-          (Text.Encoding.encodeUtf8 $ secret_password secret)
-          (Text.Encoding.encodeUtf8 $ config_database config)
+          (Text.Encoding.encodeUtf8 config_host)
+          (fromIntegral config_port)
+          (Text.Encoding.encodeUtf8 config_user)
+          (Text.Encoding.encodeUtf8 config_password)
+          (Text.Encoding.encodeUtf8 config_database)
 
   Connection.acquire settings >>= \case
     Left err ->

@@ -35,6 +35,7 @@ common dependencies
     network-uri,
     password,
     random,
+    resource-pool,
     servant,
     servant-auth,
     servant-auth-server,
