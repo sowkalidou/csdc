@@ -18,7 +18,7 @@ import qualified CSDC.API.DAO as DAO
 import qualified CSDC.SQL.Persons as SQL.Persons
 
 import Data.Password.Bcrypt (PasswordCheck (..), mkPassword, checkPassword)
-import Servant hiding (Server)
+import Servant hiding (Server, Unauthorized, throwError)
 import Servant.Auth.Server
 
 --------------------------------------------------------------------------------
@@ -55,16 +55,19 @@ serveSigninAPI settings = authenticate settings
 authenticate :: Settings -> Login -> Action () (CookieHeaders NoContent)
 authenticate (Settings cookieSettings jwtSettings) (Login email password) =
    runQuery SQL.Persons.check email >>= \case
-     Nothing -> error "401"
+     Nothing ->
+       throw Unauthorized
      Just (personId, passwordHash) -> do
        case checkPassword (mkPassword password) passwordHash of
          PasswordCheckFail ->
-           error "401"
+           throw Unauthorized
          PasswordCheckSuccess -> do
            mApplyCookies <- liftIO $ acceptLogin cookieSettings jwtSettings (User personId)
            case mApplyCookies of
-             Nothing           -> error "AAA" -- throwError err401
-             Just applyCookies -> return $ applyCookies NoContent
+             Nothing ->
+               throw Unauthorized
+             Just applyCookies ->
+               return $ applyCookies NoContent
 
 --------------------------------------------------------------------------------
 -- Signup API

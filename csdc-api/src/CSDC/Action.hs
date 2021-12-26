@@ -10,7 +10,9 @@ module CSDC.Action
     Action
   , ActionAuth
   , run
+  , run_
   , withPerson
+  , throw
     -- * Error
   , Error (..)
     -- * Context
@@ -30,11 +32,12 @@ import CSDC.Prelude
 import qualified CSDC.Mail as Mail
 import qualified CSDC.SQL as SQL
 
-import Control.Exception (Exception, throwIO)
+import Control.Exception (Exception, try)
+import Control.Monad.Except (MonadError (..), throwError)
 import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
 import Hasql.Statement (Statement)
-import Servant (ServerT)
-import UnliftIO (MonadUnliftIO)
+import Servant (ServerT, ServerError, err500, err401)
+import UnliftIO (MonadUnliftIO, throwIO)
 
 --------------------------------------------------------------------------------
 -- Context
@@ -50,9 +53,20 @@ data Context user = Context
 
 data Error
   = ErrorSQL SQL.Error
+  | Unauthorized
     deriving (Show, Eq)
 
 instance Exception Error
+
+throw :: Error -> Action user a
+throw err =
+  let
+    serverErr :: ServerError
+    serverErr = case err of
+      ErrorSQL _ -> err500
+      Unauthorized -> err401
+  in
+    throwIO serverErr
 
 --------------------------------------------------------------------------------
 -- Server
@@ -74,9 +88,16 @@ newtype Action user a = Action (ReaderT (Context user) IO a)
 -- Actions with authentication needed
 type ActionAuth = Action (Id Person)
 
-run :: MonadIO m => Context user -> Action user a -> m a
-run ctx (Action act) = liftIO $
-  runReaderT act ctx
+run ::
+  (MonadIO m, MonadError ServerError m) =>
+  Context user -> Action user a -> m a
+run ctx (Action act) =
+  liftIO (try (runReaderT act ctx)) >>= \case
+    Left e -> throwError e
+    Right a -> pure a
+
+run_ :: Context user -> Action user a -> IO a
+run_ ctx (Action act) = runReaderT act ctx
 
 withPerson :: Id Person -> ActionAuth a -> Action () a
 withPerson pid (Action (ReaderT act)) =

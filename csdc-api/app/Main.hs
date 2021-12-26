@@ -75,4 +75,4 @@ application path settings context = \request response -> do
 migrate :: Context -> IO ()
 migrate context = do
   let path = context_migration context
-  Action.run (context_dao context) $ Action.runSQL $ SQL.migrate path
+  Action.run_ (context_dao context) $ Action.runSQL $ SQL.migrate path
