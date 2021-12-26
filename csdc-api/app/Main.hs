@@ -8,6 +8,8 @@ import CSDC.Config (Context (..), readConfig, showConfig, activate)
 
 import qualified CSDC.API.Auth as Auth
 import qualified CSDC.Action as Action
+import qualified CSDC.Daemon as Daemon
+import qualified CSDC.Daemon.Mail as Daemon.Mail
 import qualified CSDC.SQL as SQL
 
 import Network.Wai (Middleware)
@@ -40,18 +42,18 @@ main = do
       context <- activate config
       putStrLn "Applying migrations..."
       migrate context
-      putStrLn "Server ready."
       mainWith context
 
 mainWith :: Context -> IO ()
-mainWith context =
+mainWith Context {..} = do
+  putStrLn "Starting mail daemon..."
+  _ <- Action.run_ context_dao (Daemon.launch Daemon.Mail.daemon)
+  putStrLn "Server ready."
   withStdoutLogger $ \logger -> do
-    let port = context_port context
-        path = context_path context
-        settings = setPort port $ setLogger logger defaultSettings
+    let settings = setPort context_port $ setLogger logger defaultSettings
     authSettings <- Auth.makeSettings
     runSettings settings $ middleware $
-      application path authSettings $ context_dao context
+      application context_path authSettings context_dao
 
 middleware :: Middleware
 middleware =

@@ -8,6 +8,8 @@ module CSDC.Mail
   , run
   , Mail (..)
   , send
+    -- * Reexport
+  , Address (..)
   ) where
 
 import CSDC.Prelude

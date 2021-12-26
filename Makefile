@@ -30,17 +30,17 @@ gui-build-optimized: ## Build the GUI into www/app.min.js
 # Haskell development
 
 ghcid-api: ## Launch ghcid for csdc-api.
-	ghcid --command "cabal repl csdc-api"
+	ghcid --command 'cabal repl csdc-api --ghc-options="-O0"'
 
 .PHONY: ghcid-api
 
 ghcid-base: ## Launch ghcid for csdc-base.
-	ghcid --command "cabal repl csdc-base"
+	ghcid --command 'cabal repl csdc-base --ghc-options="-O0"'
 
 .PHONY: ghcid-base
 
 ghcid-server: ## Launch ghcid for the server executable.
-	ghcid --command "cabal repl csdc-api:csdc-server"
+	ghcid --command 'cabal repl csdc-api:csdc-server --ghc-options="-O0"'
 
 .PHONY: ghcid-server
 

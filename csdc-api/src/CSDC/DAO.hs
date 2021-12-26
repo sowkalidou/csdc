@@ -8,6 +8,7 @@ import CSDC.Image
 import CSDC.Prelude
 import CSDC.Types.File
 
+import qualified CSDC.Mail as Mail
 import qualified CSDC.SQL.Files as SQL.Files
 import qualified CSDC.SQL.Forum as SQL.Forum
 import qualified CSDC.SQL.Members as SQL.Members
@@ -42,6 +43,15 @@ createUser NewUser {..} = do
   imageBS <- liftIO $ generateImageFromName newUser_name
   let image = base64FileFromByteString "profile.svg" imageBS
   updatePersonImage pid image
+
+  -- Send confirmation e-mail
+  runMail $ Mail.send Mail.Mail
+    { Mail.from = Mail.Address (Just "CS-DC DAO") "dao@csdc.org"
+    , Mail.to = [Mail.Address (Just newUser_name) newUser_email]
+    , Mail.subject = "Your account has been created successfully"
+    , Mail.text = "Now you can login with the e-mail " <> newUser_email <> "."
+    }
+
   pure pid
 
 getUser :: ActionAuth (Id Person)
