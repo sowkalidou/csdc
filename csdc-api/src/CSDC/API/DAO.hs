@@ -68,6 +68,7 @@ type UnitAPI =
   :<|> CaptureId Unit :> "chair" :> PostJSON (Id Person) ()
   :<|> CaptureId Unit :> "files" :> GetJSON [FileUI]
   :<|> CaptureId Unit :> "files" :> MultipartForm Mem File :> Servant.Post '[JSON] ()
+  :<|> CaptureId Unit :> "invitation" :> PostJSON MailInvitation ()
 
 serveUnitAPI :: ServerAuth UnitAPI
 serveUnitAPI =
@@ -82,6 +83,7 @@ serveUnitAPI =
   :<|> changeUnitChair
   :<|> getUnitFiles
   :<|> insertUnitFile
+  :<|> sendMailInvitation
 
 instance FromMultipart Mem File where
   fromMultipart parts = do

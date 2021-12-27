@@ -9,6 +9,7 @@ import CSDC.Prelude
 import CSDC.Types.File
 
 import qualified CSDC.Mail as Mail
+import qualified CSDC.Mail.Templates as Mail.Templates
 import qualified CSDC.SQL.Files as SQL.Files
 import qualified CSDC.SQL.Forum as SQL.Forum
 import qualified CSDC.SQL.Members as SQL.Members
@@ -18,6 +19,7 @@ import qualified CSDC.SQL.Persons as SQL.Persons
 import qualified CSDC.SQL.Subparts as SQL.Subparts
 import qualified CSDC.SQL.Units as SQL.Units
 
+import Control.Monad (forM_)
 import Control.Monad.Reader (asks)
 import Data.Password.Bcrypt (mkPassword, hashPassword)
 import Data.Time.Clock.POSIX (getPOSIXTime)
@@ -29,7 +31,7 @@ import qualified Data.Text as Text
 -- User
 
 createUser :: NewUser -> Action user (Id Person)
-createUser NewUser {..} = do
+createUser newUser@(NewUser {..}) = do
   password <- hashPassword $ mkPassword newUser_password
   let
     person = NewPerson
@@ -45,12 +47,7 @@ createUser NewUser {..} = do
   updatePersonImage pid image
 
   -- Send confirmation e-mail
-  runMail $ Mail.send Mail.Mail
-    { Mail.from = Mail.Address (Just "CS-DC DAO") "dao@csdc.org"
-    , Mail.to = [Mail.Address (Just newUser_name) newUser_email]
-    , Mail.subject = "Your account has been created successfully"
-    , Mail.text = "Now you can login with the e-mail " <> newUser_email <> "."
-    }
+  sendMail $ Mail.Templates.confirmation newUser
 
   pure pid
 
@@ -59,6 +56,12 @@ getUser = asks context_user
 
 --------------------------------------------------------------------------------
 -- Person
+
+getPerson :: Id Person -> Action user Person
+getPerson pid =
+  runQuery SQL.Persons.select pid >>= \case
+    Nothing -> throw $ PersonDoesNotExist pid
+    Just unit -> pure unit
 
 selectPerson :: Id Person -> Action user (Maybe Person)
 selectPerson i = runQuery SQL.Persons.select i
@@ -80,6 +83,12 @@ deletePerson i = runQuery SQL.Persons.delete i
 
 --------------------------------------------------------------------------------
 -- Unit
+
+getUnit :: Id Unit -> Action user Unit
+getUnit uid =
+  runQuery SQL.Units.select uid >>= \case
+    Nothing -> throw $ UnitDoesNotExist uid
+    Just unit -> pure unit
 
 selectUnit :: Id Unit -> Action user (Maybe Unit)
 selectUnit i = runQuery SQL.Units.select i
@@ -118,6 +127,14 @@ deleteUnit i = do
 changeUnitChair :: Id Unit -> Id Person -> Action user ()
 changeUnitChair uid pid =
   runQuery SQL.Units.updateChair (uid,pid)
+
+sendMailInvitation :: Id Unit -> MailInvitation -> Action user ()
+sendMailInvitation unitId MailInvitation {..} = do
+  unit <- getUnit unitId
+  chair <- getPerson $ unit_chair unit
+  forM_ mailInvitation_invitees $ \invitee ->
+    sendMail $
+    Mail.Templates.invitation unit chair mailInvitation_message invitee
 
 --------------------------------------------------------------------------------
 -- Member
@@ -414,3 +431,9 @@ createPost tid NewPost {..} = do
 
 getPosts :: Id Thread -> ActionAuth [PostInfo]
 getPosts tid = runQuery SQL.Forum.selectPosts tid
+
+--------------------------------------------------------------------------------
+-- Mail
+
+sendMail :: Mail.Mail -> Action user ()
+sendMail mail = runMail $ Mail.send mail

@@ -16,11 +16,12 @@ import CSDC.Prelude
 
 import Control.Monad.Reader
 import Data.Pool
-import Network.Mail.Mime hiding (Mail, simpleMail)
 import Network.Mail.SMTP
 import Network.Socket (HostName)
 
+import qualified Data.ByteString.Lazy.Char8 as ByteString
 import qualified Data.Text.Lazy as Text.Lazy
+import qualified Network.Mail.Mime as Mime
 
 --------------------------------------------------------------------------------
 -- Config
@@ -69,11 +70,29 @@ data Mail = Mail
 
 send :: Mail -> Action ()
 send Mail {..} = do
-  let parts = [plainPart (Text.Lazy.fromStrict text)]
-      mail = simpleMail from to [] [] subject parts
+  let
+    name = case addressName from of
+      Nothing -> "CS-DC DAO"
+      Just n -> n <> "via CS-DC DAO"
+
+    mail = Mime.Mail
+      { mailFrom = Address (Just name) "no-reply@csdc.org"
+      , mailTo = to
+      , mailCc = []
+      , mailBcc  = []
+      , mailHeaders =
+          [ ("Subject", subject)
+          , ("Reply-To", Mime.renderAddress from)
+          ]
+      , mailParts =
+          [ [ Mime.plainPart (Text.Lazy.fromStrict text) ]
+          ]
+      }
+
   ask >>= \case
     Just (Context pool) ->
       liftIO $ withResource pool $ \connection ->
         renderAndSend connection mail
-    Nothing ->
-      liftIO $ print mail
+    Nothing -> liftIO $ do
+      bs <- Mime.renderMail' mail
+      ByteString.putStrLn $ "\n" <> bs <> "\n"

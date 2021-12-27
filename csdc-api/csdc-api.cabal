@@ -83,6 +83,7 @@ library
     CSDC.FileServer
     CSDC.Image
     CSDC.Mail
+    CSDC.Mail.Templates
     CSDC.SQL
     CSDC.SQL.Decoder
     CSDC.SQL.Encoder

@@ -12,6 +12,7 @@ module CSDC.Types.GUI
   , Inbox (..)
   , MessageInfo (..)
   , ReplyInfo (..)
+  , MailInvitation (..)
     -- Search
   , SearchId (..)
   , SearchResult (..)
@@ -114,6 +115,12 @@ instance Semigroup Inbox where
 
 instance Monoid Inbox where
   mempty = Inbox [] [] [] []
+
+data MailInvitation = MailInvitation
+  { mailInvitation_message :: Text
+  , mailInvitation_invitees :: [Text]
+  } deriving (Show, Eq, Generic)
+    deriving (FromJSON, ToJSON) via JSON MailInvitation
 
 --------------------------------------------------------------------------------
 -- Search

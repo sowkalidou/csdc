@@ -54,6 +54,8 @@ data Context user = Context
 data Error
   = ErrorSQL SQL.Error
   | Unauthorized
+  | PersonDoesNotExist (Id Person)
+  | UnitDoesNotExist (Id Unit)
     deriving (Show, Eq)
 
 instance Exception Error
@@ -63,8 +65,8 @@ throw err =
   let
     serverErr :: ServerError
     serverErr = case err of
-      ErrorSQL _ -> err500
       Unauthorized -> err401
+      _ -> err500
   in
     throwIO serverErr
 
