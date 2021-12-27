@@ -705,6 +705,21 @@ decodePostInfo =
     (Decoder.field "createdAt" decodePosix)
 
 --------------------------------------------------------------------------------
+-- Mail Invitation
+
+type alias MailInvitation =
+  { message : String
+  , invitees : List String
+  }
+
+encodeMailInvitation : MailInvitation -> Value
+encodeMailInvitation mailInvitation =
+  Encoder.object
+    [ ("message", Encoder.string mailInvitation.message)
+    , ("invitees", Encoder.list Encoder.string mailInvitation.invitees)
+    ]
+
+--------------------------------------------------------------------------------
 -- Helpers
 
 decodeString : (String -> Decoder a) -> Decoder a

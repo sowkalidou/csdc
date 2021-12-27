@@ -14,6 +14,7 @@ import UI.Modal as Modal
 import UI.PreviewImageText as PreviewImageText
 import Form.Unit as UnitForm
 import Form.UnitDelete as UnitDeleteForm
+import Form.MailInvitation as MailInvitationForm
 import Form.MemberDelete as MemberDeleteForm
 import Form.Message as MessageForm
 import Form.SubmissionMember as SubmissionMemberForm
@@ -48,6 +49,8 @@ type alias Model =
   , subpartCreate : MessageForm.Model
   , subpartCreateOpen : Bool
   , subpartCreateType : MessageType
+  , mailInvitation : MailInvitationForm.Model
+  , mailInvitationOpen : Bool
   }
 
 initial : Model
@@ -66,6 +69,8 @@ initial =
   , subpartCreate = MessageForm.initial
   , subpartCreateOpen = False
   , subpartCreateType = Invitation
+  , mailInvitation = MailInvitationForm.initial
+  , mailInvitationOpen = False
   }
 
 --------------------------------------------------------------------------------
@@ -90,6 +95,9 @@ type Msg
   | SubpartCreateMsg (MessageForm.Msg NewSubpart)
   | SubpartCreateOpen MessageType
   | SubpartCreateClose
+  | MailInvitationMsg MailInvitationForm.Msg
+  | MailInvitationOpen
+  | MailInvitationClose
   | Reset
 
 update : UnitInfo -> Page.Info -> Msg -> Model -> (Model, Cmd Msg)
@@ -259,6 +267,33 @@ update info pageInfo msg model =
         , Cmd.map SubpartCreateMsg cmd
         )
 
+    MailInvitationOpen ->
+      ( { model
+        | mailInvitationOpen = True
+        }
+      , Cmd.none
+      )
+
+    MailInvitationClose ->
+      ( { model | mailInvitationOpen = False }
+      , Cmd.none
+      )
+
+    MailInvitationMsg mailInvitationMsg ->
+      let
+        config =
+          { unit = info.id
+          , pageInfo = pageInfo
+          }
+        (mailInvitation, cmd) = MailInvitationForm.updateWith config mailInvitationMsg model.mailInvitation
+      in
+        ( { model
+          | mailInvitation = mailInvitation
+          , mailInvitationOpen = not (Form.isFinished mailInvitationMsg)
+          }
+        , Cmd.map MailInvitationMsg cmd
+        )
+
     Reset ->
       ( { model | notification = Notification.Empty }
       , Cmd.none
@@ -313,6 +348,9 @@ view info model =
                         }
                       , { label = "Delete this unit"
                         , message = UnitDeleteOpen
+                        }
+                      , { label = "Invite using e-mail"
+                        , message = MailInvitationOpen
                         }
                       ]
                     else []
@@ -383,6 +421,10 @@ view info model =
             Submission -> "Send Submission"
       in
         Form.viewWith title (MessageForm.view model.subpartCreateType make) model.subpartCreate
+
+  , Modal.view model.mailInvitationOpen MailInvitationClose <|
+      Html.map MailInvitationMsg <|
+      Form.viewWith "E-mail Invitation" MailInvitationForm.view model.mailInvitation
 
   , let
       isActive = case model.selected of

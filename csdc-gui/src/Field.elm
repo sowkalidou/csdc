@@ -15,6 +15,7 @@ module Field exposing
   , required
   , requiredString
   , email
+  , emailList
   , password
   )
 
@@ -114,9 +115,19 @@ email n = make n "" <| \s ->
   then Ok s
   else Err ["This email is not valid."]
 
+emailList : String -> Field String (List String)
+emailList n = make n "" <| \s ->
+  let
+    parts = List.map String.trim <| String.split "," s
+  in
+    if List.all Validate.isValidEmail parts
+    then Ok parts
+    else Err ["One of the e-mails is not valid, please check"]
+
 password : String -> Field String String
 password n = make n "" <| \s ->
   if String.length s < 8
   then Err ["The password must have at least 8 characters."]
   else Ok s
+
 

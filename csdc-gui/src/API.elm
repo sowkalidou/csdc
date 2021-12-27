@@ -198,6 +198,14 @@ getUnitFiles id =
     , expect = Http.expectJson identity (D.list decodeFileUI)
     }
 
+sendMailInvitation : Id Unit -> MailInvitation -> Cmd (Response ())
+sendMailInvitation id mailInvitation =
+  Http.post
+    { url = baseUrl ++ "unit/" ++ idToString id ++ "/invitation"
+    , body = Http.jsonBody (encodeMailInvitation mailInvitation)
+    , expect = Http.expectJson identity decodeNull
+    }
+
 --------------------------------------------------------------------------------
 -- Member
 
