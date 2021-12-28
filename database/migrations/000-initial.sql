@@ -150,3 +150,13 @@ CREATE TABLE emails
   , text text NOT NULL
   , sent_at timestamptz NOT NULL DEFAULT NOW()
   );
+
+--------------------------------------------------------------------------------
+-- Mail Invitation
+
+CREATE TABLE member_email_invitations
+  ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
+  , unit uuid NOT NULL REFERENCES units(id)
+  , email text NOT NULL
+  , sent_at timestamptz NOT NULL DEFAULT NOW()
+  );

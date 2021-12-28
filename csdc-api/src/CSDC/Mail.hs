@@ -73,7 +73,7 @@ send Mail {..} = do
   let
     name = case addressName from of
       Nothing -> "CS-DC DAO"
-      Just n -> n <> "via CS-DC DAO"
+      Just n -> n <> " via CS-DC DAO"
 
     mail = Mime.Mail
       { mailFrom = Address (Just name) "no-reply@csdc.org"

@@ -38,10 +38,10 @@ invitation fromUnit fromUnitChair message toPerson = Mail
       , ""
       , "In order to join, please sign-up at the CS-DC DAO page:"
       , ""
-      , "https://https://csdc-dao-test.herokuapp.com"
+      , "    https://csdc-dao-test.herokuapp.com"
       , ""
-      , "using this e-mail address: " <> toPerson <> "."
-      , "By doing so, you will be granted an account and be added to the unit."
+      , "using this e-mail address: " <> toPerson <> ". " <>
+        "By doing so, you will be granted an account and be added to the unit."
       , ""
       , "If you have questions, reply to this e-mail and it will be sent to the unit chair, " <>
          person_name fromUnitChair <> "."

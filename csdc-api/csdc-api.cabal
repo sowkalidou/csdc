@@ -96,6 +96,7 @@ library
     CSDC.SQL.Units
     CSDC.SQL.Files
     CSDC.SQL.Mail
+    CSDC.SQL.MailInvitations
   hs-source-dirs:
     src
   ghc-options:

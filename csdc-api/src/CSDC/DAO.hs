@@ -13,6 +13,7 @@ import qualified CSDC.Mail.Templates as Mail.Templates
 import qualified CSDC.SQL.Files as SQL.Files
 import qualified CSDC.SQL.Forum as SQL.Forum
 import qualified CSDC.SQL.Mail as SQL.Mail
+import qualified CSDC.SQL.MailInvitations as SQL.MailInvitations
 import qualified CSDC.SQL.Members as SQL.Members
 import qualified CSDC.SQL.MessageMembers as SQL.MessageMembers
 import qualified CSDC.SQL.MessageSubparts as SQL.MessageSubparts
@@ -49,6 +50,12 @@ createUser newUser@(NewUser {..}) = do
 
   -- Send confirmation e-mail
   sendMail $ Mail.Templates.confirmation newUser
+
+  -- Check for invitations
+  uids <- runQuery SQL.MailInvitations.select newUser_email
+  forM_ uids $ \uid ->
+     insertMember $ NewMember pid uid
+  runQuery SQL.MailInvitations.delete newUser_email
 
   pure pid
 
@@ -133,9 +140,9 @@ sendMailInvitation :: Id Unit -> MailInvitation -> Action user ()
 sendMailInvitation unitId MailInvitation {..} = do
   unit <- getUnit unitId
   chair <- getPerson $ unit_chair unit
-  forM_ mailInvitation_invitees $ \invitee ->
-    sendMail $
-    Mail.Templates.invitation unit chair mailInvitation_message invitee
+  forM_ mailInvitation_invitees $ \invitee -> do
+    sendMail $ Mail.Templates.invitation unit chair mailInvitation_message invitee
+    runQuery SQL.MailInvitations.insert (unitId, invitee)
 
 --------------------------------------------------------------------------------
 -- Member
