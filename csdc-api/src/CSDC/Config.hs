@@ -47,12 +47,23 @@ activateSQL (SQLConfigEnv var) =
 --------------------------------------------------------------------------------
 -- Mail Config
 
-data MailConfig = MailConfigFile Mail.Config | MailConfigDisplay
+data MailConfig =
+  MailConfigFile Mail.Config |
+  MailConfigEnv String |
+  MailConfigDisplay
     deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON MailConfig
 
 activateMail :: MailConfig -> IO (Maybe Mail.Context)
 activateMail (MailConfigFile config) = Just <$> Mail.activate config
+activateMail (MailConfigEnv prefix) = do
+  mHostName <- lookupEnv (prefix <> "_SMTP_SERVER")
+  mPortNumber <- fmap read <$> lookupEnv (prefix <> "_SMTP_PORT")
+  mUserName <- lookupEnv (prefix <> "_SMTP_LOGIN")
+  mPassword <- lookupEnv (prefix <> "_SMTP_PASSWORD")
+  case Mail.Config <$> mHostName <*> mPortNumber <*> mUserName <*> mPassword of
+    Nothing -> error "Could not find environment variables"
+    Just config -> Just <$> Mail.activate config
 activateMail MailConfigDisplay = pure Nothing
 
 --------------------------------------------------------------------------------

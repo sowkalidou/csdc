@@ -42,7 +42,7 @@ activate :: Config -> IO Context
 activate Config {..} =
   let
     connect = do
-      conn <- connectSMTPS' config_hostName (fromIntegral config_portNumber)
+      conn <- connectSMTPSTARTTLS' config_hostName (fromIntegral config_portNumber)
       _ <- login conn config_userName config_password
       pure conn
   in

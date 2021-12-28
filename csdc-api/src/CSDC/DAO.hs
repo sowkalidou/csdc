@@ -12,6 +12,7 @@ import qualified CSDC.Mail as Mail
 import qualified CSDC.Mail.Templates as Mail.Templates
 import qualified CSDC.SQL.Files as SQL.Files
 import qualified CSDC.SQL.Forum as SQL.Forum
+import qualified CSDC.SQL.Mail as SQL.Mail
 import qualified CSDC.SQL.Members as SQL.Members
 import qualified CSDC.SQL.MessageMembers as SQL.MessageMembers
 import qualified CSDC.SQL.MessageSubparts as SQL.MessageSubparts
@@ -436,4 +437,4 @@ getPosts tid = runQuery SQL.Forum.selectPosts tid
 -- Mail
 
 sendMail :: Mail.Mail -> Action user ()
-sendMail mail = runMail $ Mail.send mail
+sendMail = runQuery SQL.Mail.insert
