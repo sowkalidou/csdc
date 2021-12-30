@@ -28,7 +28,7 @@ daemon = Daemon.make 5 "Mail" $ do
   forM_ tuples $ \(mailId, mail) ->
     UnliftIO.try (runMail (Mail.send mail)) >>= \case
       Left (err :: SomeException) -> do
-        liftIO $ print err
+        liftIO $ putStrLn $ displayException err
         modifyIORef' failuresRef (+1)
       Right () -> do
         runQuery SQL.Mail.delete mailId

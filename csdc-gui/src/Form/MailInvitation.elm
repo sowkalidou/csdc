@@ -27,7 +27,7 @@ type alias Model =
 
 initial : Model
 initial =
-  { invitees = Field.emailList "Invitees"
+  { invitees = Field.emailList "Invitees (comma-separated e-mails)"
   , message = Field.requiredString "Message"
   , notification = Notification.Empty
   }

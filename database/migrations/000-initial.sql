@@ -148,6 +148,7 @@ CREATE TABLE emails
   , to_addresses text[] NOT NULL
   , subject text NOT NULL
   , text text NOT NULL
+  , html text NOT NULL
   , sent_at timestamptz NOT NULL DEFAULT NOW()
   );
 

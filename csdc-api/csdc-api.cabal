@@ -48,6 +48,10 @@ common dependencies
     wai,
     wai-app-static,
     wai-extra,
+    -- Email
+    pandoc,
+    stache,
+    template-haskell,
     -- Just for image generation
     colour,
     svg-builder,
@@ -84,6 +88,7 @@ library
     CSDC.Image
     CSDC.Mail
     CSDC.Mail.Templates
+    CSDC.Mail.Templates.TH
     CSDC.SQL
     CSDC.SQL.Decoder
     CSDC.SQL.Encoder

@@ -36,8 +36,9 @@ insert = Statement sql encoder Decoders.noResult True
         , to_addresses
         , subject
         , text
+        , html
         )
-      VALUES ($1, $2, $3, $4, $5)
+      VALUES ($1, $2, $3, $4, $5, $6)
       |]
 
     encoder =
@@ -45,7 +46,8 @@ insert = Statement sql encoder Decoders.noResult True
       contramap (addressEmail . from) Encoder.text <>
       contramap (fmap addressEmail . to) Encoder.textList <>
       contramap subject Encoder.text <>
-      contramap text Encoder.text
+      contramap text Encoder.text <>
+      contramap html Encoder.text
 
 delete :: Statement (Id Mail) ()
 delete = Statement sql encoder Decoders.noResult True
@@ -67,7 +69,8 @@ select = Statement sql Encoders.noParams decoder True
         from_address,
         to_addresses,
         subject,
-        text
+        text,
+        html
       FROM
         emails
       |]
@@ -81,5 +84,6 @@ select = Statement sql Encoders.noParams decoder True
       let to = fmap (\a -> Address Nothing a) toAddresses
       subject <- Decoder.text
       text <- Decoder.text
+      html <- Decoder.text
 
       pure (uuid, Mail {..})

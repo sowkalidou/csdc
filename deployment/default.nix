@@ -18,6 +18,11 @@ let
     path = gui;
     sql = {
       tag = "SQLConfigEnv";
+      contents = "DATABASE_URL";
+    };
+    mail = {
+      tag = "MailConfigEnv";
+      contents = "GMAIL";
     };
     migration = migrations;
   };

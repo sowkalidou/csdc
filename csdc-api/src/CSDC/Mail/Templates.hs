@@ -1,56 +1,77 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module CSDC.Mail.Templates where
 
 import CSDC.Prelude
 import CSDC.Mail
+import CSDC.Mail.Templates.TH
 
-import qualified Data.Text as Text
+import Control.Exception
+import Data.Aeson
+import Data.Aeson.Types
+import Text.Mustache
+import Text.Pandoc hiding (Template)
+
+import qualified Data.Text.Lazy as Text.Lazy
+
+--------------------------------------------------------------------------------
+-- Templates generator
+
+render :: Template -> [Pair] -> (Text, Text)
+render template value =
+  let
+    md = renderMustache template (object value)
+
+    result = do
+      pandoc <- readMarkdown def (Text.Lazy.toStrict md)
+      plain <- writePlain def pandoc
+      htmlBody <- writeHtml5String def pandoc
+      let html = "<html><body>" <> htmlBody <> "</body></html>"
+      pure (plain, html)
+
+  in
+    case runPure result of
+      Left e -> error $ displayException e
+      Right a -> a
 
 --------------------------------------------------------------------------------
 -- Templates
 
 confirmation :: NewUser -> Mail
-confirmation NewUser {..} = Mail
-  { from = Address Nothing "no-reply@csdc.org"
-  , to = [Address (Just newUser_name) newUser_email]
-  , subject = "Your account has been created successfully"
-  , text = "Now you can login with the e-mail " <> newUser_email <> "."
-  }
+confirmation NewUser {..} =
+  let
+    template = $(templateFor "confirmation")
+    (text, html) = render template
+      [ "email" .= newUser_email
+      ]
+  in
+    Mail
+      { from = Address Nothing "mail@guaraqe.gq"
+      , to = [Address (Just newUser_name) newUser_email]
+      , subject = "Your account has been created successfully"
+      , text = text
+      , html = html
+      }
 
 invitation :: Unit -> Person -> Text -> Text -> Mail
-invitation fromUnit fromUnitChair message toPerson = Mail
-  { from = personAddress fromUnitChair
-  , to = [Address Nothing toPerson]
-  , subject = "Invitation to join " <> unit_name fromUnit <> "."
-  , text = Text.unlines
-      [ "Hello,"
-      , ""
-      , "You have been invited by " <> person_name fromUnitChair <> " to join " <>
-        unit_name fromUnit <> " at the CS-DC DAO:"
-      , ""
-      , "----------------------------------------"
-      , ""
-      , message
-      , ""
-      , "----------------------------------------"
-      , ""
-      , ""
-      , "In order to join, please sign-up at the CS-DC DAO page:"
-      , ""
-      , "    https://csdc-dao-test.herokuapp.com"
-      , ""
-      , "using this e-mail address: " <> toPerson <> ". " <>
-        "By doing so, you will be granted an account and be added to the unit."
-      , ""
-      , "If you have questions, reply to this e-mail and it will be sent to the unit chair, " <>
-         person_name fromUnitChair <> "."
-      , ""
-      , "Best regards,"
-      , ""
-      , "CS-DC DAO Team"
+invitation fromUnit fromUnitChair message toPerson =
+  let
+    template = $(templateFor "invitation")
+    (text, html) = render template
+      [ "chairName" .= person_name fromUnitChair
+      , "unitName" .= unit_name fromUnit
+      , "inviteeEmail" .= toPerson
+      , "message" .= message
       ]
-  }
+  in
+    Mail
+      { from = personAddress fromUnitChair
+      , to = [Address Nothing toPerson]
+      , subject = "Invitation to join " <> unit_name fromUnit <> "."
+      , text = text
+      , html = html
+      }
 
 --------------------------------------------------------------------------------
 -- Helpers

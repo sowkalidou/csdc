@@ -66,6 +66,7 @@ data Mail = Mail
   , to :: [Address]
   , subject :: Text
   , text :: Text
+  , html :: Text
   } deriving (Show, Eq)
 
 send :: Mail -> Action ()
@@ -76,7 +77,7 @@ send Mail {..} = do
       Just n -> n <> " via CS-DC DAO"
 
     mail = Mime.Mail
-      { mailFrom = Address (Just name) "no-reply@csdc.org"
+      { mailFrom = Address (Just name) "mail@guaraqe.gq"
       , mailTo = to
       , mailCc = []
       , mailBcc  = []
@@ -85,7 +86,9 @@ send Mail {..} = do
           , ("Reply-To", Mime.renderAddress from)
           ]
       , mailParts =
-          [ [ Mime.plainPart (Text.Lazy.fromStrict text) ]
+          [ [ Mime.plainPart (Text.Lazy.fromStrict text)
+            , Mime.htmlPart (Text.Lazy.fromStrict html)
+            ]
           ]
       }
 

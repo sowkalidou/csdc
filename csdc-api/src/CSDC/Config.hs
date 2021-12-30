@@ -16,7 +16,7 @@ import qualified CSDC.Action as Action
 import qualified CSDC.Mail as Mail
 import qualified CSDC.SQL as SQL
 
-import Data.Aeson (decodeFileStrict)
+import Data.Aeson (eitherDecodeFileStrict)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
@@ -63,7 +63,9 @@ activateMail (MailConfigEnv prefix) = do
   mPassword <- lookupEnv (prefix <> "_SMTP_PASSWORD")
   case Mail.Config <$> mHostName <*> mPortNumber <*> mUserName <*> mPassword of
     Nothing -> error "Could not find environment variables"
-    Just config -> Just <$> Mail.activate config
+    Just config -> do
+      print config
+      Just <$> Mail.activate config
 activateMail MailConfigDisplay = pure Nothing
 
 --------------------------------------------------------------------------------
@@ -78,19 +80,19 @@ data Config = Config
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Config
 
-readConfig :: MonadIO m => FilePath -> m (Maybe Config)
+readConfig :: MonadIO m => FilePath -> m (Either String Config)
 readConfig path = liftIO $ do
-  mconfig <- decodeFileStrict path
+  mconfig <- eitherDecodeFileStrict path
   mport <- lookupEnv "PORT"
   case readMaybe =<< mport of
     Nothing ->
       pure mconfig
     Just port ->
       case mconfig of
-        Nothing ->
-          pure Nothing
-        Just config ->
-          pure $ Just config { config_port = port }
+        Left e ->
+          pure $ Left e
+        Right config ->
+          pure $ Right config { config_port = port }
 
 showConfig :: MonadIO m => Config -> m ()
 showConfig config =

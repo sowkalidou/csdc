@@ -18,6 +18,7 @@ import Network.Wai.Middleware.Gzip (gzip, def, gzipFiles, GzipFiles (..))
 import Network.Wai.Logger (withStdoutLogger)
 import Servant (Application, Proxy (..), serveWithContext, hoistServerWithContext)
 import System.Environment (getArgs)
+import System.IO
 
 import qualified Network.Wai.Middleware.Cors as Cors
 
@@ -31,11 +32,12 @@ args =
 
 main :: IO ()
 main = do
+  hSetBuffering stdout LineBuffering
   configPath <- args
   readConfig configPath >>= \case
-    Nothing ->
-      error "Could not parse the configuration file."
-    Just config -> do
+    Left e ->
+      error $ "Could not parse the configuration file: " <> e
+    Right config -> do
       putStrLn "Starting the server with the following configuration:\n"
       showConfig config
       putStrLn ""
