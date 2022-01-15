@@ -49,7 +49,8 @@ common dependencies
     wai-app-static,
     wai-extra,
     -- Email
-    pandoc,
+    blaze-html,
+    markdown,
     stache,
     template-haskell,
     -- Just for image generation

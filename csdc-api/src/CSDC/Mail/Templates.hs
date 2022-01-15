@@ -7,11 +7,11 @@ import CSDC.Prelude
 import CSDC.Mail
 import CSDC.Mail.Templates.TH
 
-import Control.Exception
 import Data.Aeson
 import Data.Aeson.Types
+import Text.Blaze.Html.Renderer.Text
 import Text.Mustache
-import Text.Pandoc hiding (Template)
+import Text.Markdown
 
 import qualified Data.Text.Lazy as Text.Lazy
 
@@ -23,17 +23,13 @@ render template value =
   let
     md = renderMustache template (object value)
 
-    result = do
-      pandoc <- readMarkdown def (Text.Lazy.toStrict md)
-      plain <- writePlain def pandoc
-      htmlBody <- writeHtml5String def pandoc
-      let html = "<html><body>" <> htmlBody <> "</body></html>"
-      pure (plain, html)
+    plain = Text.Lazy.toStrict md
 
+    htmlBody = Text.Lazy.toStrict $ renderHtml $ markdown def md
+
+    html = "<html><body>" <> htmlBody <> "</body></html>"
   in
-    case runPure result of
-      Left e -> error $ displayException e
-      Right a -> a
+    (plain, html)
 
 --------------------------------------------------------------------------------
 -- Templates
