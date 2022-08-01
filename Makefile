@@ -74,9 +74,15 @@ psql: ## Launch psql with the correct arguments.
 # Docker
 
 docker: ## Create and start the Docker image.
-	docker-compose --file database/postgresql.yml build
+	docker-compose \
+	  --file database/postgresql.yml \
+	  --file database/ipfs.yml \
+		build
 	touch .docker
-	docker-compose --file database/postgresql.yml up -d
+	docker-compose \
+	  --file database/postgresql.yml \
+	  --file database/ipfs.yml \
+		up -d
 
 .PHONY: docker
 

@@ -2,12 +2,11 @@ _: pkgs:
 
 let
   overrides = _: hspkgs: with pkgs.haskell.lib;
-    let
-      call = name: path: hspkgs.callCabal2nix name path {};
-    in
-      {
-        # hoauth2 = dontCheck (call "hoauth2" hoauth2-src);
-      };
+    {
+      ipfs = (dontCheck hspkgs.ipfs).overrideAttrs (old: {
+        meta = old.meta // { broken = false; };
+      });
+    };
 in
 
 {

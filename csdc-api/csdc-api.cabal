@@ -29,6 +29,7 @@ common dependencies
     hasql,
     hasql-migration,
     hasql-transaction,
+    ipfs,
     mime-mail,
     mtl,
     network,
@@ -44,6 +45,7 @@ common dependencies
     smtp-mail,
     text,
     time,
+    typed-process,
     unliftio,
     wai,
     wai-app-static,
@@ -87,6 +89,7 @@ library
     CSDC.DAO
     CSDC.FileServer
     CSDC.Image
+    CSDC.IPFS
     CSDC.Mail
     CSDC.Mail.Templates
     CSDC.Mail.Templates.TH

@@ -11,6 +11,7 @@ import qualified CSDC.Action as Action
 import qualified CSDC.Daemon as Daemon
 import qualified CSDC.Daemon.Mail as Daemon.Mail
 import qualified CSDC.SQL as SQL
+import qualified CSDC.IPFS as IPFS
 
 import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (runSettings, setPort, setLogger, defaultSettings)
@@ -19,6 +20,7 @@ import Network.Wai.Logger (withStdoutLogger)
 import Servant (Application, Proxy (..), serveWithContext, hoistServerWithContext)
 import System.Environment (getArgs)
 import System.IO
+import Control.Monad.IO.Class
 
 import qualified Network.Wai.Middleware.Cors as Cors
 
@@ -49,7 +51,8 @@ main = do
 mainWith :: Context -> IO ()
 mainWith Context {..} = do
   putStrLn "Starting mail daemon..."
-  _ <- Action.run_ context_dao (Daemon.launch Daemon.Mail.daemon)
+  _ <- Action.run_ context_dao $ do
+    Daemon.launch Daemon.Mail.daemon
   putStrLn "Server ready."
   withStdoutLogger $ \logger -> do
     let settings = setPort context_port $ setLogger logger defaultSettings

@@ -25,10 +25,13 @@ module CSDC.Action
   , runQuery
     -- * Mail
   , runMail
+    -- * IPFS
+  , runIPFS
   ) where
 
 import CSDC.Prelude
 
+import qualified CSDC.IPFS as IPFS
 import qualified CSDC.Mail as Mail
 import qualified CSDC.SQL as SQL
 
@@ -45,8 +48,9 @@ import UnliftIO (MonadUnliftIO, throwIO)
 data Context user = Context
   { context_sql :: SQL.Context
   , context_mail :: Maybe Mail.Context
+  , context_ipfs :: IPFS.Context
   , context_user :: user
-  } deriving (Show, Generic)
+  } deriving (Generic)
 
 --------------------------------------------------------------------------------
 -- Error
@@ -122,3 +126,7 @@ runMail act = do
   ctx <- asks context_mail
   Mail.run ctx act
 
+runIPFS :: IPFS.Action a -> Action user a
+runIPFS act = do
+  ctx <- asks context_ipfs
+  IPFS.run ctx act
