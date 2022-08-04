@@ -39,6 +39,8 @@ let
             postgresql
             # Deployment
             heroku
+            # IPFS
+            ipfs
           ];
       };
 in

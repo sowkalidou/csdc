@@ -13,5 +13,8 @@
 , "mail":
     { "tag": "MailConfigDisplay"
     }
+, "ipfs":
+    { "path": "ipfs"
+    }
 , "migration": "database/migrations"
 }

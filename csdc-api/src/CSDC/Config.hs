@@ -13,6 +13,7 @@ module CSDC.Config
 import CSDC.Prelude
 
 import qualified CSDC.Action as Action
+import qualified CSDC.IPFS as IPFS
 import qualified CSDC.Mail as Mail
 import qualified CSDC.SQL as SQL
 
@@ -76,6 +77,7 @@ data Config = Config
   , config_path :: FilePath
   , config_sql :: SQLConfig
   , config_mail :: MailConfig
+  , config_ipfs :: IPFS.Config
   , config_migration :: FilePath
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Config
@@ -109,18 +111,20 @@ data Context = Context
   , context_path :: FilePath
   , context_dao :: Action.Context ()
   , context_migration :: FilePath
-  } deriving (Show, Generic)
+  } deriving (Generic)
 
 activate :: Config -> IO Context
 activate config = do
   sql <- activateSQL (config_sql config)
   mail <- activateMail (config_mail config)
+  ipfs <- IPFS.activate (config_ipfs config)
   pure Context
     { context_port = config_port config
     , context_path = config_path config
     , context_dao = Action.Context
         { Action.context_sql = sql
         , Action.context_mail = mail
+        , Action.context_ipfs = ipfs
         , Action.context_user = ()
         }
     , context_migration = config_migration config
