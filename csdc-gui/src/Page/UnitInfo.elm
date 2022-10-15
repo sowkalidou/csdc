@@ -321,7 +321,7 @@ view info model =
                         , message = SubmissionMemberOpen
                         }
                       ]
-                  , if info.isMember || not info.isAdmin
+                  , if info.isMember && not info.isAdmin
                     then
                       [ { label = "Leave this unit"
                         , message = MemberDeleteOpen
