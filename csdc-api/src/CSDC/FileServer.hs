@@ -15,6 +15,7 @@ import Servant.Server.StaticFiles
 import Servant (ServerT, Raw)
 
 import qualified Data.Binary.Builder as Builder
+import qualified Data.ByteString.Base64 as Base64
 import qualified Network.Wai as Wai
 import qualified WaiAppStatic.Types as Static
 import qualified Data.Text as Text
@@ -51,7 +52,7 @@ fromFileDB ctx file =
       , Static.fileName =
           Static.unsafeToPiece $ fileDB_name file
       , Static.fileGetHash =
-          pure $ Just $ fileDB_hash file
+          pure $ Just $ Base64.encode $ fileDB_hash file
       , Static.fileGetModified =
           Just $ CTime $ floor $ fileDB_modifiedAt file
       }

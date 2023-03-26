@@ -77,7 +77,7 @@ send Mail {..} = do
       Just n -> n <> " via CS-DC DAO"
 
     mail = Mime.Mail
-      { mailFrom = Address (Just name) "mail@guaraqe.gq"
+      { mailFrom = Address (Just name) "guaraqe@mailbox.org"
       , mailTo = to
       , mailCc = []
       , mailBcc  = []
