@@ -38,7 +38,7 @@ let
             docker-compose
             postgresql
             # Deployment
-            heroku
+            flyctl
             # IPFS
             ipfs
           ];

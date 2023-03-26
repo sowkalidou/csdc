@@ -4,6 +4,8 @@ let
   # Local packages.
   packages = import ../release.nix;
 
+  secrets = pkgs.lib.importJSON ../secrets.json;
+
   server = haskell.lib.justStaticExecutables packages.csdc-api;
   gui = packages.csdc-gui;
 
@@ -24,8 +26,32 @@ let
       tag = "MailConfigEnv";
       contents = "GMAIL";
     };
+    ipfs = {
+      path = "";
+    };
     migration = migrations;
   };
+
+  prepareDatabaseScript = ''
+    echo "Creating the database if necessary..."
+    ${postgresql}/bin/psql $DATABASE_URL/postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'csdc'" |
+      ${gnugrep}/bin/grep -q 1 ||
+      ${postgresql}/bin/psql $DATABASE_URL/postgres -c "CREATE DATABASE csdc"
+  '';
+
+  # Preparing the database required postgresql, which makes the image larger.
+  # We can set this to true in this situation, and then set again to false, to
+  # have a smaller image.
+  prepareDatabase = false;
+
+  start = pkgs.writeShellScript "start.sh" ''
+    set -euo pipefail
+
+    ${if prepareDatabase then prepareDatabaseScript else ""}
+
+    echo "Starting..."
+    /bin/csdc-server ${config}
+  '';
 in
   # We are using buildImage instead of buildLayeredImage because of the
   # runAsRoot option. The Haskell http-client library is not aware of the
@@ -40,9 +66,14 @@ in
       bashInteractive
     ];
     config = {
-      Cmd = [
-        "/bin/csdc-server" config
+      Env = [
+        "DATABASE_URL=${secrets.pgstring}"
+        "GMAIL_SMTP_SERVER=${secrets.smtp_server}"
+        "GMAIL_SMTP_PORT=${secrets.smtp_port}"
+        "GMAIL_SMTP_LOGIN=${secrets.smtp_login}"
+        "GMAIL_SMTP_PASSWORD=${secrets.smtp_password}"
       ];
+      Cmd = [start];
       ExposedPorts = {
         "8080" = {};
       };

@@ -49,7 +49,7 @@ data Config = Config
   } deriving (Show, Eq, Generic)
     deriving (FromJSON, ToJSON) via JSON Config
 
--- Like postgresql://csdc:csdc@localhost:5432/csdc
+-- Like postgresql://csdc:csdc@localhost:5432
 parseURL :: String -> Maybe Config
 parseURL txt = do
   uri <- parseURI txt
@@ -61,7 +61,7 @@ parseURL txt = do
     { config_host = Text.pack $ uriRegName auth
     , config_port = port
     , config_user = Text.pack $ user
-    , config_database = Text.pack $ tail $ uriPath uri
+    , config_database = "csdc" -- hardcoded
     , config_password = Text.pack $ password
     }
 
