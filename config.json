@@ -4,7 +4,7 @@
     { "tag": "SQLConfigFile"
     , "contents":
         { "host": "localhost"
-        , "port": 5432
+        , "port": 5433
         , "user": "csdc"
         , "database": "csdc"
         , "password": "csdc"
