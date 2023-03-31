@@ -14,7 +14,6 @@ services:
       POSTGRES_USER: csdc
       POSTGRES_DB: csdc
       POSTGRES_PASSWORD: csdc
-      POSTGRES_PORT: 5433
 
   pgadmin:
     container_name: pgadmin_container_csdc
