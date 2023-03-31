@@ -22,6 +22,7 @@ library
     CSDC.Prelude
     CSDC.SQL.QQ
     CSDC.Types.Id
+    CSDC.Types.Election
     CSDC.Types.File
     CSDC.Types.Forum
     CSDC.Types.GUI
@@ -40,6 +41,7 @@ library
     template-haskell,
     text,
     time,
+    unordered-containers,
     uuid
   hs-source-dirs:
     src
