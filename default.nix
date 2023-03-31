@@ -27,6 +27,8 @@ let
         buildInputs =
           [
             # Haskell
+            localHaskellPackages.ghc
+            localHaskellPackages.cabal-install
             localHaskellPackages.ghcid
             # Elm
             elmPackages.elm
