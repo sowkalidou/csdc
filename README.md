@@ -31,6 +31,12 @@ In particular:
 
 ## Running the server
 
+The first time, deploy the database and ipfs service with:
+
+```
+make docker
+```
+
 First, make sure the GUI is built with:
 
 ```
