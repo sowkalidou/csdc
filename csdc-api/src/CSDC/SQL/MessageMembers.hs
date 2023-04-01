@@ -1,118 +1,123 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module CSDC.SQL.MessageMembers
-  ( sendMessage
-  , selectMember
-  , updateMessage
-  , sendReply
-  , viewReply
-  , Filter (..)
-  , selectMessages
-  , selectReplies
-  , isMembershipPending
-  , getUnitsForMessage
-  ) where
+  ( sendMessage,
+    selectMember,
+    updateMessage,
+    sendReply,
+    viewReply,
+    Filter (..),
+    selectMessages,
+    selectReplies,
+    isMembershipPending,
+    getUnitsForMessage,
+  )
+where
 
 import CSDC.Prelude
+import CSDC.SQL.Decoder qualified as Decoder
+import CSDC.SQL.Encoder qualified as Encoder
 import CSDC.SQL.QQ
-
-import qualified CSDC.SQL.Decoder as Decoder
-import qualified CSDC.SQL.Encoder as Encoder
-
+import Data.ByteString.Char8 qualified as ByteString
 import Data.Functor.Contravariant (Contravariant (..))
 import Hasql.Statement (Statement (..))
-
-import qualified Data.ByteString.Char8 as ByteString
 
 viewReply :: Statement (Id (Reply NewMember)) ()
 viewReply = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "UPDATE replies_member"
-      , "SET status = 'Seen' :: reply_status"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "UPDATE replies_member",
+          "SET status = 'Seen' :: reply_status",
+          "WHERE id = $1"
+        ]
 
     encoder = Encoder.id
 
     decoder = Decoder.noResult
 
 selectMember :: Statement (Id (Message NewMember)) (Maybe NewMember)
-selectMember =  Statement sql encoder decoder True
+selectMember = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "SELECT person, unit"
-      , "FROM messages_member"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "SELECT person, unit",
+          "FROM messages_member",
+          "WHERE id = $1"
+        ]
 
     encoder = Encoder.id
 
-    decoder = Decoder.rowMaybe $
-      NewMember <$>
-        Decoder.id <*>
-        Decoder.id
+    decoder =
+      Decoder.rowMaybe $
+        NewMember
+          <$> Decoder.id
+          <*> Decoder.id
 
 sendMessage :: Statement (NewMessage NewMember) (Id (Message NewMember))
 sendMessage = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "INSERT INTO messages_member (type, message, person, unit)"
-      , "VALUES ($1 :: message_type, $2, $3, $4)"
-      , "RETURNING id"
-      ]
+    sql =
+      ByteString.unlines
+        [ "INSERT INTO messages_member (type, message, person, unit)",
+          "VALUES ($1 :: message_type, $2, $3, $4)",
+          "RETURNING id"
+        ]
 
     encoder =
-      (contramap newMessage_type Encoder.messageType) <>
-      (contramap newMessage_text Encoder.text) <>
-      (contramap (newMember_person . newMessage_value) Encoder.id) <>
-      (contramap (newMember_unit . newMessage_value) Encoder.id)
+      (contramap (.messageType) Encoder.messageType)
+        <> (contramap (.text) Encoder.text)
+        <> (contramap (.value.personId) Encoder.id)
+        <> (contramap (.value.unitId) Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
 
 updateMessage :: Statement (Id (Message NewMember), MessageStatus) ()
 updateMessage = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "UPDATE messages_member"
-      , "SET status = $2 :: message_status"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "UPDATE messages_member",
+          "SET status = $2 :: message_status",
+          "WHERE id = $1"
+        ]
 
     encoder =
-      contramap fst Encoder.id <>
-      contramap snd Encoder.messageStatus
+      contramap fst Encoder.id
+        <> contramap snd Encoder.messageStatus
 
     decoder = Decoder.noResult
-
 
 sendReply :: Statement (NewReply NewMember) (Id (Reply NewMember))
 sendReply = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "INSERT INTO replies_member (type, reply, message)"
-      , "VALUES ($1 :: reply_type, $2, $3)"
-      , "RETURNING id"
-      ]
+    sql =
+      ByteString.unlines
+        [ "INSERT INTO replies_member (type, reply, message)",
+          "VALUES ($1 :: reply_type, $2, $3)",
+          "RETURNING id"
+        ]
 
     encoder =
-      (contramap newReply_type Encoder.replyType) <>
-      (contramap newReply_text Encoder.text) <>
-      (contramap newReply_message Encoder.id)
+      (contramap (.replyType) Encoder.replyType)
+        <> (contramap (.text) Encoder.text)
+        <> (contramap (.messageId) Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
 
 data Filter = Filter
-  { filter_person :: Maybe (Id Person)
-  , filter_unit :: Maybe (Id Unit)
+  { personId :: Maybe (Id Person),
+    unitId :: Maybe (Id Unit)
   }
 
 selectMessages :: Statement Filter [MessageInfo NewMember]
 selectMessages = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       SELECT
         m.id, m.type, m.status, m.message, m.person, m.unit, p.name, u.name
       FROM
@@ -129,26 +134,27 @@ selectMessages = Statement sql encoder decoder True
       |]
 
     encoder =
-      contramap filter_person Encoder.idNullable <>
-      contramap filter_unit Encoder.idNullable
+      contramap (.personId) Encoder.idNullable
+        <> contramap (.unitId) Encoder.idNullable
 
     decoder = Decoder.rowList $ do
-      messageInfo_id <- Decoder.id
-      messageInfo_type <- Decoder.messageType
-      messageInfo_status <- Decoder.messageStatus
-      messageInfo_text <- Decoder.text
-      messageInfo_value <- do
-        newMember_person <- Decoder.id
-        newMember_unit <- Decoder.id
+      id <- Decoder.id
+      messageType <- Decoder.messageType
+      status <- Decoder.messageStatus
+      text <- Decoder.text
+      value <- do
+        personId <- Decoder.id
+        unitId <- Decoder.id
         pure NewMember {..}
-      messageInfo_left <- Decoder.text
-      messageInfo_right <- Decoder.text
+      left <- Decoder.text
+      right <- Decoder.text
       pure MessageInfo {..}
 
 selectReplies :: Statement Filter [ReplyInfo NewMember]
 selectReplies = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       SELECT
         r.id, r.type, m.type, r.reply, r.status, m.id, m.type, m.status, m.message, m.person, m.unit, p.name, u.name
       FROM
@@ -167,51 +173,52 @@ selectReplies = Statement sql encoder decoder True
       |]
 
     encoder =
-      contramap filter_person Encoder.idNullable <>
-      contramap filter_unit Encoder.idNullable
+      contramap (.personId) Encoder.idNullable
+        <> contramap (.unitId) Encoder.idNullable
 
     decoder = Decoder.rowList $ do
-      replyInfo_id <- Decoder.id
-      replyInfo_type <- Decoder.replyType
-      replyInfo_mtype <- Decoder.messageType
-      replyInfo_text <- Decoder.text
-      replyInfo_status <- Decoder.replyStatus
-      replyInfo_message <- do
-        messageInfo_id <- Decoder.id
-        messageInfo_type <- Decoder.messageType
-        messageInfo_status <- Decoder.messageStatus
-        messageInfo_text <- Decoder.text
-        messageInfo_value <- do
-          newMember_person <- Decoder.id
-          newMember_unit <- Decoder.id
+      id <- Decoder.id
+      replyType <- Decoder.replyType
+      messageType <- Decoder.messageType
+      text <- Decoder.text
+      status <- Decoder.replyStatus
+      message <- do
+        id <- Decoder.id
+        messageType <- Decoder.messageType
+        status <- Decoder.messageStatus
+        text <- Decoder.text
+        value <- do
+          personId <- Decoder.id
+          unitId <- Decoder.id
           pure NewMember {..}
-        messageInfo_left <- Decoder.text
-        messageInfo_right <- Decoder.text
+        left <- Decoder.text
+        right <- Decoder.text
         pure MessageInfo {..}
       pure ReplyInfo {..}
 
-
 isMembershipPending :: Statement (Id Person, Id Unit) Bool
-isMembershipPending =  Statement sql encoder decoder True
+isMembershipPending = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "SELECT EXISTS ("
-      , "SELECT 1"
-      , "FROM messages_member"
-      , "WHERE person = $1 AND unit = $2 AND status = 'Waiting'"
-      , ")"
-      ]
+    sql =
+      ByteString.unlines
+        [ "SELECT EXISTS (",
+          "SELECT 1",
+          "FROM messages_member",
+          "WHERE person = $1 AND unit = $2 AND status = 'Waiting'",
+          ")"
+        ]
 
     encoder =
-      contramap fst Encoder.id <>
-      contramap snd Encoder.id
+      contramap fst Encoder.id
+        <> contramap snd Encoder.id
 
     decoder = Decoder.singleRow Decoder.bool
 
 getUnitsForMessage :: Statement (Id Person, Id Person) [WithId Unit]
 getUnitsForMessage = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       WITH
         -- Units eligible for member messages
         units_user AS (
@@ -243,16 +250,16 @@ getUnitsForMessage = Statement sql encoder decoder True
       |]
 
     encoder =
-      contramap fst Encoder.id <>
-      contramap snd Encoder.id
+      contramap fst Encoder.id
+        <> contramap snd Encoder.id
 
     decoder = Decoder.rowList $ do
-      withId_id <- Decoder.id
-      withId_value <- do
-        unit_name <- Decoder.text
-        unit_description <- Decoder.text
-        unit_chair <- Decoder.id
-        unit_image <- Decoder.text
-        unit_createdAt <- Decoder.posixTime
+      id <- Decoder.id
+      value <- do
+        name <- Decoder.text
+        description <- Decoder.text
+        chairId <- Decoder.id
+        image <- Decoder.text
+        createdAt <- Decoder.posixTime
         pure Unit {..}
       pure WithId {..}

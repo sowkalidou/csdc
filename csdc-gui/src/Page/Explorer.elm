@@ -243,7 +243,7 @@ viewUnits column selected units =
 
 fromUnitSubpart : UnitSubpart -> WithId Unit
 fromUnitSubpart unitSubpart =
-  { id = unitSubpart.id
+  { id = unitSubpart.unitId
   , value = unitSubpart.unit
   }
 

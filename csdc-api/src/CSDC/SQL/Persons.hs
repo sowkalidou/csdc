@@ -1,52 +1,53 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module CSDC.SQL.Persons
-  ( select
-  , check
-  , insert
-  , search
-  , update
-  , updateImage
-  , delete
-  ) where
+  ( select,
+    check,
+    insert,
+    search,
+    update,
+    updateImage,
+    delete,
+  )
+where
 
 import CSDC.Prelude
+import CSDC.SQL.Decoder qualified as Decoder
+import CSDC.SQL.Encoder qualified as Encoder
 import CSDC.SQL.QQ
-
-import qualified CSDC.SQL.Decoder as Decoder
-import qualified CSDC.SQL.Encoder as Encoder
-
-import Data.Password.Bcrypt (PasswordHash (..), Bcrypt)
+import Data.ByteString.Char8 qualified as ByteString
 import Data.Functor.Contravariant (Contravariant (..))
+import Data.Password.Bcrypt (Bcrypt, PasswordHash (..))
 import Hasql.Statement (Statement (..))
-
-import qualified Data.ByteString.Char8 as ByteString
 
 select :: Statement (Id Person) (Maybe Person)
 select = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "SELECT name, description, email, image, created_at"
-      , "FROM persons"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "SELECT name, description, email, image, created_at",
+          "FROM persons",
+          "WHERE id = $1"
+        ]
 
     encoder = Encoder.id
 
     decoder = Decoder.rowMaybe $ do
-      person_name <- Decoder.text
-      person_description <- Decoder.text
-      person_email <- Decoder.text
-      person_image <- Decoder.text
-      person_createdAt <- Decoder.posixTime
+      name <- Decoder.text
+      description <- Decoder.text
+      email <- Decoder.text
+      image <- Decoder.text
+      createdAt <- Decoder.posixTime
       pure Person {..}
 
 check :: Statement Text (Maybe (Id Person, PasswordHash Bcrypt))
 check = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       SELECT id, password_hash
       FROM persons
       WHERE email = $1
@@ -63,75 +64,80 @@ check = Statement sql encoder decoder True
 search :: Statement [Text] [SearchResult (Id Person)]
 search = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "SELECT id, name"
-      , "FROM persons"
-      , "WHERE name ILIKE ALL ($1)"
-      ]
+    sql =
+      ByteString.unlines
+        [ "SELECT id, name",
+          "FROM persons",
+          "WHERE name ILIKE ALL ($1)"
+        ]
 
     encoder = Encoder.textList
 
     decoder = Decoder.rowList $ do
-      searchResult_id <- Decoder.id
-      searchResult_name <- Decoder.text
+      id <- Decoder.id
+      name <- Decoder.text
       pure SearchResult {..}
 
 insert :: Statement NewPerson (Id Person)
 insert = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "INSERT INTO persons (name, description, email, password_hash, image)"
-      , "VALUES ($1, $2, $3, $4, $5)"
-      , "RETURNING id"
-      ]
+    sql =
+      ByteString.unlines
+        [ "INSERT INTO persons (name, description, email, password_hash, image)",
+          "VALUES ($1, $2, $3, $4, $5)",
+          "RETURNING id"
+        ]
 
     encoder =
-      (contramap newPerson_name Encoder.text) <>
-      (contramap newPerson_description Encoder.text) <>
-      (contramap newPerson_email Encoder.text) <>
-      (contramap (unPasswordHash . newPerson_password) Encoder.text) <>
-      (contramap newPerson_image Encoder.text)
+      (contramap (.name) Encoder.text)
+        <> (contramap (.description) Encoder.text)
+        <> (contramap (.email) Encoder.text)
+        <> (contramap (unPasswordHash . (.password)) Encoder.text)
+        <> (contramap (.image) Encoder.text)
 
     decoder = Decoder.singleRow Decoder.id
 
 update :: Statement (Id Person, PersonUpdate) ()
 update = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "UPDATE persons"
-      , "SET name = $2, description = $3"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "UPDATE persons",
+          "SET name = $2, description = $3",
+          "WHERE id = $1"
+        ]
 
     encoder =
-      (contramap fst Encoder.id) <>
-      (contramap (personUpdate_name . snd) Encoder.text) <>
-      (contramap (personUpdate_description . snd) Encoder.text)
+      (contramap fst Encoder.id)
+        <> (contramap ((.name) . snd) Encoder.text)
+        <> (contramap ((.description) . snd) Encoder.text)
 
     decoder = Decoder.noResult
 
 updateImage :: Statement (Id Person, Text) ()
 updateImage = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "UPDATE persons"
-      , "SET image = $2"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "UPDATE persons",
+          "SET image = $2",
+          "WHERE id = $1"
+        ]
 
     encoder =
-      contramap fst Encoder.id <>
-      contramap snd Encoder.text
+      contramap fst Encoder.id
+        <> contramap snd Encoder.text
 
     decoder = Decoder.noResult
 
 delete :: Statement (Id Person) ()
 delete = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "DELETE FROM persons"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "DELETE FROM persons",
+          "WHERE id = $1"
+        ]
 
     encoder = Encoder.id
 

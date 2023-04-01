@@ -1,21 +1,19 @@
 {-# LANGUAGE QuasiQuotes #-}
 
 module CSDC.SQL.MailInvitations
-  ( insert
-  , select
-  , delete
-  ) where
+  ( insert,
+    select,
+    delete,
+  )
+where
 
 import CSDC.Prelude
+import CSDC.SQL.Decoder qualified as Decoder
+import CSDC.SQL.Encoder qualified as Encoder
 import CSDC.SQL.QQ
-
-import qualified CSDC.SQL.Decoder as Decoder
-import qualified CSDC.SQL.Encoder as Encoder
-
 import Data.Functor.Contravariant (Contravariant (..))
+import Hasql.Decoders qualified as Decoders
 import Hasql.Statement (Statement (..))
-
-import qualified Hasql.Decoders as Decoders
 
 --------------------------------------------------------------------------------
 -- Queries
@@ -23,7 +21,8 @@ import qualified Hasql.Decoders as Decoders
 insert :: Statement (Id Unit, Text) ()
 insert = Statement sql encoder Decoders.noResult True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       INSERT INTO member_email_invitations
         ( unit
         , email
@@ -32,13 +31,14 @@ insert = Statement sql encoder Decoders.noResult True
       |]
 
     encoder =
-      contramap fst Encoder.id <>
-      contramap snd Encoder.text
+      contramap fst Encoder.id
+        <> contramap snd Encoder.text
 
 delete :: Statement Text ()
 delete = Statement sql encoder Decoders.noResult True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       DELETE FROM member_email_invitations
       WHERE email = $1
       |]
@@ -48,7 +48,8 @@ delete = Statement sql encoder Decoders.noResult True
 select :: Statement Text [Id Unit]
 select = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       SELECT unit
       FROM member_email_invitations
       WHERE email = $1

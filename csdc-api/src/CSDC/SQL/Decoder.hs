@@ -1,33 +1,34 @@
 module CSDC.SQL.Decoder
   ( -- * Base types
-    bool
-  , bytea
-  , int
-  , posixTime
-  , text
-  , textNullable
-  , textList
+    bool,
+    bytea,
+    int,
+    posixTime,
+    text,
+    textNullable,
+    textList,
+
     -- * Local types
-  , id
-  , messageType
-  , messageStatus
-  , replyType
-  , replyStatus
+    id,
+    messageType,
+    messageStatus,
+    replyType,
+    replyStatus,
+
     -- * Reexport
-  , Decoders.rowList
-  , Decoders.rowMaybe
-  , Decoders.singleRow
-  , Decoders.noResult
-  ) where
+    Decoders.rowList,
+    Decoders.rowMaybe,
+    Decoders.singleRow,
+    Decoders.noResult,
+  )
+where
 
 import CSDC.Prelude
-import Prelude hiding (id)
-
 import Data.ByteString (ByteString)
 import Data.Time.Clock.POSIX (POSIXTime, utcTimeToPOSIXSeconds)
-import Hasql.Decoders (Row, column, nonNullable, nullable, listArray)
-
-import qualified Hasql.Decoders as Decoders
+import Hasql.Decoders (Row, column, listArray, nonNullable, nullable)
+import Hasql.Decoders qualified as Decoders
+import Prelude hiding (id)
 
 --------------------------------------------------------------------------------
 -- Base types
@@ -43,8 +44,8 @@ int = fromIntegral <$> column (nonNullable Decoders.int8)
 
 posixTime :: Row POSIXTime
 posixTime =
-  utcTimeToPOSIXSeconds <$>
-  column (nonNullable Decoders.timestamptz)
+  utcTimeToPOSIXSeconds
+    <$> column (nonNullable Decoders.timestamptz)
 
 text :: Row Text
 text = column (nonNullable Decoders.text)
@@ -64,32 +65,40 @@ id = Id <$> column (nonNullable Decoders.uuid)
 messageType :: Row MessageType
 messageType = column (nonNullable (Decoders.enum decode))
   where
-    decode a = lookup a
-      [ ("Invitation", Invitation)
-      , ("Submission", Submission)
-      ]
+    decode a =
+      lookup
+        a
+        [ ("Invitation", Invitation),
+          ("Submission", Submission)
+        ]
 
 messageStatus :: Row MessageStatus
 messageStatus = column (nonNullable (Decoders.enum decode))
   where
-    decode a = lookup a
-      [ ("Waiting", Waiting)
-      , ("Accepted", Accepted)
-      , ("Rejected", Rejected)
-      ]
+    decode a =
+      lookup
+        a
+        [ ("Waiting", Waiting),
+          ("Accepted", Accepted),
+          ("Rejected", Rejected)
+        ]
 
 replyType :: Row ReplyType
 replyType = column (nonNullable (Decoders.enum decode))
   where
-    decode a = lookup a
-      [ ("Accept", Accept)
-      , ("Reject", Reject)
-      ]
+    decode a =
+      lookup
+        a
+        [ ("Accept", Accept),
+          ("Reject", Reject)
+        ]
 
 replyStatus :: Row ReplyStatus
 replyStatus = column (nonNullable (Decoders.enum decode))
   where
-    decode a = lookup a
-      [ ("Seen", Seen)
-      , ("NotSeen", NotSeen)
-      ]
+    decode a =
+      lookup
+        a
+        [ ("Seen", Seen),
+          ("NotSeen", NotSeen)
+        ]

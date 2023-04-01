@@ -99,7 +99,7 @@ view msg model =
 viewMessage : MessageInfo a -> List (Html msg)
 viewMessage msg =
   [ Html.p [] <|
-      case msg.mtype of
+      case msg.messageType of
         Invitation ->
           [ Html.strong [] [ Html.text msg.right ]
           , Html.text " is inviting "

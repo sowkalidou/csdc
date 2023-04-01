@@ -194,12 +194,12 @@ update info pageInfo msg model =
       )
 
     MemberDeleteMsg memberMsg ->
-      case lookup (\unitMember -> unitMember.id == info.user) info.members of
+      case lookup (\unitMember -> unitMember.personId == info.userId) info.members of
         Nothing -> (model, Cmd.none)
         Just unitMember ->
           let
             config =
-              { member = unitMember.member
+              { member = unitMember.memberId
               , finish = reload
               , pageInfo = pageInfo
               }
@@ -360,7 +360,7 @@ view info model =
                   []
                   [ Html.strong [] [ Html.text "Chair: " ]
                   , Html.text <|
-                      case lookup (\unitMember -> unitMember.id == info.unit.chair) info.members of
+                      case lookup (\unitMember -> unitMember.personId == info.unit.chairId) info.members of
                         Nothing -> "Loading..."
                         Just unitMember -> unitMember.person.name
                   ]
@@ -403,7 +403,7 @@ view info model =
   , Modal.view model.submissionMemberOpen SubmissionMemberClose <|
       Html.map SubmissionMemberMsg <|
       let
-        member = { person = info.user, unit = info.id }
+        member = { personId = info.userId, unitId = info.id }
       in
         Form.viewWith "Send Submission"(SubmissionMemberForm.view member) model.submissionMember
 
@@ -412,8 +412,8 @@ view info model =
       let
         make =
           case model.subpartCreateType of
-            Invitation -> \uid -> { child = info.id, parent = uid }
-            Submission -> \uid -> { child = uid, parent = info.id }
+            Invitation -> \uid -> { childId = info.id, parentId = uid }
+            Submission -> \uid -> { childId = uid, parentId = info.id }
 
         title =
           case model.subpartCreateType of
@@ -437,20 +437,20 @@ view info model =
             Html.div [] []
 
           Just (SelectedPerson id) ->
-            case lookupById id info.members of
+            case lookup (\obj -> obj.personId == id) info.members of
               Nothing ->
                 Html.div [] [ Html.text "Loading..." ]
               Just unitMember ->
                 PreviewImageText.view unitMember.person <|
-                ViewSelected (SelectedPerson unitMember.id)
+                ViewSelected (SelectedPerson unitMember.personId)
 
           Just (SelectedUnit id) ->
-            case lookupById id (info.children ++ info.parents) of
+            case lookup (\obj -> obj.unitId == id) (info.children ++ info.parents) of
               Nothing ->
                 Html.div [] [ Html.text "Loading..." ]
               Just unitSubpart ->
                 PreviewImageText.view unitSubpart.unit <|
-                ViewSelected (SelectedUnit unitSubpart.id)
+                ViewSelected (SelectedUnit unitSubpart.unitId)
 
   ] ++ Notification.view model.notification
 
@@ -459,7 +459,7 @@ viewUnits subparts =
   let
     toBox subpart =
       Html.map (SetSelected << SelectedUnit) <|
-      BoxImageText.view False [] subpart.id subpart.unit
+      BoxImageText.view False [] subpart.unitId subpart.unit
   in
     List.map toBox subparts
 
@@ -468,6 +468,6 @@ viewPersons members =
   let
     toBox member =
       Html.map (SetSelected << SelectedPerson) <|
-      BoxImageText.view False [] member.id member.person
+      BoxImageText.view False [] member.personId member.person
   in
     List.map toBox members

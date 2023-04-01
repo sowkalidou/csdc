@@ -1,51 +1,53 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module CSDC.IPFS
   ( -- * General
-    Config (..)
-  , Context (..)
-  , activate
-  , Action (..)
-  , run
-  , add
-  , addJSON
+    Config (..),
+    Context (..),
+    activate,
+    Action (..),
+    run,
+    add,
+    addJSON,
+
     -- * Reexport
-  , CID (..)
-  ) where
+    CID (..),
+  )
+where
 
 import CSDC.Prelude
-
 import Control.Exception (throwIO)
 import Control.Monad.Reader
 import Data.Aeson (encode)
 import Data.ByteString.Lazy (ByteString)
+import Data.ByteString.Lazy qualified as Lazy
 import Network.IPFS (MonadLocalIPFS (..))
 import Network.IPFS.Add (addFile)
 import Network.IPFS.CID.Types (CID (..))
 import Network.IPFS.Name.Types (Name (..))
 import Network.IPFS.Process.Error (Error (..))
 import System.Process.Typed
-import System.Exit
-
-import qualified Data.ByteString.Lazy as Lazy
 
 --------------------------------------------------------------------------------
 -- Config
 
 data Config = Config
-  { config_path :: FilePath
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Config
+  { path :: FilePath
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data Context = Context
-  { context_path :: FilePath
+  { path :: FilePath
   }
 
 activate :: Config -> IO Context
 activate Config {..} = do
-  pure Context
-    { context_path = config_path
-    }
+  pure
+    Context
+      { path = path
+      }
 
 --------------------------------------------------------------------------------
 -- Action
@@ -65,7 +67,7 @@ instance MonadLocalIPFS Action where
         opts' = ("--timeout=" <> show secs <> "s") : opts
         process =
           setStdin (byteStringInput arg) $
-          proc path opts'
+            proc path opts'
 
     readProcess process >>= \case
       (ExitSuccess, contents, _) ->
@@ -74,13 +76,13 @@ instance MonadLocalIPFS Action where
         | Lazy.isSuffixOf "context deadline exceeded" stdErr ->
             return . Left $ Timeout secs
         | otherwise ->
-          return . Left $ UnknownErr stdErr
+            return . Left $ UnknownErr stdErr
 
 add :: FilePath -> ByteString -> Action CID
 add path bs =
   addFile bs (Name path) >>= \case
     Left e -> liftIO $ throwIO e
-    Right (_,a) -> pure a
+    Right (_, a) -> pure a
 
 addJSON :: ToJSON a => FilePath -> a -> Action CID
 addJSON path a = add path (encode a)

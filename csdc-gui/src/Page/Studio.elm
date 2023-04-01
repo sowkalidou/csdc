@@ -206,8 +206,8 @@ update pageInfo msg model =
             Inbox.MessageMemberId id ->
               let
                 config =
-                  { request = \(rtype, reason) ->
-                      API.sendReplyMember { rtype = rtype, text = reason, message = id }
+                  { request = \(replyType, reason) ->
+                      API.sendReplyMember { replyType = replyType, text = reason, messageId = id }
                   , finish = Page.goTo pageInfo Page.Studio
                   , pageInfo = pageInfo
                   }
@@ -225,8 +225,8 @@ update pageInfo msg model =
             Inbox.MessageSubpartId id ->
               let
                 config =
-                  { request = \(rtype, reason) ->
-                      API.sendReplySubpart { rtype = rtype, text = reason, message = id }
+                  { request = \(replyType, reason) ->
+                      API.sendReplySubpart { replyType = replyType, text = reason, messageId = id }
                   , finish = Page.goTo pageInfo Page.Studio
                   , pageInfo = pageInfo
                   }
@@ -399,11 +399,11 @@ view model =
   , Modal.viewMaybe model.selected CloseModal <| \selected ->
       case selected of
         SelectedUnit id ->
-          case lookupById id info.members of
+          case lookup (\obj -> obj.unitId == id) info.members of
             Nothing ->
               Html.text "Error."
             Just personMember ->
-              PreviewImageText.view personMember.unit (View personMember.id)
+              PreviewImageText.view personMember.unit (View personMember.unitId)
 
         SelectedInbox inboxId ->
           case inboxId of
@@ -413,7 +413,7 @@ view model =
                   Html.text "Error."
                 Just msg ->
                   let
-                    title = case msg.mtype of
+                    title = case msg.messageType of
                       Invitation -> "Invitation Reply"
                       Submission -> "Submission Reply"
                   in
@@ -426,7 +426,7 @@ view model =
                   Html.text "Error."
                 Just msg ->
                   let
-                    title = case msg.mtype of
+                    title = case msg.messageType of
                       Invitation -> "Invitation"
                       Submission -> "Submission"
                   in
@@ -439,7 +439,7 @@ view model =
                   Html.text "Error."
                 Just msg ->
                   let
-                    title = case msg.mtype of
+                    title = case msg.messageType of
                       Invitation -> "Invitation"
                       Submission -> "Submission"
                   in
@@ -452,7 +452,7 @@ view model =
                   Html.text "Error."
                 Just msg ->
                   let
-                    title = case msg.mtype of
+                    title = case msg.messageType of
                       Invitation -> "Invitation Reply"
                       Submission -> "Submission Reply"
                   in
@@ -469,6 +469,6 @@ viewUnits members =
   let
     toBox member =
       Html.map (SetSelected << SelectedUnit) <|
-      BoxImageText.view False [] member.id member.unit
+      BoxImageText.view False [] member.unitId member.unit
   in
     List.map toBox members

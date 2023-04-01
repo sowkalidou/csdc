@@ -1,19 +1,18 @@
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module CSDC.Daemon.Mail
-  ( daemon
-  ) where
+  ( daemon,
+  )
+where
 
 import CSDC.Action
 import CSDC.Daemon (Daemon)
-
-import qualified CSDC.Daemon as Daemon
-import qualified CSDC.Mail as Mail
-import qualified CSDC.SQL.Mail as SQL.Mail
-
+import CSDC.Daemon qualified as Daemon
+import CSDC.Mail qualified as Mail
+import CSDC.SQL.Mail qualified as SQL.Mail
 import Control.Monad (forM_, unless)
 import UnliftIO
 
@@ -29,14 +28,15 @@ daemon = Daemon.make 5 "Mail" $ do
     UnliftIO.try (runMail (Mail.send mail)) >>= \case
       Left (err :: SomeException) -> do
         liftIO $ putStrLn $ "Mail.send exception: " <> displayException err
-        modifyIORef' failuresRef (+1)
+        modifyIORef' failuresRef (+ 1)
       Right () -> do
         runQuery SQL.Mail.delete mailId
-        modifyIORef' successesRef (+1)
+        modifyIORef' successesRef (+ 1)
 
   successes <- liftIO $ readIORef successesRef
   failures <- liftIO $ readIORef failuresRef
 
   unless (successes + failures == 0) $
-    liftIO $ putStrLn $
-    "Mail: OK - " <> show successes <> ", FAIL - " <> show failures <> "."
+    liftIO $
+      putStrLn $
+        "Mail: OK - " <> show successes <> ", FAIL - " <> show failures <> "."

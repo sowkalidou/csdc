@@ -162,16 +162,16 @@ encodePersonUpdate person =
     ]
 
 type alias PersonMember =
-  { member : Id Member
-  , id : Id Unit
+  { memberId : Id Member
+  , unitId : Id Unit
   , unit : Unit
   }
 
 decodePersonMember : Decoder PersonMember
 decodePersonMember =
   Decoder.map3 PersonMember
-    (Decoder.field "member" decodeId)
-    (Decoder.field "id" decodeId)
+    (Decoder.field "memberId" decodeId)
+    (Decoder.field "unitId" decodeId)
     (Decoder.field "unit" decodeUnit)
 
 type alias PersonInfo =
@@ -195,7 +195,7 @@ decodePersonInfo =
 type alias Unit =
   { name : String
   , description : String
-  , chair : Id Person
+  , chairId : Id Person
   , image : FilePath
   , createdAt : Posix
   }
@@ -205,7 +205,7 @@ decodeUnit =
   Decoder.map5 Unit
     (Decoder.field "name" Decoder.string)
     (Decoder.field "description" Decoder.string)
-    (Decoder.field "chair" decodeId)
+    (Decoder.field "chairId" decodeId)
     (Decoder.field "image" decodeFilePath)
     (Decoder.field "createdAt" decodePosix)
 
@@ -234,29 +234,29 @@ encodeUnitUpdate unit =
     ]
 
 type alias UnitMember =
-  { member : Id Member
-  , id : Id Person
+  { memberId : Id Member
+  , personId : Id Person
   , person : Person
   }
 
 decodeUnitMember : Decoder UnitMember
 decodeUnitMember =
   Decoder.map3 UnitMember
-    (Decoder.field "member" decodeId)
-    (Decoder.field "id" decodeId)
+    (Decoder.field "memberId" decodeId)
+    (Decoder.field "personId" decodeId)
     (Decoder.field "person" decodePerson)
 
 type alias UnitSubpart =
-  { subpart : Id Subpart
-  , id : Id Unit
+  { subpartId : Id Subpart
+  , unitId : Id Unit
   , unit : Unit
   }
 
 decodeUnitSubpart : Decoder UnitSubpart
 decodeUnitSubpart =
   Decoder.map3 UnitSubpart
-    (Decoder.field "subpart" decodeId)
-    (Decoder.field "id" decodeId)
+    (Decoder.field "subpartId" decodeId)
+    (Decoder.field "unitId" decodeId)
     (Decoder.field "unit" decodeUnit)
 
 type alias UnitInfo =
@@ -265,7 +265,7 @@ type alias UnitInfo =
   , members : List UnitMember
   , children : List UnitSubpart
   , parents : List UnitSubpart
-  , user : Id Person
+  , userId : Id Person
   , isMember : Bool
   , isAdmin : Bool
   , isMembershipPending : Bool
@@ -280,7 +280,7 @@ decodeUnitInfo =
     |> andMap (Decoder.field "members" (Decoder.list decodeUnitMember ))
     |> andMap (Decoder.field "children" (Decoder.list decodeUnitSubpart))
     |> andMap (Decoder.field "parents" (Decoder.list decodeUnitSubpart))
-    |> andMap (Decoder.field "user" decodeId)
+    |> andMap (Decoder.field "userId" decodeId)
     |> andMap (Decoder.field "isMember" Decoder.bool)
     |> andMap (Decoder.field "isAdmin" Decoder.bool)
     |> andMap (Decoder.field "isMembershipPending" Decoder.bool)
@@ -293,68 +293,68 @@ andMap = Decoder.map2 (\a f -> f a)
 -- Member
 
 type alias Member =
-  { person : Id Person
-  , unit : Id Unit
+  { personId : Id Person
+  , unitId : Id Unit
   , createdAt : Posix
   }
 
 decodeMember : Decoder Member
 decodeMember =
   Decoder.map3 Member
-    (Decoder.field "person" decodeId)
-    (Decoder.field "unit" decodeId)
+    (Decoder.field "personId" decodeId)
+    (Decoder.field "unitId" decodeId)
     (Decoder.field "createdAt" decodePosix)
 
 type alias NewMember =
-  { person : Id Person
-  , unit: Id Unit
+  { personId : Id Person
+  , unitId: Id Unit
   }
 
 encodeNewMember : NewMember -> Value
 encodeNewMember member =
   Encoder.object
-    [ ("person", encodeId member.person)
-    , ("unit", encodeId member.unit)
+    [ ("personId", encodeId member.personId)
+    , ("unitId", encodeId member.unitId)
     ]
 
 decodeNewMember : Decoder NewMember
 decodeNewMember =
   Decoder.map2 NewMember
-    (Decoder.field "person" decodeId)
-    (Decoder.field "unit" decodeId)
+    (Decoder.field "personId" decodeId)
+    (Decoder.field "unitId" decodeId)
 
 --------------------------------------------------------------------------------
 -- Subpart
 
 type alias Subpart =
-  { child: Id Unit
-  , parent: Id Unit
+  { childId: Id Unit
+  , parentId: Id Unit
   , createdAt : Posix
   }
 
 decodeSubpart : Decoder Subpart
 decodeSubpart =
   Decoder.map3 Subpart
-    (Decoder.field "child" decodeId)
-    (Decoder.field "parent" decodeId)
+    (Decoder.field "childId" decodeId)
+    (Decoder.field "parentId" decodeId)
     (Decoder.field "createdAt" decodePosix)
 
 type alias NewSubpart =
-  { child: Id Unit
-  , parent: Id Unit
+  { childId: Id Unit
+  , parentId: Id Unit
   }
 
 decodeNewSubpart : Decoder NewSubpart
 decodeNewSubpart =
   Decoder.map2 NewSubpart
-    (Decoder.field "child" decodeId)
-    (Decoder.field "parent" decodeId)
+    (Decoder.field "childId" decodeId)
+    (Decoder.field "parentId" decodeId)
 
 encodeNewSubpart : NewSubpart -> Value
 encodeNewSubpart subpart =
   Encoder.object
-    [ ("child", encodeId subpart.child)
-    , ("parent", encodeId subpart.parent)
+    [ ("childId", encodeId subpart.childId)
+    , ("parentId", encodeId subpart.parentId)
     ]
 
 --------------------------------------------------------------------------------
@@ -402,7 +402,7 @@ encodeMessageType s =
     Submission -> Encoder.string "Submission"
 
 type alias Message a =
-  { mtype : MessageType
+  { messageType : MessageType
   , text : String
   , status : MessageStatus
   , value : a
@@ -411,13 +411,13 @@ type alias Message a =
 decodeMessage : Decoder a -> Decoder (Message a)
 decodeMessage decode =
   Decoder.map4 Message
-    (Decoder.field "type" decodeMessageType)
+    (Decoder.field "messageType" decodeMessageType)
     (Decoder.field "text" Decoder.string)
     (Decoder.field "status" decodeMessageStatus)
     (Decoder.field "value" decode)
 
 type alias NewMessage a =
-  { mtype : MessageType
+  { messageType : MessageType
   , text : String
   , value : a
   }
@@ -425,14 +425,14 @@ type alias NewMessage a =
 encodeNewMessage : (a -> Value) -> NewMessage a -> Value
 encodeNewMessage encode m =
   Encoder.object
-    [ ("type", encodeMessageType m.mtype)
+    [ ("messageType", encodeMessageType m.messageType)
     , ("text", Encoder.string m.text)
     , ("value", encode m.value)
     ]
 
 type alias MessageInfo a =
   { id : Id (Message a)
-  , mtype : MessageType
+  , messageType : MessageType
   , text : String
   , status : MessageStatus
   , value : a
@@ -444,7 +444,7 @@ decodeMessageInfo : Decoder a -> Decoder (MessageInfo a)
 decodeMessageInfo decode =
   Decoder.map7 MessageInfo
     (Decoder.field "id" decodeId)
-    (Decoder.field "type" decodeMessageType)
+    (Decoder.field "messageType" decodeMessageType)
     (Decoder.field "text" Decoder.string)
     (Decoder.field "status" decodeMessageStatus)
     (Decoder.field "value" decode)
@@ -493,8 +493,8 @@ encodeReplyType s =
     Reject -> Encoder.string "Reject"
 
 type alias Reply a =
-  { rtype : ReplyType
-  , mtype : MessageType
+  { replyType : ReplyType
+  , messageType : MessageType
   , text : String
   , status : ReplyStatus
   , id : Id (Message a)
@@ -503,30 +503,30 @@ type alias Reply a =
 decodeReply : Decoder (Reply a)
 decodeReply =
   Decoder.map5 Reply
-    (Decoder.field "type" decodeReplyType)
-    (Decoder.field "mtype" decodeMessageType)
+    (Decoder.field "replyType" decodeReplyType)
+    (Decoder.field "messageType" decodeMessageType)
     (Decoder.field "text" Decoder.string)
     (Decoder.field "status" decodeReplyStatus)
     (Decoder.field "id" decodeId)
 
 type alias NewReply a =
-  { rtype : ReplyType
+  { replyType : ReplyType
   , text : String
-  , message : Id (Message a)
+  , messageId : Id (Message a)
   }
 
 encodeNewReply : NewReply a -> Value
 encodeNewReply m =
   Encoder.object
-    [ ("type", encodeReplyType m.rtype)
+    [ ("replyType", encodeReplyType m.replyType)
     , ("text", Encoder.string m.text)
-    , ("message", encodeId m.message)
+    , ("messageId", encodeId m.messageId)
     ]
 
 type alias ReplyInfo a =
   { id : Id (Reply a)
-  , rtype : ReplyType
-  , mtype : MessageType
+  , replyType : ReplyType
+  , messageType : MessageType
   , text : String
   , status : ReplyStatus
   , message : MessageInfo a
@@ -536,8 +536,8 @@ decodeReplyInfo : Decoder a -> Decoder (ReplyInfo a)
 decodeReplyInfo decode =
   Decoder.map6 ReplyInfo
     (Decoder.field "id" decodeId)
-    (Decoder.field "type" decodeReplyType)
-    (Decoder.field "mtype" decodeMessageType)
+    (Decoder.field "replyType" decodeReplyType)
+    (Decoder.field "messageType" decodeMessageType)
     (Decoder.field "text" Decoder.string)
     (Decoder.field "status" decodeReplyStatus)
     (Decoder.field "message" (decodeMessageInfo decode))
@@ -641,15 +641,15 @@ encodeNewThread newThread =
     ]
 
 type alias Thread =
-  { unit : Id Unit
-  , author : Id Person
+  { unitId : Id Unit
+  , authorId : Id Person
   , subject : String
   }
 
 type alias ThreadInfo =
   { id : Id Thread
-  , unit : Id Unit
-  , author : Id Person
+  , unitId : Id Unit
+  , authorId : Id Person
   , authorName : String
   , subject : String
   , createdAt : Posix
@@ -661,8 +661,8 @@ decodeThreadInfo : Decoder ThreadInfo
 decodeThreadInfo =
   Decoder.map8 ThreadInfo
     (Decoder.field "id" decodeId)
-    (Decoder.field "unit" decodeId)
-    (Decoder.field "author" decodeId)
+    (Decoder.field "unitId" decodeId)
+    (Decoder.field "authorId" decodeId)
     (Decoder.field "authorName" Decoder.string)
     (Decoder.field "subject" Decoder.string)
     (Decoder.field "createdAt" decodePosix)
@@ -680,14 +680,14 @@ encodeNewPost newPost =
     ]
 
 type alias Post =
-  { thread : Id Thread
-  , author : Id Person
+  { threadId : Id Thread
+  , authorId : Id Person
   , text : String
   }
 
 type alias PostInfo =
   { id : Id Post
-  , author : Id Person
+  , authorId : Id Person
   , authorName : String
   , authorImage : FilePath
   , text : String
@@ -698,7 +698,7 @@ decodePostInfo : Decoder PostInfo
 decodePostInfo =
   Decoder.map6 PostInfo
     (Decoder.field "id" decodeId)
-    (Decoder.field "author" decodeId)
+    (Decoder.field "authorId" decodeId)
     (Decoder.field "authorName" Decoder.string)
     (Decoder.field "authorImage" decodeFilePath)
     (Decoder.field "text" Decoder.string)

@@ -54,11 +54,11 @@ type alias Msg = Form.Msg () () ()
 view : ReplyInfo a -> Model -> List (Html Msg)
 view msg _ =
   [ Html.p []
-      [ Html.text <| case msg.message.mtype of
+      [ Html.text <| case msg.message.messageType of
           Invitation -> "Your invitation was "
           Submission -> "Your submission was "
       , Html.strong []
-          [ Html.text <| case msg.rtype of
+          [ Html.text <| case msg.replyType of
               Accept -> "accepted."
               Reject -> "rejected."
           ]

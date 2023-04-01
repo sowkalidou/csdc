@@ -60,7 +60,7 @@ parse (mtype, make) model = Result.toMaybe <|
   Field.with model.id <| \id ->
   Field.with model.reason <| \reason ->
   Ok
-    { mtype = mtype
+    { messageType = mtype
     , text = reason
     , value = make id
     }

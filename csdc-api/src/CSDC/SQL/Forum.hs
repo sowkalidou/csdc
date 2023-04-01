@@ -1,27 +1,28 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module CSDC.SQL.Forum
-  ( insertThread
-  , selectThreads
-  , insertPost
-  , selectPosts
-  ) where
+  ( insertThread,
+    selectThreads,
+    insertPost,
+    selectPosts,
+  )
+where
 
 import CSDC.Prelude
+import CSDC.SQL.Decoder qualified as Decoder
+import CSDC.SQL.Encoder qualified as Encoder
 import CSDC.SQL.QQ
-
-import qualified CSDC.SQL.Decoder as Decoder
-import qualified CSDC.SQL.Encoder as Encoder
-
 import Data.Functor.Contravariant (Contravariant (..))
 import Hasql.Statement (Statement (..))
 
 insertThread :: Statement Thread (Id Thread)
 insertThread = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       INSERT INTO threads
         (unit, author, subject)
       VALUES
@@ -31,16 +32,17 @@ insertThread = Statement sql encoder decoder True
       |]
 
     encoder =
-      contramap thread_unit Encoder.id <>
-      contramap thread_author Encoder.id <>
-      contramap thread_subject Encoder.text
+      contramap (.unitId) Encoder.id
+        <> contramap (.authorId) Encoder.id
+        <> contramap (.subject) Encoder.text
 
     decoder = Decoder.singleRow Decoder.id
 
 selectThreads :: Statement (Id Unit) [ThreadInfo]
 selectThreads = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       SELECT
         threads.id, unit, threads.author, persons.name, subject,
         threads.created_at, MAX(posts.created_at) AS last, COUNT(posts.id) AS number
@@ -61,20 +63,21 @@ selectThreads = Statement sql encoder decoder True
     encoder = Encoder.id
 
     decoder = Decoder.rowList $ do
-      threadInfo_id <- Decoder.id
-      threadInfo_unit <- Decoder.id
-      threadInfo_author <- Decoder.id
-      threadInfo_authorName <- Decoder.text
-      threadInfo_subject <- Decoder.text
-      threadInfo_createdAt <- Decoder.posixTime
-      threadInfo_last <- Decoder.posixTime
-      threadInfo_messages <- Decoder.int
+      id <- Decoder.id
+      unitId <- Decoder.id
+      authorId <- Decoder.id
+      authorName <- Decoder.text
+      subject <- Decoder.text
+      createdAt <- Decoder.posixTime
+      last <- Decoder.posixTime
+      messages <- Decoder.int
       pure ThreadInfo {..}
 
 insertPost :: Statement Post (Id Post)
 insertPost = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       INSERT INTO posts
         (thread, author, text)
       VALUES
@@ -84,16 +87,17 @@ insertPost = Statement sql encoder decoder True
       |]
 
     encoder =
-      contramap post_thread Encoder.id <>
-      contramap post_author Encoder.id <>
-      contramap post_text Encoder.text
+      contramap (.threadId) Encoder.id
+        <> contramap (.authorId) Encoder.id
+        <> contramap (.text) Encoder.text
 
     decoder = Decoder.singleRow Decoder.id
 
 selectPosts :: Statement (Id Thread) [PostInfo]
 selectPosts = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       SELECT
         posts.id, author, persons.name, persons.image, text, posts.created_at
       FROM
@@ -109,11 +113,10 @@ selectPosts = Statement sql encoder decoder True
     encoder = Encoder.id
 
     decoder = Decoder.rowList $ do
-      postInfo_id <- Decoder.id
-      postInfo_author <- Decoder.id
-      postInfo_authorName <- Decoder.text
-      postInfo_authorImage <- Decoder.text
-      postInfo_text <- Decoder.text
-      postInfo_createdAt <- Decoder.posixTime
+      id <- Decoder.id
+      authorId <- Decoder.id
+      authorName <- Decoder.text
+      authorImage <- Decoder.text
+      text <- Decoder.text
+      createdAt <- Decoder.posixTime
       pure PostInfo {..}
-

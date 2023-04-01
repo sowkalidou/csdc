@@ -1,36 +1,36 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StrictData #-}
 
 module CSDC.Config
   ( -- * Config
-    Config (..)
-  , readConfig
-  , showConfig
+    Config (..),
+    readConfig,
+    showConfig,
+
     -- * Context
-  , Context (..)
-  , activate
-  ) where
+    Context (..),
+    activate,
+  )
+where
 
+import CSDC.Action qualified as Action
+import CSDC.IPFS qualified as IPFS
+import CSDC.Mail qualified as Mail
 import CSDC.Prelude
-
-import qualified CSDC.Action as Action
-import qualified CSDC.IPFS as IPFS
-import qualified CSDC.Mail as Mail
-import qualified CSDC.SQL as SQL
-
+import CSDC.SQL qualified as SQL
 import Data.Aeson (eitherDecodeFileStrict)
 import Data.Aeson.Encode.Pretty (encodePretty)
+import Data.ByteString.Lazy.Char8 qualified as ByteString
+import Data.Text as Text
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
-
-import Data.Text as Text
-import qualified Data.ByteString.Lazy.Char8 as ByteString
 
 --------------------------------------------------------------------------------
 -- SQL Config
 
 data SQLConfig = SQLConfigFile SQL.Config | SQLConfigEnv String
-    deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON SQLConfig
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 activateSQL :: SQLConfig -> IO SQL.Context
 activateSQL (SQLConfigFile config) = SQL.activate config
@@ -48,12 +48,12 @@ activateSQL (SQLConfigEnv var) =
 --------------------------------------------------------------------------------
 -- Mail Config
 
-data MailConfig =
-  MailConfigFile Mail.Config |
-  MailConfigEnv String |
-  MailConfigDisplay
-    deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON MailConfig
+data MailConfig
+  = MailConfigFile Mail.Config
+  | MailConfigEnv String
+  | MailConfigDisplay
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 activateMail :: MailConfig -> IO (Maybe Mail.Context)
 activateMail (MailConfigFile config) = Just <$> Mail.activate config
@@ -73,14 +73,15 @@ activateMail MailConfigDisplay = pure Nothing
 -- Config
 
 data Config = Config
-  { config_port :: Int
-  , config_path :: FilePath
-  , config_sql :: SQLConfig
-  , config_mail :: MailConfig
-  , config_ipfs :: IPFS.Config
-  , config_migration :: FilePath
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Config
+  { port :: Int,
+    path :: FilePath,
+    sql :: SQLConfig,
+    mail :: MailConfig,
+    ipfs :: IPFS.Config,
+    migration :: FilePath
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 readConfig :: MonadIO m => FilePath -> m (Either String Config)
 readConfig path = liftIO $ do
@@ -94,41 +95,42 @@ readConfig path = liftIO $ do
         Left e ->
           pure $ Left e
         Right config ->
-          pure $ Right config { config_port = port }
+          pure $ Right (config {port = port} :: Config)
 
 showConfig :: MonadIO m => Config -> m ()
 showConfig config =
-  let
-    str = ByteString.unpack $ encodePretty config
-  in
-    liftIO $ putStrLn str
+  let str = ByteString.unpack $ encodePretty config
+   in liftIO $ putStrLn str
 
 --------------------------------------------------------------------------------
 -- Context
 
 data Context = Context
-  { context_port :: Int
-  , context_path :: FilePath
-  , context_dao :: Action.Context ()
-  , context_migration :: FilePath
-  } deriving (Generic)
+  { port :: Int,
+    path :: FilePath,
+    dao :: Action.Context (),
+    migration :: FilePath
+  }
+  deriving (Generic)
 
 activate :: Config -> IO Context
 activate config = do
-  sql <- activateSQL (config_sql config)
-  mail <- activateMail (config_mail config)
-  ipfs <- IPFS.activate (config_ipfs config)
-  pure Context
-    { context_port = config_port config
-    , context_path = config_path config
-    , context_dao = Action.Context
-        { Action.context_sql = sql
-        , Action.context_mail = mail
-        , Action.context_ipfs = ipfs
-        , Action.context_user = ()
-        }
-    , context_migration = config_migration config
-    }
+  sql <- activateSQL config.sql
+  mail <- activateMail config.mail
+  ipfs <- IPFS.activate config.ipfs
+  pure
+    Context
+      { port = config.port,
+        path = config.path,
+        dao =
+          Action.Context
+            { Action.sql = sql,
+              Action.mail = mail,
+              Action.ipfs = ipfs,
+              Action.user = ()
+            },
+        migration = config.migration
+      }
 
 --------------------------------------------------------------------------------
 -- Helper

@@ -2,42 +2,43 @@
 {-# LANGUAGE TypeApplications #-}
 
 module CSDC.API.Auth
-  ( API
-  , serveAPI
-  , Settings (..)
-  , makeSettings
-  , makeContext
-  , contextProxy
-  ) where
+  ( API,
+    serveAPI,
+    Settings (..),
+    makeSettings,
+    makeContext,
+    contextProxy,
+  )
+where
 
+import CSDC.API.DAO qualified as DAO
 import CSDC.Action hiding (Context)
 import CSDC.DAO (createUser)
-import CSDC.Prelude hiding (JSON, Post)
-
-import qualified CSDC.API.DAO as DAO
-import qualified CSDC.SQL.Persons as SQL.Persons
-
-import Data.Password.Bcrypt (PasswordCheck (..), mkPassword, checkPassword)
+import CSDC.Prelude hiding (Post)
+import CSDC.SQL.Persons qualified as SQL.Persons
+import Data.Password.Bcrypt (PasswordCheck (..), checkPassword, mkPassword)
 import Servant hiding (Server, Unauthorized, throwError)
 import Servant.Auth.Server
 
 --------------------------------------------------------------------------------
 -- User
 
-newtype User = User { getUser :: Id Person }
-   deriving (Eq, Show, Generic)
-   deriving newtype (FromJSON, ToJSON)
+newtype User = User {getUser :: Id Person}
+  deriving (Eq, Show, Generic)
+  deriving newtype (FromJSON, ToJSON)
 
 instance ToJWT User
+
 instance FromJWT User
 
 --------------------------------------------------------------------------------
 -- Login
 
-data Login = Login { email :: !Text, password :: !Text}
-   deriving (Eq, Show, Generic)
+data Login = Login {email :: !Text, password :: !Text}
+  deriving (Eq, Show, Generic)
 
 instance ToJSON Login
+
 instance FromJSON Login
 
 --------------------------------------------------------------------------------
@@ -54,20 +55,20 @@ serveSigninAPI settings = authenticate settings
 
 authenticate :: Settings -> Login -> Action () (CookieHeaders NoContent)
 authenticate (Settings cookieSettings jwtSettings) (Login email password) =
-   runQuery SQL.Persons.check email >>= \case
-     Nothing ->
-       throw Unauthorized
-     Just (personId, passwordHash) -> do
-       case checkPassword (mkPassword password) passwordHash of
-         PasswordCheckFail ->
-           throw Unauthorized
-         PasswordCheckSuccess -> do
-           mApplyCookies <- liftIO $ acceptLogin cookieSettings jwtSettings (User personId)
-           case mApplyCookies of
-             Nothing ->
-               throw Unauthorized
-             Just applyCookies ->
-               return $ applyCookies NoContent
+  runQuery SQL.Persons.check email >>= \case
+    Nothing ->
+      throw Unauthorized
+    Just (personId, passwordHash) -> do
+      case checkPassword (mkPassword password) passwordHash of
+        PasswordCheckFail ->
+          throw Unauthorized
+        PasswordCheckSuccess -> do
+          mApplyCookies <- liftIO $ acceptLogin cookieSettings jwtSettings (User personId)
+          case mApplyCookies of
+            Nothing ->
+              throw Unauthorized
+            Just applyCookies ->
+              return $ applyCookies NoContent
 
 --------------------------------------------------------------------------------
 -- Signup API
@@ -85,8 +86,9 @@ type SignoutAPI =
   Get '[JSON] (CookieHeaders Text)
 
 serveSignoutAPI :: Monad m => Settings -> ServerT SignoutAPI m
-serveSignoutAPI (Settings {..}) = return $
-  clearSession settingsCookie ""
+serveSignoutAPI (Settings {..}) =
+  return $
+    clearSession settingsCookie ""
 
 --------------------------------------------------------------------------------
 -- API with auth
@@ -99,30 +101,31 @@ serveAuthAPI (Authenticated (User personId)) =
 serveAuthAPI _ = throwUnauthorized
 
 type API =
-  "api" :> AuthAPI :<|>
-  "signin" :> SigninAPI :<|>
-  "signup" :> SignupAPI :<|>
-  "signout" :> SignoutAPI
+  "api" :> AuthAPI
+    :<|> "signin" :> SigninAPI
+    :<|> "signup" :> SignupAPI
+    :<|> "signout" :> SignoutAPI
 
 data Settings = Settings
-  { settingsCookie :: CookieSettings
-  , settingsJWT :: JWTSettings
+  { settingsCookie :: CookieSettings,
+    settingsJWT :: JWTSettings
   }
 
 makeSettings :: IO Settings
 makeSettings = do
   key <- generateKey
-  pure Settings
-    { settingsCookie = defaultCookieSettings { cookieXsrfSetting = Nothing }
-    , settingsJWT = defaultJWTSettings key
-    }
+  pure
+    Settings
+      { settingsCookie = defaultCookieSettings {cookieXsrfSetting = Nothing},
+        settingsJWT = defaultJWTSettings key
+      }
 
 serveAPI :: Settings -> Server API
 serveAPI settings =
-  serveAuthAPI :<|>
-  serveSigninAPI settings :<|>
-  serveSignupAPI :<|>
-  serveSignoutAPI settings
+  serveAuthAPI
+    :<|> serveSigninAPI settings
+    :<|> serveSignupAPI
+    :<|> serveSignoutAPI settings
 
 contextProxy :: Proxy '[CookieSettings, JWTSettings]
 contextProxy = Proxy
@@ -137,12 +140,17 @@ makeContext Settings {..} =
 class ThrowUnauthorized a where
   throwUnauthorized :: a
 
-instance (ThrowUnauthorized a, ThrowUnauthorized b) =>
-    ThrowUnauthorized (a :<|> b) where
+instance
+  (ThrowUnauthorized a, ThrowUnauthorized b) =>
+  ThrowUnauthorized (a :<|> b)
+  where
   throwUnauthorized = throwUnauthorized :<|> throwUnauthorized
 
-instance {-# OVERLAPPING #-} ThrowUnauthorized b =>
-    ThrowUnauthorized (a -> b) where
+instance
+  {-# OVERLAPPING #-}
+  ThrowUnauthorized b =>
+  ThrowUnauthorized (a -> b)
+  where
   throwUnauthorized = const throwUnauthorized
 
 instance {-# OVERLAPPABLE #-} ThrowUnauthorized (Action user a) where

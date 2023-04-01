@@ -1,56 +1,62 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
 module CSDC.Action
   ( -- * Action
-    Action
-  , ActionAuth
-  , run
-  , run_
-  , withPerson
-  , throw
+    Action,
+    ActionAuth,
+    run,
+    run_,
+    withPerson,
+    throw,
+
     -- * Error
-  , Error (..)
+    Error (..),
+
     -- * Context
-  , Context (..)
+    Context (..),
+
     -- * Server
-  , Server
-  , ServerAuth
+    Server,
+    ServerAuth,
+
     -- * SQL
-  , runSQL
-  , runQuery
+    runSQL,
+    runQuery,
+
     -- * Mail
-  , runMail
+    runMail,
+
     -- * IPFS
-  , runIPFS
-  ) where
+    runIPFS,
+  )
+where
 
+import CSDC.IPFS qualified as IPFS
+import CSDC.Mail qualified as Mail
 import CSDC.Prelude
-
-import qualified CSDC.IPFS as IPFS
-import qualified CSDC.Mail as Mail
-import qualified CSDC.SQL as SQL
-
+import CSDC.SQL qualified as SQL
 import Control.Exception (Exception, try)
 import Control.Monad.Except (MonadError (..), throwError)
-import Control.Monad.Reader (ReaderT (..), MonadReader (..), asks)
+import Control.Monad.Reader (MonadReader (..), ReaderT (..), asks)
 import Hasql.Statement (Statement)
-import Servant (ServerT, ServerError, err500, err401)
+import Servant (ServerError, ServerT, err401, err500)
 import UnliftIO (MonadUnliftIO, throwIO)
 
 --------------------------------------------------------------------------------
 -- Context
 
 data Context user = Context
-  { context_sql :: SQL.Context
-  , context_mail :: Maybe Mail.Context
-  , context_ipfs :: IPFS.Context
-  , context_user :: user
-  } deriving (Generic)
+  { sql :: SQL.Context,
+    mail :: Maybe Mail.Context,
+    ipfs :: IPFS.Context,
+    user :: user
+  }
+  deriving (Generic)
 
 --------------------------------------------------------------------------------
 -- Error
@@ -60,19 +66,17 @@ data Error
   | Unauthorized
   | PersonDoesNotExist (Id Person)
   | UnitDoesNotExist (Id Unit)
-    deriving (Show, Eq)
+  deriving (Show, Eq)
 
 instance Exception Error
 
 throw :: Error -> Action user a
 throw err =
-  let
-    serverErr :: ServerError
-    serverErr = case err of
-      Unauthorized -> err401
-      _ -> err500
-  in
-    throwIO serverErr
+  let serverErr :: ServerError
+      serverErr = case err of
+        Unauthorized -> err401
+        _ -> err500
+   in throwIO serverErr
 
 --------------------------------------------------------------------------------
 -- Server
@@ -86,9 +90,12 @@ type ServerAuth api = ServerT api (Action (Id Person))
 
 newtype Action user a = Action (ReaderT (Context user) IO a)
   deriving
-    ( Functor, Applicative, Monad
-    , MonadReader (Context user)
-    , MonadIO, MonadUnliftIO
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadReader (Context user),
+      MonadIO,
+      MonadUnliftIO
     )
 
 -- Actions with authentication needed
@@ -96,7 +103,9 @@ type ActionAuth = Action (Id Person)
 
 run ::
   (MonadIO m, MonadError ServerError m) =>
-  Context user -> Action user a -> m a
+  Context user ->
+  Action user a ->
+  m a
 run ctx (Action act) =
   liftIO (try (runReaderT act ctx)) >>= \case
     Left e -> throwError e
@@ -107,11 +116,11 @@ run_ ctx (Action act) = runReaderT act ctx
 
 withPerson :: Id Person -> ActionAuth a -> Action () a
 withPerson pid (Action (ReaderT act)) =
-  Action $ ReaderT $ \ctx -> act $ ctx { context_user = pid }
+  Action $ ReaderT $ \ctx -> act $ ctx {user = pid}
 
 runSQL :: SQL.Action a -> Action user a
 runSQL act = do
-  ctx <- asks context_sql
+  ctx <- asks (.sql)
   SQL.run ctx act >>= \case
     Left e ->
       liftIO $ throwIO $ ErrorSQL e
@@ -123,10 +132,10 @@ runQuery statement = runSQL . SQL.query statement
 
 runMail :: Mail.Action a -> Action user a
 runMail act = do
-  ctx <- asks context_mail
+  ctx <- asks (.mail)
   Mail.run ctx act
 
 runIPFS :: IPFS.Action a -> Action user a
 runIPFS act = do
-  ctx <- asks context_ipfs
+  ctx <- asks (.ipfs)
   IPFS.run ctx act

@@ -30,6 +30,7 @@ let
             localHaskellPackages.ghc
             localHaskellPackages.cabal-install
             localHaskellPackages.ghcid
+            localHaskellPackages.ormolu
             # Elm
             elmPackages.elm
             elmPackages.elm-analyse

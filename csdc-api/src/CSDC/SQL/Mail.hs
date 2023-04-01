@@ -1,27 +1,25 @@
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
 
 module CSDC.SQL.Mail
-  ( insert
-  , select
-  , delete
-  ) where
+  ( insert,
+    select,
+    delete,
+  )
+where
 
+import CSDC.Mail (Mail (..))
 import CSDC.Prelude
-import CSDC.Mail (Mail(..))
+import CSDC.SQL.Decoder qualified as Decoder
+import CSDC.SQL.Encoder qualified as Encoder
 import CSDC.SQL.QQ
-
-import qualified CSDC.SQL.Decoder as Decoder
-import qualified CSDC.SQL.Encoder as Encoder
-
 import Data.Functor.Contravariant (Contravariant (..))
 import Data.Maybe (fromMaybe)
+import Hasql.Decoders qualified as Decoders
+import Hasql.Encoders qualified as Encoders
 import Hasql.Statement (Statement (..))
 import Network.Mail.Mime (Address (..))
-
-import qualified Hasql.Decoders as Decoders
-import qualified Hasql.Encoders as Encoders
 
 --------------------------------------------------------------------------------
 -- Queries
@@ -29,7 +27,8 @@ import qualified Hasql.Encoders as Encoders
 insert :: Statement Mail ()
 insert = Statement sql encoder Decoders.noResult True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       INSERT INTO emails
         ( from_name
         , from_address
@@ -42,17 +41,18 @@ insert = Statement sql encoder Decoders.noResult True
       |]
 
     encoder =
-      contramap (fromMaybe "" . addressName . from) Encoder.text <>
-      contramap (addressEmail . from) Encoder.text <>
-      contramap (fmap addressEmail . to) Encoder.textList <>
-      contramap subject Encoder.text <>
-      contramap text Encoder.text <>
-      contramap html Encoder.text
+      contramap (fromMaybe "" . (.from.addressName)) Encoder.text
+        <> contramap (.from.addressEmail) Encoder.text
+        <> contramap (fmap (.addressEmail) . (.to)) Encoder.textList
+        <> contramap (.subject) Encoder.text
+        <> contramap (.text) Encoder.text
+        <> contramap (.html) Encoder.text
 
 delete :: Statement (Id Mail) ()
 delete = Statement sql encoder Decoders.noResult True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       DELETE FROM emails
       WHERE id = $1
       |]
@@ -62,7 +62,8 @@ delete = Statement sql encoder Decoders.noResult True
 select :: Statement () [(Id Mail, Mail)]
 select = Statement sql Encoders.noParams decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       SELECT
         id,
         from_name,

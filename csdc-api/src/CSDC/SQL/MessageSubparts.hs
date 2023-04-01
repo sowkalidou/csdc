@@ -1,110 +1,116 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module CSDC.SQL.MessageSubparts
-  ( sendMessage
-  , updateMessage
-  , selectSubpart
-  , sendReply
-  , viewReply
-  , selectMessagesForUnit
-  , selectRepliesForUnit
-  , getUnitsForMessage
-  ) where
+  ( sendMessage,
+    updateMessage,
+    selectSubpart,
+    sendReply,
+    viewReply,
+    selectMessagesForUnit,
+    selectRepliesForUnit,
+    getUnitsForMessage,
+  )
+where
 
 import CSDC.Prelude
+import CSDC.SQL.Decoder qualified as Decoder
+import CSDC.SQL.Encoder qualified as Encoder
 import CSDC.SQL.QQ
-
-import qualified CSDC.SQL.Decoder as Decoder
-import qualified CSDC.SQL.Encoder as Encoder
-
+import Data.ByteString.Char8 qualified as ByteString
 import Data.Functor.Contravariant (Contravariant (..))
 import Hasql.Statement (Statement (..))
-
-import qualified Data.ByteString.Char8 as ByteString
 
 viewReply :: Statement (Id (Reply NewSubpart)) ()
 viewReply = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "UPDATE replies_subpart"
-      , "SET status = 'Seen' :: reply_status"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "UPDATE replies_subpart",
+          "SET status = 'Seen' :: reply_status",
+          "WHERE id = $1"
+        ]
 
     encoder = Encoder.id
 
     decoder = Decoder.noResult
 
 selectSubpart :: Statement (Id (Message NewSubpart)) (Maybe NewSubpart)
-selectSubpart =  Statement sql encoder decoder True
+selectSubpart = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "SELECT child, parent"
-      , "FROM messages_subpart"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "SELECT child, parent",
+          "FROM messages_subpart",
+          "WHERE id = $1"
+        ]
 
     encoder = Encoder.id
 
-    decoder = Decoder.rowMaybe $
-      NewSubpart <$>
-        Decoder.id <*>
-        Decoder.id
+    decoder =
+      Decoder.rowMaybe $
+        NewSubpart
+          <$> Decoder.id
+          <*> Decoder.id
 
 sendMessage :: Statement (NewMessage NewSubpart) (Id (Message NewSubpart))
 sendMessage = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "INSERT INTO messages_subpart (type, message, child, parent)"
-      , "VALUES ($1 :: message_type, $2, $3, $4)"
-      , "RETURNING id"
-      ]
+    sql =
+      ByteString.unlines
+        [ "INSERT INTO messages_subpart (type, message, child, parent)",
+          "VALUES ($1 :: message_type, $2, $3, $4)",
+          "RETURNING id"
+        ]
 
     encoder =
-      (contramap newMessage_type Encoder.messageType) <>
-      (contramap newMessage_text Encoder.text) <>
-      (contramap (newSubpart_child . newMessage_value) Encoder.id) <>
-      (contramap (newSubpart_parent . newMessage_value) Encoder.id)
+      (contramap (.messageType) Encoder.messageType)
+        <> (contramap (.text) Encoder.text)
+        <> (contramap (.value.childId) Encoder.id)
+        <> (contramap (.value.parentId) Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
 
 updateMessage :: Statement (Id (Message NewSubpart), MessageStatus) ()
 updateMessage = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "UPDATE messages_subpart"
-      , "SET status = $2 :: message_status"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "UPDATE messages_subpart",
+          "SET status = $2 :: message_status",
+          "WHERE id = $1"
+        ]
 
     encoder =
-      contramap fst Encoder.id <>
-      contramap snd Encoder.messageStatus
+      contramap fst Encoder.id
+        <> contramap snd Encoder.messageStatus
 
     decoder = Decoder.noResult
 
 sendReply :: Statement (NewReply NewSubpart) (Id (Reply NewSubpart))
 sendReply = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "INSERT INTO replies_subpart (type, reply, message)"
-      , "VALUES ($1 :: reply_type, $2, $3)"
-      , "RETURNING id"
-      ]
+    sql =
+      ByteString.unlines
+        [ "INSERT INTO replies_subpart (type, reply, message)",
+          "VALUES ($1 :: reply_type, $2, $3)",
+          "RETURNING id"
+        ]
 
     encoder =
-      (contramap newReply_type Encoder.replyType) <>
-      (contramap newReply_text Encoder.text) <>
-      (contramap newReply_message Encoder.id)
+      (contramap (.replyType) Encoder.replyType)
+        <> (contramap (.text) Encoder.text)
+        <> (contramap (.messageId) Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
 
 selectMessagesForUnit :: Statement (Id Unit) [MessageInfo NewSubpart]
 selectMessagesForUnit = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       SELECT
         m.id, m.type, m.status, m.message, m.child, m.parent, u1.name, u2.name
       FROM
@@ -123,22 +129,23 @@ selectMessagesForUnit = Statement sql encoder decoder True
     encoder = Encoder.id
 
     decoder = Decoder.rowList $ do
-      messageInfo_id <- Decoder.id
-      messageInfo_type <- Decoder.messageType
-      messageInfo_status <- Decoder.messageStatus
-      messageInfo_text <- Decoder.text
-      messageInfo_value <- do
-        newSubpart_child <- Decoder.id
-        newSubpart_parent <- Decoder.id
+      id <- Decoder.id
+      messageType <- Decoder.messageType
+      status <- Decoder.messageStatus
+      text <- Decoder.text
+      value <- do
+        childId <- Decoder.id
+        parentId <- Decoder.id
         pure NewSubpart {..}
-      messageInfo_left <- Decoder.text
-      messageInfo_right <- Decoder.text
+      left <- Decoder.text
+      right <- Decoder.text
       pure MessageInfo {..}
 
 selectRepliesForUnit :: Statement (Id Unit) [ReplyInfo NewSubpart]
 selectRepliesForUnit = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       SELECT
         r.id, r.type, m.type, r.reply, r.status, m.id, m.type, m.status, m.message, m.child, m.parent, u1.name, u2.name
       FROM
@@ -159,29 +166,30 @@ selectRepliesForUnit = Statement sql encoder decoder True
     encoder = Encoder.id
 
     decoder = Decoder.rowList $ do
-      replyInfo_id <- Decoder.id
-      replyInfo_type <- Decoder.replyType
-      replyInfo_mtype <- Decoder.messageType
-      replyInfo_text <- Decoder.text
-      replyInfo_status <- Decoder.replyStatus
-      replyInfo_message <- do
-        messageInfo_id <- Decoder.id
-        messageInfo_type <- Decoder.messageType
-        messageInfo_status <- Decoder.messageStatus
-        messageInfo_text <- Decoder.text
-        messageInfo_value <- do
-          newSubpart_child <- Decoder.id
-          newSubpart_parent <- Decoder.id
+      id <- Decoder.id
+      replyType <- Decoder.replyType
+      messageType <- Decoder.messageType
+      text <- Decoder.text
+      status <- Decoder.replyStatus
+      message <- do
+        id <- Decoder.id
+        messageType <- Decoder.messageType
+        status <- Decoder.messageStatus
+        text <- Decoder.text
+        value <- do
+          childId <- Decoder.id
+          parentId <- Decoder.id
           pure NewSubpart {..}
-        messageInfo_left <- Decoder.text
-        messageInfo_right <- Decoder.text
+        left <- Decoder.text
+        right <- Decoder.text
         pure MessageInfo {..}
       pure ReplyInfo {..}
 
 getUnitsForMessage :: Statement (Id Person, Id Unit) [WithId Unit]
 getUnitsForMessage = Statement sql encoder decoder True
   where
-    sql = [sqlqq|
+    sql =
+      [sqlqq|
       WITH
         -- Units eligible for subpart messages
         units_user AS (
@@ -231,16 +239,16 @@ getUnitsForMessage = Statement sql encoder decoder True
       |]
 
     encoder =
-      contramap fst Encoder.id <>
-      contramap snd Encoder.id
+      contramap fst Encoder.id
+        <> contramap snd Encoder.id
 
     decoder = Decoder.rowList $ do
-      withId_id <- Decoder.id
-      withId_value <- do
-        unit_name <- Decoder.text
-        unit_description <- Decoder.text
-        unit_chair <- Decoder.id
-        unit_image <- Decoder.text
-        unit_createdAt <- Decoder.posixTime
+      id <- Decoder.id
+      value <- do
+        name <- Decoder.text
+        description <- Decoder.text
+        chairId <- Decoder.id
+        image <- Decoder.text
+        createdAt <- Decoder.posixTime
         pure Unit {..}
       pure WithId {..}

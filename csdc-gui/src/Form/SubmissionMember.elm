@@ -40,7 +40,7 @@ parse : NewMember -> Model -> Maybe (NewMessage NewMember)
 parse member model = Result.toMaybe <|
   Field.with model.reason <| \reason ->
   Ok
-    { mtype = Submission
+    { messageType = Submission
     , text = reason
     , value = member
     }

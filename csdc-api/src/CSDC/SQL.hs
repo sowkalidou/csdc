@@ -1,53 +1,58 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module CSDC.SQL
   ( -- * Config and Secret
-    Config (..)
-  , parseURL
+    Config (..),
+    parseURL,
+
     -- * Context
-  , Context
-  , activate
+    Context,
+    activate,
+
     -- * Error
-  , Error (..)
+    Error (..),
+
     -- * Action
-  , Action (..)
-  , run
-  , runAndThrow
-  , query
+    Action (..),
+    run,
+    runAndThrow,
+    query,
+
     -- * Migration
-  , migrate
-  ) where
+    migrate,
+  )
+where
 
 import CSDC.Prelude
-
 import Control.Exception (Exception, finally, throwIO, try)
 import Control.Monad (forM_)
-import Control.Monad.Reader (ReaderT (..), MonadReader (..))
+import Control.Monad.Reader (MonadReader (..), ReaderT (..))
+import Data.Text qualified as Text
+import Data.Text.Encoding qualified as Text.Encoding
 import Hasql.Connection (Connection, ConnectionError)
+import Hasql.Connection qualified as Connection
+import Hasql.Migration qualified as Migration
 import Hasql.Session (QueryError)
+import Hasql.Session qualified as Session
 import Hasql.Statement (Statement)
+import Hasql.Transaction.Sessions qualified as Transaction
 import Network.URI (URI (..), URIAuth (..), parseURI)
 import Text.Read (readMaybe)
-
-import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text.Encoding
-import qualified Hasql.Connection as Connection
-import qualified Hasql.Session as Session
-import qualified Hasql.Migration as Migration
-import qualified Hasql.Transaction.Sessions as Transaction
 
 --------------------------------------------------------------------------------
 -- Config and Secret
 
 -- | The configuration of the PostgreSQL server.
 data Config = Config
-  { config_host :: Text
-  , config_port :: Int
-  , config_user :: Text
-  , config_database :: Text
-  , config_password :: Text
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Config
+  { host :: Text,
+    port :: Int,
+    user :: Text,
+    database :: Text,
+    password :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 -- Like postgresql://csdc:csdc@localhost:5432
 parseURL :: String -> Maybe Config
@@ -57,22 +62,24 @@ parseURL txt = do
   port <- readMaybe $ tail $ uriPort auth
   let (user, pwd) = span (/= ':') $ uriUserInfo auth
       password = init $ tail pwd
-  pure Config
-    { config_host = Text.pack $ uriRegName auth
-    , config_port = port
-    , config_user = Text.pack $ user
-    , config_database = "csdc" -- hardcoded
-    , config_password = Text.pack $ password
-    }
+  pure
+    Config
+      { host = Text.pack $ uriRegName auth,
+        port = port,
+        user = Text.pack $ user,
+        database = "csdc", -- hardcoded
+        password = Text.pack $ password
+      }
 
 --------------------------------------------------------------------------------
 -- Context
 
 -- | The context of the PostgreSQL server.
-newtype Context = Context
-  { context_config :: Config
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Context
+data Context = Context
+  { config :: Config
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 -- | Activate the configuration.
 -- TODO: Check the validity of the configuration.
@@ -87,7 +94,7 @@ data Error
   = ErrorConnection ConnectionError
   | ErrorQuery QueryError
   | ErrorMigration Migration.MigrationError
-    deriving (Show, Eq)
+  deriving (Show, Eq)
 
 instance Exception Error
 
@@ -96,23 +103,22 @@ instance Exception Error
 
 -- | An action performing SQL operations.
 newtype Action a = Action (ReaderT Connection IO a)
-  deriving (Functor, Applicative, Monad)
+  deriving newtype (Functor, Applicative, Monad)
 
 -- | Run a SQL action and return possible errors.
 run :: MonadIO m => Context -> Action a -> m (Either Error a)
 run (Context Config {..}) (Action m) = liftIO $ do
   let settings =
         Connection.settings
-          (Text.Encoding.encodeUtf8 config_host)
-          (fromIntegral config_port)
-          (Text.Encoding.encodeUtf8 config_user)
-          (Text.Encoding.encodeUtf8 config_password)
-          (Text.Encoding.encodeUtf8 config_database)
+          (Text.Encoding.encodeUtf8 host)
+          (fromIntegral port)
+          (Text.Encoding.encodeUtf8 user)
+          (Text.Encoding.encodeUtf8 password)
+          (Text.Encoding.encodeUtf8 database)
 
   Connection.acquire settings >>= \case
     Left err ->
       pure $ Left $ ErrorConnection err
-
     Right conn ->
       try (runReaderT m conn) `finally` (Connection.release conn)
 
@@ -140,13 +146,12 @@ query stm a = Action $ do
 migrate :: FilePath -> Action ()
 migrate path = Action $ do
   commands <- liftIO $ Migration.loadMigrationsFromDirectory path
-  let
-    transactions =
-      fmap Migration.runMigration $
-      Migration.MigrationInitialization : commands
-    toSession =
-      Transaction.transaction Transaction.ReadCommitted Transaction.Write
-    sessions = fmap toSession transactions
+  let transactions =
+        fmap Migration.runMigration $
+          Migration.MigrationInitialization : commands
+      toSession =
+        Transaction.transaction Transaction.ReadCommitted Transaction.Write
+      sessions = fmap toSession transactions
   conn <- ask
   liftIO $ forM_ sessions $ \session -> do
     res <- Session.run session conn

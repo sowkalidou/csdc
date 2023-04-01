@@ -76,6 +76,10 @@ common extensions
     LambdaCase
     OverloadedStrings
     TypeOperators
+    DuplicateRecordFields
+    NoFieldSelectors
+    OverloadedRecordDot
+    ImportQualifiedPost
 
 library
   import: dependencies, extensions
@@ -111,6 +115,8 @@ library
     src
   ghc-options:
     -Wall
+    -- record updates
+    -fno-warn-ambiguous-fields
   default-language:
     Haskell2010
 

@@ -12,7 +12,7 @@ view selected reply =
   let
     contents =
       [ Html.strong []
-          [ Html.text <| case reply.mtype of
+          [ Html.text <| case reply.messageType of
               Invitation -> "Reply from " ++ reply.message.left
               Submission -> "Reply from " ++ reply.message.right
           ]

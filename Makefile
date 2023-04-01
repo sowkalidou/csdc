@@ -44,6 +44,11 @@ ghcid-server: ## Launch ghcid for the server executable.
 
 .PHONY: ghcid-server
 
+format-haskell: ## Format the Haskell code
+	ormolu --mode inplace $$(git ls-files '*.hs')
+
+.PHONY: format-haskell
+
 hoogle: ## Launch the Hoogle server
 	hoogle server --local -p 8888
 

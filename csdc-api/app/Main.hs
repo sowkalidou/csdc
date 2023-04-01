@@ -1,33 +1,28 @@
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Main where
 
 import CSDC.API (API, serveAPI)
-import CSDC.Config (Context (..), readConfig, showConfig, activate)
-
-import qualified CSDC.API.Auth as Auth
-import qualified CSDC.Action as Action
-import qualified CSDC.Daemon as Daemon
-import qualified CSDC.Daemon.Mail as Daemon.Mail
-import qualified CSDC.SQL as SQL
-import qualified CSDC.IPFS as IPFS
-
+import CSDC.API.Auth qualified as Auth
+import CSDC.Action qualified as Action
+import CSDC.Config (Context (..), activate, readConfig, showConfig)
+import CSDC.Daemon qualified as Daemon
+import CSDC.Daemon.Mail qualified as Daemon.Mail
+import CSDC.SQL qualified as SQL
 import Network.Wai (Middleware)
-import Network.Wai.Handler.Warp (runSettings, setPort, setLogger, defaultSettings)
-import Network.Wai.Middleware.Gzip (gzip, def, gzipFiles, GzipFiles (..))
+import Network.Wai.Handler.Warp (defaultSettings, runSettings, setLogger, setPort)
 import Network.Wai.Logger (withStdoutLogger)
-import Servant (Application, Proxy (..), serveWithContext, hoistServerWithContext)
+import Network.Wai.Middleware.Cors qualified as Cors
+import Network.Wai.Middleware.Gzip (GzipFiles (..), def, gzip, gzipFiles)
+import Servant (Application, Proxy (..), hoistServerWithContext, serveWithContext)
 import System.Environment (getArgs)
 import System.IO
-import Control.Monad.IO.Class
-
-import qualified Network.Wai.Middleware.Cors as Cors
 
 args :: IO FilePath
 args =
   getArgs >>= \case
-    configPath:[] ->
+    configPath : [] ->
       pure configPath
     _ ->
       error "Usage: csdc-server CONFIG_PATH [SECRET_PATH]"
@@ -51,35 +46,35 @@ main = do
 mainWith :: Context -> IO ()
 mainWith Context {..} = do
   putStrLn "Starting mail daemon..."
-  _ <- Action.run_ context_dao $ do
+  _ <- Action.run_ dao $ do
     Daemon.launch Daemon.Mail.daemon
   putStrLn "Server ready."
   withStdoutLogger $ \logger -> do
-    let settings = setPort context_port $ setLogger logger defaultSettings
+    let settings = setPort port $ setLogger logger defaultSettings
     authSettings <- Auth.makeSettings
-    runSettings settings $ middleware $
-      application context_path authSettings context_dao
+    runSettings settings $
+      middleware $
+        application path authSettings dao
 
 middleware :: Middleware
 middleware =
-  let
-    corsOptions = Cors.simpleCorsResourcePolicy
-      { Cors.corsRequestHeaders = Cors.simpleHeaders }
-    cors = Cors.cors (\_ -> Just corsOptions)
-    compress = gzip def { gzipFiles = GzipCompress }
-  in
-    compress . cors
+  let corsOptions =
+        Cors.simpleCorsResourcePolicy
+          { Cors.corsRequestHeaders = Cors.simpleHeaders
+          }
+      cors = Cors.cors (\_ -> Just corsOptions)
+      compress = gzip def {gzipFiles = GzipCompress}
+   in compress . cors
 
 application :: FilePath -> Auth.Settings -> Action.Context () -> Application
 application path settings context = \request response -> do
-  let
-    api = Proxy @API
-    sqlContext = Action.context_sql context
-    cfg = Auth.makeContext settings
-    server = hoistServerWithContext api Auth.contextProxy (Action.run context) (serveAPI path sqlContext settings)
+  let api = Proxy @API
+      sqlContext = context.sql
+      cfg = Auth.makeContext settings
+      server = hoistServerWithContext api Auth.contextProxy (Action.run context) (serveAPI path sqlContext settings)
   serveWithContext api cfg server request response
 
 migrate :: Context -> IO ()
 migrate context = do
-  let path = context_migration context
-  Action.run_ (context_dao context) $ Action.runSQL $ SQL.migrate path
+  let path = context.migration
+  Action.run_ context.dao $ Action.runSQL $ SQL.migrate path

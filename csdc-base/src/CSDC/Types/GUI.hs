@@ -1,28 +1,27 @@
-{-# LANGUAGE StrictData #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE StrictData #-}
 
 module CSDC.Types.GUI
-  (-- GUI Types
-    NewUser (..)
-  , PersonMember (..)
-  , PersonInfo (..)
-  , UnitMember (..)
-  , UnitSubpart (..)
-  , UnitInfo (..)
-  , Inbox (..)
-  , MessageInfo (..)
-  , ReplyInfo (..)
-  , MailInvitation (..)
+  ( -- GUI Types
+    NewUser (..),
+    PersonMember (..),
+    PersonInfo (..),
+    UnitMember (..),
+    UnitSubpart (..),
+    UnitInfo (..),
+    Inbox (..),
+    MessageInfo (..),
+    ReplyInfo (..),
+    MailInvitation (..),
     -- Search
-  , SearchId (..)
-  , SearchResult (..)
-  ) where
+    SearchId (..),
+    SearchResult (..),
+  )
+where
 
-import CSDC.Aeson (JSON (..))
 import CSDC.Types.DAO
 import CSDC.Types.Id
-
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text)
 import Data.Time.Clock.POSIX (POSIXTime)
 import GHC.Generics (Generic)
@@ -31,83 +30,92 @@ import GHC.Generics (Generic)
 -- GUI Types
 
 data NewUser = NewUser
-  { newUser_name :: Text
-  , newUser_email :: Text
-  , newUser_password :: Text
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON NewUser
+  { name :: Text,
+    email :: Text,
+    password :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data PersonMember = PersonMember
-  { personMember_member :: Id Member
-  , personMember_id :: Id Unit
-  , personMember_unit :: Unit
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON PersonMember
+  { memberId :: Id Member,
+    unitId :: Id Unit,
+    unit :: Unit
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data PersonInfo = PersonInfo
-  { personInfo_id :: Id Person
-  , personInfo_person :: Person
-  , personInfo_members :: [PersonMember]
-  , personInfo_unitsForMessage :: [WithId Unit]
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON PersonInfo
+  { id :: Id Person,
+    person :: Person,
+    members :: [PersonMember],
+    unitsForMessage :: [WithId Unit]
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data UnitMember = UnitMember
-  { unitMember_member :: Id Member
-  , unitMember_id :: Id Person
-  , unitMember_person :: Person
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON UnitMember
+  { memberId :: Id Member,
+    personId :: Id Person,
+    person :: Person
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data UnitSubpart = UnitSubpart
-  { unitSubpart_subpart :: Id Subpart
-  , unitSubpart_id :: Id Unit
-  , unitSubpart_unit :: Unit
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON UnitSubpart
+  { subpartId :: Id Subpart,
+    unitId :: Id Unit,
+    unit :: Unit
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data UnitInfo = UnitInfo
-  { unitInfo_id :: Id Unit
-  , unitInfo_unit :: Unit
-  , unitInfo_members :: [UnitMember]
-  , unitInfo_children :: [UnitSubpart]
-  , unitInfo_parents :: [UnitSubpart]
-  , unitInfo_user :: Id Person
-  , unitInfo_isMember :: Bool
-  , unitInfo_isAdmin :: Bool
-  , unitInfo_isMembershipPending :: Bool
-  , unitInfo_unitsForMessage :: [WithId Unit]
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON UnitInfo
+  { id :: Id Unit,
+    unit :: Unit,
+    members :: [UnitMember],
+    children :: [UnitSubpart],
+    parents :: [UnitSubpart],
+    userId :: Id Person,
+    isMember :: Bool,
+    isAdmin :: Bool,
+    isMembershipPending :: Bool,
+    unitsForMessage :: [WithId Unit]
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data MessageInfo a = MessageInfo
-  { messageInfo_id :: Id (Message a)
-  , messageInfo_type :: MessageType
-  , messageInfo_status :: MessageStatus
-  , messageInfo_text :: Text
-  , messageInfo_value :: a
-  , messageInfo_left :: Text
-  , messageInfo_right :: Text
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON (MessageInfo a)
+  { id :: Id (Message a),
+    messageType :: MessageType,
+    status :: MessageStatus,
+    text :: Text,
+    value :: a,
+    left :: Text,
+    right :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data ReplyInfo a = ReplyInfo
-  { replyInfo_id :: Id (Reply a)
-  , replyInfo_type :: ReplyType
-  , replyInfo_mtype :: MessageType
-  , replyInfo_text :: Text
-  , replyInfo_status :: ReplyStatus
-  , replyInfo_message :: MessageInfo a
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON (ReplyInfo a)
+  { id :: Id (Reply a),
+    replyType :: ReplyType,
+    messageType :: MessageType,
+    text :: Text,
+    status :: ReplyStatus,
+    message :: MessageInfo a
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data Inbox = Inbox
-  { inbox_messageMember :: [MessageInfo NewMember]
-  , inbox_replyMember :: [ReplyInfo NewMember]
-  , inbox_messageSubpart :: [MessageInfo NewSubpart]
-  , inbox_replySubpart :: [ReplyInfo NewSubpart]
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Inbox
+  { messageMember :: [MessageInfo NewMember],
+    replyMember :: [ReplyInfo NewMember],
+    messageSubpart :: [MessageInfo NewSubpart],
+    replySubpart :: [ReplyInfo NewSubpart]
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 instance Semigroup Inbox where
   Inbox mm1 rm1 ms1 rs1 <> Inbox mm2 rm2 ms2 rs2 =
@@ -117,65 +125,72 @@ instance Monoid Inbox where
   mempty = Inbox [] [] [] []
 
 data MailInvitation = MailInvitation
-  { mailInvitation_message :: Text
-  , mailInvitation_invitees :: [Text]
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON MailInvitation
+  { message :: Text,
+    invitees :: [Text]
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 --------------------------------------------------------------------------------
 -- Search
 
 data SearchId = SearchPerson (Id Person) | SearchUnit (Id Unit)
-    deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON SearchId
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data SearchResult a = SearchResult
-  { searchResult_id :: a
-  , searchResult_name :: Text
-  } deriving (Show, Eq, Generic, Functor)
-    deriving (FromJSON, ToJSON) via JSON (SearchResult a)
+  { id :: a,
+    name :: Text
+  }
+  deriving (Show, Eq, Generic, Functor)
+  deriving (FromJSON, ToJSON)
 
 --------------------------------------------------------------------------------
 -- Forum
 
 data NewThread = NewThread
-  { newThread_unit :: Id Unit
-  , newThread_author :: Id Person
-  , newThread_subject :: Text
-  , newThread_message :: Text
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON NewThread
+  { unitId :: Id Unit,
+    authorId :: Id Person,
+    subject :: Text,
+    message :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data Thread = Thread
-  { thread_unit :: Id Unit
-  , thread_person :: Id Unit
-  , thread_subject :: Text
-  , thread_createdAt :: POSIXTime
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Thread
+  { unitId :: Id Unit,
+    personId :: Id Unit,
+    subject :: Text,
+    createdAt :: POSIXTime
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data ThreadSummary = ThreadSummary
-  { threadSummary_id :: Id Thread
-  , threadSummary_unit :: Id Unit
-  , threadSummary_author :: Id Unit
-  , threadSummary_authorName :: Text
-  , threadSummary_subject :: Text
-  , threadSummary_createdAt :: POSIXTime
-  , threadSummary_last :: POSIXTime
-  , threadSummary_messages :: Int
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON ThreadSummary
+  { id :: Id Thread,
+    unitId :: Id Unit,
+    authorId :: Id Unit,
+    authorName :: Text,
+    subject :: Text,
+    createdAt :: POSIXTime,
+    last :: POSIXTime,
+    messages :: Int
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data ThreadInfo = ThreadInfo
-  { threadInfo_summary :: ThreadSummary
-  , threadInfo_messages :: [WithId ThreadMessage]
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON ThreadInfo
+  { summary :: ThreadSummary,
+    messages :: [WithId ThreadMessage]
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data ThreadMessage = ThreadMessage
-  { threadMessage_author :: Id Person
-  , threadMessage_authorName :: Text
-  , threadMessage_message :: Text
-  , threadMessage_createdAt :: POSIXTime
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON ThreadMessage
+  { authorId :: Id Person,
+    authorName :: Text,
+    message :: Text,
+    createdAt :: POSIXTime
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)

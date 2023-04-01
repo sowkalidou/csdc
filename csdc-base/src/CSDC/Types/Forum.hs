@@ -2,20 +2,19 @@
 
 module CSDC.Types.Forum
   ( -- Thread
-    Thread (..)
-  , NewThread (..)
-  , ThreadInfo (..)
+    Thread (..),
+    NewThread (..),
+    ThreadInfo (..),
     -- Post
-  , Post (..)
-  , NewPost (..)
-  , PostInfo (..)
-  ) where
+    Post (..),
+    NewPost (..),
+    PostInfo (..),
+  )
+where
 
-import CSDC.Aeson (JSON (..))
 import CSDC.Types.DAO
 import CSDC.Types.Id
-
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text)
 import Data.Time.Clock.POSIX (POSIXTime)
 import GHC.Generics (Generic)
@@ -24,48 +23,54 @@ import GHC.Generics (Generic)
 -- Forum
 
 data NewThread = NewThread
-  { newThread_subject :: Text
-  , newThread_text :: Text
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON NewThread
+  { subject :: Text,
+    text :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data Thread = Thread
-  { thread_unit :: Id Unit
-  , thread_author :: Id Person
-  , thread_subject :: Text
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Thread
+  { unitId :: Id Unit,
+    authorId :: Id Person,
+    subject :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data ThreadInfo = ThreadInfo
-  { threadInfo_id :: Id Thread
-  , threadInfo_unit :: Id Unit
-  , threadInfo_author :: Id Person
-  , threadInfo_authorName :: Text
-  , threadInfo_subject :: Text
-  , threadInfo_createdAt :: POSIXTime
-  , threadInfo_last :: POSIXTime
-  , threadInfo_messages :: Int
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON ThreadInfo
+  { id :: Id Thread,
+    unitId :: Id Unit,
+    authorId :: Id Person,
+    authorName :: Text,
+    subject :: Text,
+    createdAt :: POSIXTime,
+    last :: POSIXTime,
+    messages :: Int
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data NewPost = NewPost
-  { newPost_text :: Text
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON NewPost
+  { text :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data Post = Post
-  { post_thread :: Id Thread
-  , post_author :: Id Person
-  , post_text :: Text
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON Post
+  { threadId :: Id Thread,
+    authorId :: Id Person,
+    text :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)
 
 data PostInfo = PostInfo
-  { postInfo_id :: Id Post
-  , postInfo_author :: Id Person
-  , postInfo_authorName :: Text
-  , postInfo_authorImage :: Text
-  , postInfo_text :: Text
-  , postInfo_createdAt :: POSIXTime
-  } deriving (Show, Eq, Generic)
-    deriving (FromJSON, ToJSON) via JSON PostInfo
+  { id :: Id Post,
+    authorId :: Id Person,
+    authorName :: Text,
+    authorImage :: Text,
+    text :: Text,
+    createdAt :: POSIXTime
+  }
+  deriving (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON)

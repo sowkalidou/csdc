@@ -12,7 +12,7 @@ view selected message =
   let
     contents =
       [ Html.strong []
-          [ Html.text <| case message.mtype of
+          [ Html.text <| case message.messageType of
               Invitation -> "Invitation from " ++ message.right
               Submission -> "Submission from " ++ message.left
           ]

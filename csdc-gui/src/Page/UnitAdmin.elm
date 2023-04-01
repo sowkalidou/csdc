@@ -154,8 +154,8 @@ update info pageInfo msg model =
         Just (SelectedInbox (Inbox.MessageMemberId id)) ->
           let
             config =
-              { request = \(rtype, reason) ->
-                  API.sendReplyMember { rtype = rtype, text = reason, message = id }
+              { request = \(replyType, reason) ->
+                  API.sendReplyMember { replyType = replyType, text = reason, messageId = id }
               , finish = reload
               , pageInfo = pageInfo
               }
@@ -173,8 +173,8 @@ update info pageInfo msg model =
         Just (SelectedInbox (Inbox.MessageSubpartId id)) ->
           let
             config =
-              { request = \(rtype, reason) ->
-                  API.sendReplySubpart { rtype = rtype, text = reason, message = id }
+              { request = \(replyType, reason) ->
+                  API.sendReplySubpart { replyType = replyType, text = reason, messageId = id }
               , finish = reload
               , pageInfo = pageInfo
               }
@@ -264,7 +264,7 @@ view info model =
           ]
           [ Html.div
               [ Html.Attributes.class "column is-half" ]
-              [ Column.view "Members Admin" [] (viewPersons info.unit.chair info.members) ]
+              [ Column.view "Members Admin" [] (viewPersons info.unit.chairId info.members) ]
           , Html.div
               [ Html.Attributes.class "column is-half" ]
               [ Column.view "Inbox" [] <|
@@ -276,12 +276,12 @@ view info model =
       , Modal.viewMaybe model.selected CloseModal <| \selected ->
         case selected of
           SelectedPerson id ->
-            case lookupById id info.members of
+            case lookup (\obj -> obj.personId == id) info.members of
               Nothing ->
                 Html.div [] [ Html.text "Loading..." ]
               Just unitMember ->
                 PreviewImageText.view unitMember.person <|
-                ViewSelected unitMember.id
+                ViewSelected unitMember.personId
 
           SelectedInbox inboxId ->
             case inboxId of
@@ -300,7 +300,7 @@ view info model =
                     Html.text "Error."
                   Just msg ->
                     let
-                      title = case msg.mtype of
+                      title = case msg.messageType of
                         Invitation -> "Invitation Reply"
                         Submission -> "Submission Reply"
                     in
@@ -322,7 +322,7 @@ view info model =
                     Html.text "Error."
                   Just msg ->
                     let
-                      title = case msg.mtype of
+                      title = case msg.messageType of
                         Invitation -> "Invitation Reply"
                         Submission -> "Submission Reply"
                     in
@@ -347,13 +347,13 @@ viewPersons chair members =
       BoxImageText.view
         False
         [ { label = "Remove from unit"
-          , message = SetSelectedMember (Just member.member)
+          , message = SetSelectedMember (Just member.memberId)
           }
         , { label = "Nominate chair"
           , message = SetSelectedUnitChair (Just chair)
           }
         ]
-        (SetSelected (SelectedPerson member.id))
+        (SetSelected (SelectedPerson member.personId))
         member.person
   in
-    List.map toBox <| List.filter (\member -> member.id /= chair) members
+    List.map toBox <| List.filter (\member -> member.personId /= chair) members

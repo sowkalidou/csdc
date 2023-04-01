@@ -1,8 +1,9 @@
 let
+  commit = "0591d6b57bfeb55dfeec99a671843337bc2c3323";
   nixpkgs-src = builtins.fetchTarball {
-    name = "nixos-21.11";
-    url = "https://github.com/nixos/nixpkgs/archive/e34c5379866.tar.gz";
-    sha256 = "15shzr1wmc5770kblvlfwq5dsdlmvkpc3rhkn40nyi00fidqq96v";
+    name = "nixos-unstable";
+    url = "https://github.com/nixos/nixpkgs/archive/${commit}.tar.gz";
+    sha256 = "sha256-TbQeQcM5TA/wIho6xtzG+inUfiGzUXi8ewwttiQWYJE=";
   };
 
 in

@@ -19,7 +19,6 @@ cabal-version:
 
 library
   exposed-modules:
-    CSDC.Aeson
     CSDC.Prelude
     CSDC.SQL.QQ
     CSDC.Types.Id
@@ -45,10 +44,15 @@ library
   hs-source-dirs:
     src
   default-extensions:
+    DeriveAnyClass
     DeriveGeneric
     DerivingStrategies
     DerivingVia
+    DuplicateRecordFields
     GeneralizedNewtypeDeriving
+    NoFieldSelectors
+    OverloadedRecordDot
+    ImportQualifiedPost
   ghc-options:
     -Wall
   default-language:

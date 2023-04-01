@@ -188,16 +188,16 @@ view model =
   , Modal.view model.messageCreateOpen MessageCreateClose <|
       Html.map MessageCreateMsg <|
       let
-        make uid = { person = person.id, unit = uid }
+        make uid = { personId = person.id, unitId = uid }
       in
         Form.viewWith "Send Invitation" (MessageForm.view Invitation make) model.messageCreate
 
   , Modal.viewMaybe model.selectedUnit CloseModal <| \id ->
-      case lookupById id person.members of
+      case lookup (\obj -> obj.unitId == id) person.members of
         Nothing ->
           Html.text "Error."
         Just personMember ->
-          PreviewImageText.view personMember.unit (ViewSelectedUnit personMember.id)
+          PreviewImageText.view personMember.unit (ViewSelectedUnit personMember.unitId)
 
   ]
 
@@ -206,6 +206,6 @@ viewUnits info =
   let
     toBox member =
       Html.map SetSelectedUnit <|
-      BoxImageText.view False [] member.id member.unit
+      BoxImageText.view False [] member.unitId member.unit
   in
     List.map toBox info.members

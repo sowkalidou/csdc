@@ -1,29 +1,34 @@
 module CSDC.SQL.Encoder
   ( -- * Base types
-    bytea
-  , int
-  , text
-  , textNullable
-  , textList
+    bytea,
+    int,
+    text,
+    textNullable,
+    textList,
+
     -- * Local types
-  , id
-  , idNullable
-  , idList
-  , messageType
-  , messageStatus
-  , replyType
-  , replyStatus
-  ) where
+    id,
+    idNullable,
+    idList,
+    messageType,
+    messageStatus,
+    replyType,
+    replyStatus,
+  )
+where
 
 import CSDC.Prelude
-import Prelude hiding (id)
-
 import Data.ByteString (ByteString)
 import Data.Functor.Contravariant (Contravariant (..))
 import Hasql.Encoders
-  (Params, param, nonNullable, nullable, foldableArray)
-
-import qualified Hasql.Encoders as Encoders
+  ( Params,
+    foldableArray,
+    nonNullable,
+    nullable,
+    param,
+  )
+import Hasql.Encoders qualified as Encoders
+import Prelude hiding (id)
 
 --------------------------------------------------------------------------------
 -- Base types
@@ -49,17 +54,17 @@ textList = param $ nonNullable $ foldableArray $ nonNullable Encoders.text
 id :: Params (Id a)
 id =
   contramap getId $
-  param (nonNullable Encoders.uuid)
+    param (nonNullable Encoders.uuid)
 
 idNullable :: Params (Maybe (Id a))
 idNullable =
   contramap (fmap getId) $
-  param (nullable Encoders.uuid)
+    param (nullable Encoders.uuid)
 
 idList :: Params [Id a]
 idList =
   contramap (fmap getId) $
-  param (nonNullable (foldableArray (nonNullable Encoders.uuid)))
+    param (nonNullable (foldableArray (nonNullable Encoders.uuid)))
 
 messageType :: Params MessageType
 messageType = contramap encode text

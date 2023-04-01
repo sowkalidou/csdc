@@ -1,94 +1,97 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module CSDC.SQL.Members
-  ( selectByPerson
-  , selectByUnit
-  , insert
-  , delete
-  , deleteUnit
-  ) where
+  ( selectByPerson,
+    selectByUnit,
+    insert,
+    delete,
+    deleteUnit,
+  )
+where
 
 import CSDC.Prelude
-
-import qualified CSDC.SQL.Decoder as Decoder
-import qualified CSDC.SQL.Encoder as Encoder
-
+import CSDC.SQL.Decoder qualified as Decoder
+import CSDC.SQL.Encoder qualified as Encoder
+import Data.ByteString.Char8 qualified as ByteString
 import Data.Functor.Contravariant (Contravariant (..))
 import Hasql.Statement (Statement (..))
-
-import qualified Data.ByteString.Char8 as ByteString
 
 selectByPerson :: Statement (Id Person) [PersonMember]
 selectByPerson = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "SELECT members.id, unit, units.name, units.description, units.chair, units.image, units.created_at"
-      , "FROM members"
-      , "JOIN units ON units.id = unit"
-      , "WHERE person = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "SELECT members.id, unit, units.name, units.description, units.chair, units.image, units.created_at",
+          "FROM members",
+          "JOIN units ON units.id = unit",
+          "WHERE person = $1"
+        ]
 
     encoder = Encoder.id
 
     decoder = Decoder.rowList $ do
-      personMember_member <- Decoder.id
-      personMember_id <- Decoder.id
-      personMember_unit <- do
-        unit_name <- Decoder.text
-        unit_description <- Decoder.text
-        unit_chair <- Decoder.id
-        unit_image <- Decoder.text
-        unit_createdAt <- Decoder.posixTime
+      memberId <- Decoder.id
+      unitId <- Decoder.id
+      unit <- do
+        name <- Decoder.text
+        description <- Decoder.text
+        chairId <- Decoder.id
+        image <- Decoder.text
+        createdAt <- Decoder.posixTime
         pure Unit {..}
       pure PersonMember {..}
 
 selectByUnit :: Statement (Id Unit) [UnitMember]
 selectByUnit = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "SELECT members.id, person, persons.name, persons.description, persons.email, persons.image, persons.created_at"
-      , "FROM members"
-      , "JOIN persons ON persons.id = person"
-      , "WHERE unit = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "SELECT members.id, person, persons.name, persons.description, persons.email, persons.image, persons.created_at",
+          "FROM members",
+          "JOIN persons ON persons.id = person",
+          "WHERE unit = $1"
+        ]
 
     encoder = Encoder.id
 
     decoder = Decoder.rowList $ do
-      unitMember_member <- Decoder.id
-      unitMember_id <- Decoder.id
-      unitMember_person <- do
-        person_name <- Decoder.text
-        person_description <- Decoder.text
-        person_email <- Decoder.text
-        person_image <- Decoder.text
-        person_createdAt <- Decoder.posixTime
+      memberId <- Decoder.id
+      personId <- Decoder.id
+      person <- do
+        name <- Decoder.text
+        description <- Decoder.text
+        email <- Decoder.text
+        image <- Decoder.text
+        createdAt <- Decoder.posixTime
         pure Person {..}
       pure UnitMember {..}
 
 insert :: Statement NewMember (Id Member)
 insert = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "INSERT INTO members (person, unit)"
-      , "VALUES ($1, $2)"
-      , "RETURNING id"
-      ]
+    sql =
+      ByteString.unlines
+        [ "INSERT INTO members (person, unit)",
+          "VALUES ($1, $2)",
+          "RETURNING id"
+        ]
 
     encoder =
-      (contramap newMember_person Encoder.id) <>
-      (contramap newMember_unit Encoder.id)
+      (contramap (.personId) Encoder.id)
+        <> (contramap (.unitId) Encoder.id)
 
     decoder = Decoder.singleRow Decoder.id
 
 delete :: Statement (Id Member) ()
 delete = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "DELETE FROM members"
-      , "WHERE id = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "DELETE FROM members",
+          "WHERE id = $1"
+        ]
 
     encoder = Encoder.id
 
@@ -97,11 +100,11 @@ delete = Statement sql encoder decoder True
 deleteUnit :: Statement (Id Unit) ()
 deleteUnit = Statement sql encoder decoder True
   where
-    sql = ByteString.unlines
-      [ "DELETE FROM members"
-      , "WHERE unit = $1"
-      ]
+    sql =
+      ByteString.unlines
+        [ "DELETE FROM members",
+          "WHERE unit = $1"
+        ]
 
     encoder = Encoder.id
     decoder = Decoder.noResult
-
