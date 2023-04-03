@@ -34,6 +34,7 @@ library
     base,
     containers,
     cryptohash-md5,
+    hashable,
     http-api-data,
     lens,
     password,

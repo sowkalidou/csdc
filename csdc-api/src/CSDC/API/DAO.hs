@@ -11,6 +11,7 @@ import CSDC.Action
 import CSDC.DAO
 import CSDC.Prelude
 import CSDC.Types.File (Base64File, File (..), FileUI)
+import CSDC.Types.Election
 import Data.ByteString.Lazy qualified as Lazy
 import Servant hiding (Post)
 import Servant qualified
@@ -71,6 +72,7 @@ type UnitAPI =
     :<|> CaptureId Unit :> "files" :> GetJSON [FileUI]
     :<|> CaptureId Unit :> "files" :> MultipartForm Mem File :> Servant.Post '[JSON] ()
     :<|> CaptureId Unit :> "invitation" :> PostJSON MailInvitation ()
+    :<|> CaptureId Unit :> "elections" :> ElectionAPI
 
 serveUnitAPI :: ServerAuth UnitAPI
 serveUnitAPI =
@@ -86,6 +88,7 @@ serveUnitAPI =
     :<|> getUnitFiles
     :<|> insertUnitFile
     :<|> sendMailInvitation
+    :<|> electionAPI
 
 instance FromMultipart Mem File where
   fromMultipart parts = do
@@ -95,6 +98,22 @@ instance FromMultipart Mem File where
         { name = fdFileName fileData,
           contents = Lazy.toStrict $ fdPayload fileData
         }
+
+--------------------------------------------------------------------------------
+-- Elections
+
+type ElectionAPI =
+   -- POST units/<unit-uuid>/elections
+   PostJSON NewElection (Id Election)
+   -- GET units/<unit-uuid>/elections
+   :<|> GetJSON [ElectionInfo]
+   -- DELETE units/<unit-uuid>/elections/<election-id>
+   :<|> CaptureId Election :> DeleteJSON ()
+   -- POST units/<unit-uuid>/elections/<election-id>/vote
+   :<|> CaptureId Election :> "vote" :> PostJSON NewVote (Id Vote)
+
+electionAPI :: Id Unit -> ServerAuth ElectionAPI
+electionAPI unitId = undefined
 
 --------------------------------------------------------------------------------
 -- Member API
