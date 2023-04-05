@@ -2,9 +2,9 @@ module CSDC.Types.Election where
 
 import CSDC.Types.DAO (Person, Unit)
 import CSDC.Types.Id (Id)
-import Data.Aeson (FromJSON (..), ToJSON (..), FromJSONKey (..), ToJSONKey (..))
-import Data.Hashable (Hashable)
+import Data.Aeson (FromJSON (..), FromJSONKey (..), ToJSON (..), ToJSONKey (..))
 import Data.HashMap.Strict (HashMap)
+import Data.Hashable (Hashable)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
@@ -36,8 +36,8 @@ data Election = Election
   deriving anyclass (FromJSON, ToJSON)
 
 data ElectionInfo = ElectionInfo
-  { election :: Election
-  , votedAt :: Maybe UTCTime
+  { election :: Election,
+    votedAt :: Maybe UTCTime
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

@@ -18,6 +18,7 @@ import CSDC.SQL.MessageSubparts qualified as SQL.MessageSubparts
 import CSDC.SQL.Persons qualified as SQL.Persons
 import CSDC.SQL.Subparts qualified as SQL.Subparts
 import CSDC.SQL.Units qualified as SQL.Units
+import CSDC.Types.Election
 import CSDC.Types.File
 import Control.Monad (forM_)
 import Control.Monad.Reader (asks)
@@ -441,6 +442,21 @@ createPost tid NewPost {..} = do
 
 getPosts :: Id Thread -> ActionAuth [PostInfo]
 getPosts tid = runQuery SQL.Forum.selectPosts tid
+
+--------------------------------------------------------------------------------
+-- Elections
+
+createElection :: Id Unit -> NewElection -> ActionAuth (Id Election)
+createElection = undefined
+
+getElections :: Id Unit -> ActionAuth [ElectionInfo]
+getElections = undefined
+
+deleteElection :: Id Election -> ActionAuth ()
+deleteElection = undefined
+
+addVote :: Id Election -> NewVote -> ActionAuth (Id Vote)
+addVote = undefined
 
 --------------------------------------------------------------------------------
 -- Mail
