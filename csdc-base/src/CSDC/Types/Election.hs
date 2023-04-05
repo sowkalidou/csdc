@@ -44,8 +44,7 @@ data ElectionInfo = ElectionInfo
 
 -- | Used by the UI to create an election
 data NewElection = NewElection
-  { unitId :: Id Unit,
-    title :: Text,
+  { title :: Text,
     description :: Text,
     choices :: [ElectionChoice],
     electionType :: ElectionType,
@@ -99,7 +98,6 @@ data Voter = Voter
 
 data NewVote = NewVote
   { electionId :: Id Election,
-    personId :: Id Person,
     payload :: VotePayload
   }
   deriving (Show, Eq, Generic)

@@ -10,6 +10,7 @@ import CSDC.Mail.Templates qualified as Mail.Templates
 import CSDC.Prelude
 import CSDC.SQL.Files qualified as SQL.Files
 import CSDC.SQL.Forum qualified as SQL.Forum
+import CSDC.SQL.Elections qualified as SQL.Elections
 import CSDC.SQL.Mail qualified as SQL.Mail
 import CSDC.SQL.MailInvitations qualified as SQL.MailInvitations
 import CSDC.SQL.Members qualified as SQL.Members
@@ -447,16 +448,23 @@ getPosts tid = runQuery SQL.Forum.selectPosts tid
 -- Elections
 
 createElection :: Id Unit -> NewElection -> ActionAuth (Id Election)
-createElection = undefined
+createElection unitId newElection = do
+  runQuery SQL.Elections.insertElection (unitId, newElection)
 
 getElections :: Id Unit -> ActionAuth [ElectionInfo]
-getElections = undefined
+getElections unitId = do
+  personId <- getUser
+  runQuery SQL.Elections.selectElections (unitId, personId)
 
 deleteElection :: Id Election -> ActionAuth ()
-deleteElection = undefined
+deleteElection electionId = do
+  runQuery SQL.Elections.deleteElection electionId
 
 addVote :: Id Election -> NewVote -> ActionAuth (Id Vote)
-addVote = undefined
+addVote electionId newVote = do
+  personId <- getUser
+  runQuery SQL.Elections.insertVoter (electionId, personId)
+  runQuery SQL.Elections.insertVote (electionId, newVote)
 
 --------------------------------------------------------------------------------
 -- Mail
